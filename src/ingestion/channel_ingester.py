@@ -1,0 +1,297 @@
+import asyncio
+import logging
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
+from src.core.video_processor import VideoProcessor
+from src.core.audio_fingerprinting import AudioFingerprinter
+from src.database.repositories import VideoRepository, JobRepository, get_video_repository, get_job_repository
+from src.database.connection import db_manager
+from config.settings import Config
+import json
+
+class ChannelIngester:
+    """
+    Handles ingestion of videos from YouTube channels and processing for fingerprinting.
+    """
+    
+    def __init__(self):
+        self.video_processor = VideoProcessor()
+        self.fingerprinter = AudioFingerprinter()
+        self.target_channels = Config.TARGET_CHANNELS
+        self.logger = logging.getLogger(__name__)
+        
+        # Initialize database
+        db_manager.initialize()
+    
+    async def ingest_all_channels(self):
+        """Ingest videos from all configured channels"""
+        self.logger.info(f"Starting ingestion for {len(self.target_channels)} channels")
+        
+        for channel_id in self.target_channels:
+            if channel_id.strip():  # Skip empty channel IDs
+                await self.ingest_channel(channel_id.strip())
+    
+    async def ingest_channel(self, channel_id: str, max_videos: int = 100):
+        """
+        Ingest videos from a specific channel.
+        Creates channel and video records, then queues processing jobs.
+        """
+        self.logger.info(f"Starting ingestion for channel: {channel_id}")
+        
+        try:
+            video_repo = get_video_repository()
+            job_repo = get_job_repository()
+            
+            # Get or create channel record
+            channel = video_repo.get_channel_by_id(channel_id)
+            if not channel:
+                self.logger.info(f"Creating new channel record for {channel_id}")
+                channel = video_repo.create_channel(
+                    channel_id=channel_id,
+                    channel_name=f"Channel {channel_id}",  # Will be updated with real name
+                )
+            
+            # Get videos from channel
+            videos_info = self.video_processor.get_channel_videos(channel_id, max_videos)
+            
+            if not videos_info:
+                self.logger.warning(f"No videos found for channel {channel_id}")
+                return
+            
+            # Update channel info with first video's channel data
+            if videos_info and not channel.channel_name.startswith("Channel "):
+                first_video = videos_info[0]
+                if first_video.get('channel'):
+                    channel.channel_name = first_video['channel']
+                    video_repo.session.commit()
+            
+            new_videos = 0
+            updated_videos = 0
+            
+            for video_info in videos_info:
+                try:
+                    # Check if video already exists
+                    existing_video = video_repo.get_video_by_id(video_info['id'])
+                    
+                    if existing_video:
+                        # Update existing video if needed
+                        if self._should_update_video(existing_video, video_info):
+                            self._update_video_record(existing_video, video_info, video_repo)
+                            updated_videos += 1
+                    else:
+                        # Create new video record
+                        video = video_repo.create_video(
+                            video_id=video_info['id'],
+                            channel_id=channel.id,
+                            title=video_info.get('title'),
+                            description=video_info.get('description'),
+                            duration=video_info.get('duration'),
+                            view_count=video_info.get('view_count'),
+                            like_count=video_info.get('like_count'),
+                            upload_date=self._parse_upload_date(video_info.get('upload_date')),
+                            url=video_info.get('webpage_url'),
+                            thumbnail_url=video_info.get('thumbnail')
+                        )
+                        
+                        # Create processing job for this video
+                        job_repo.create_job(
+                            job_type='video_process',
+                            target_id=video_info['id'],
+                            parameters=json.dumps({
+                                'url': video_info.get('webpage_url'),
+                                'channel_id': channel_id
+                            })
+                        )
+                        
+                        new_videos += 1
+                        
+                except Exception as e:
+                    self.logger.error(f"Error processing video {video_info.get('id', 'unknown')}: {str(e)}")
+                    continue
+            
+            # Update channel last processed time
+            channel.last_processed = datetime.utcnow()
+            video_repo.session.commit()
+            
+            self.logger.info(f"Channel {channel_id} ingestion complete: {new_videos} new videos, {updated_videos} updated")
+            
+        except Exception as e:
+            self.logger.error(f"Error ingesting channel {channel_id}: {str(e)}")
+            raise
+    
+    def _should_update_video(self, existing_video, video_info: Dict) -> bool:
+        """Check if video record should be updated with new info"""
+        # Update if view count or like count has changed significantly
+        current_views = existing_video.view_count or 0
+        new_views = video_info.get('view_count', 0) or 0
+        
+        if abs(new_views - current_views) > current_views * 0.1:  # 10% change
+            return True
+        
+        # Update if not processed and now we have duration
+        if not existing_video.processed and video_info.get('duration') and not existing_video.duration:
+            return True
+        
+        return False
+    
+    def _update_video_record(self, video, video_info: Dict, repo: VideoRepository):
+        """Update existing video record with new information"""
+        video.view_count = video_info.get('view_count')
+        video.like_count = video_info.get('like_count')
+        if video_info.get('duration') and not video.duration:
+            video.duration = video_info.get('duration')
+        video.updated_at = datetime.utcnow()
+        repo.session.commit()
+    
+    def _parse_upload_date(self, upload_date_str: str) -> Optional[datetime]:
+        """Parse upload date string from yt-dlp"""
+        if not upload_date_str:
+            return None
+        try:
+            # yt-dlp returns dates in YYYYMMDD format
+            return datetime.strptime(upload_date_str, '%Y%m%d')
+        except (ValueError, TypeError):
+            return None
+
+class VideoProcessor:
+    """
+    Processes individual videos for fingerprinting.
+    Handles the complete pipeline from video to stored fingerprints.
+    """
+    
+    def __init__(self):
+        self.video_processor = VideoProcessor()
+        self.fingerprinter = AudioFingerprinter()
+        self.logger = logging.getLogger(__name__)
+    
+    async def process_pending_videos(self, batch_size: int = 5):
+        """Process videos that are queued for processing"""
+        job_repo = get_job_repository()
+        video_repo = get_video_repository()
+        
+        while True:
+            # Get pending jobs
+            jobs = job_repo.get_pending_jobs('video_process', limit=batch_size)
+            
+            if not jobs:
+                self.logger.info("No pending video processing jobs")
+                break
+            
+            self.logger.info(f"Processing {len(jobs)} video jobs")
+            
+            for job in jobs:
+                try:
+                    await self.process_video_job(job, video_repo, job_repo)
+                except Exception as e:
+                    self.logger.error(f"Error processing job {job.id}: {str(e)}")
+                    job_repo.update_job_status(
+                        job.id, 'failed', 
+                        error_message=str(e)
+                    )
+    
+    async def process_video_job(self, job, video_repo: VideoRepository, job_repo: JobRepository):
+        """Process a single video processing job"""
+        job_repo.update_job_status(job.id, 'running', 0.0, 'Starting video processing')
+        
+        try:
+            # Parse job parameters
+            params = json.loads(job.parameters or '{}')
+            video_url = params.get('url')
+            video_id = job.target_id
+            
+            if not video_url:
+                raise ValueError("No video URL in job parameters")
+            
+            # Get video record
+            video = video_repo.get_video_by_id(video_id)
+            if not video:
+                raise ValueError(f"Video record not found: {video_id}")
+            
+            # Mark video as processing started
+            video.processing_started = datetime.utcnow()
+            video_repo.session.commit()
+            
+            job_repo.update_job_status(job.id, 'running', 0.2, 'Downloading and segmenting audio')
+            
+            # Process video and get segments
+            segments = self.video_processor.process_video_for_fingerprinting(video_url)
+            
+            if not segments:
+                raise ValueError("Failed to process video or no segments created")
+            
+            job_repo.update_job_status(job.id, 'running', 0.5, f'Extracting fingerprints from {len(segments)} segments')
+            
+            # Process each segment
+            fingerprints_created = 0
+            
+            for i, (segment_file, start_time, end_time) in enumerate(segments):
+                try:
+                    # Extract fingerprint
+                    fingerprint_data = self.fingerprinter.extract_fingerprint(segment_file)
+                    
+                    # Store fingerprint in database
+                    serialized_data = self.fingerprinter.serialize_fingerprint(fingerprint_data)
+                    
+                    video_repo.create_fingerprint(
+                        video_id=video.id,
+                        start_time=start_time,
+                        end_time=end_time,
+                        fingerprint_hash=fingerprint_data['fingerprint_hash'],
+                        fingerprint_data=serialized_data,
+                        confidence_score=fingerprint_data['confidence_score'],
+                        peak_count=fingerprint_data['peak_count'],
+                        segment_length=end_time - start_time,
+                        sample_rate=fingerprint_data['sample_rate']
+                    )
+                    
+                    fingerprints_created += 1
+                    
+                    # Clean up segment file
+                    import os
+                    if os.path.exists(segment_file):
+                        os.remove(segment_file)
+                    
+                    # Update progress
+                    progress = 0.5 + (0.4 * (i + 1) / len(segments))
+                    job_repo.update_job_status(
+                        job.id, 'running', progress, 
+                        f'Processed segment {i+1}/{len(segments)}'
+                    )
+                    
+                except Exception as e:
+                    self.logger.error(f"Error processing segment {start_time}-{end_time}: {str(e)}")
+                    continue
+            
+            # Mark video as processed
+            video_repo.mark_video_processed(video.id, success=True)
+            
+            job_repo.update_job_status(
+                job.id, 'completed', 1.0, 
+                f'Created {fingerprints_created} fingerprints'
+            )
+            
+            self.logger.info(f"Successfully processed video {video_id}: {fingerprints_created} fingerprints")
+            
+        except Exception as e:
+            # Mark video as failed
+            video = video_repo.get_video_by_id(job.target_id)
+            if video:
+                video_repo.mark_video_processed(video.id, success=False, error_message=str(e))
+            
+            raise
+
+async def main():
+    """Main ingestion process"""
+    logging.basicConfig(level=logging.INFO)
+    
+    ingester = ChannelIngester()
+    processor = VideoProcessor()
+    
+    # First, ingest channel data
+    await ingester.ingest_all_channels()
+    
+    # Then process videos
+    await processor.process_pending_videos()
+
+if __name__ == "__main__":
+    asyncio.run(main())

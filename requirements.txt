@@ -1,0 +1,37 @@
+# Core dependencies
+psycopg2-binary==2.9.7
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# Audio processing
+librosa==0.10.1
+scipy==1.11.4
+numpy==1.24.4
+soundfile==0.12.1
+
+# Video processing
+yt-dlp==2023.10.13
+ffmpeg-python==0.2.0
+
+# Social media APIs
+tweepy==4.14.0
+praw==7.7.1
+
+# Web server for OAuth callbacks
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+python-dateutil==2.8.2
+tqdm==4.66.1
+
+# Development
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0
+
+# Async support
+asyncio==3.4.3
+aiohttp==3.9.1

@@ -1,0 +1,158 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: soundhash_postgres
+    environment:
+      POSTGRES_DB: soundhash
+      POSTGRES_USER: soundhash_user
+      POSTGRES_PASSWORD: soundhash_password123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5433:5432" # Using port 5433 to avoid conflicts with other PostgreSQL instances
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - soundhash_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soundhash_user -d soundhash"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  soundhash_app:
+    build: .
+    container_name: soundhash_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=soundhash
+      - DATABASE_USER=soundhash_user
+      - DATABASE_PASSWORD=soundhash_password123
+      - TEMP_DIR=/app/temp
+    env_file:
+      - .env.docker
+    volumes:
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    networks:
+      - soundhash_network
+    restart: unless-stopped
+    command: ["python", "scripts/test_system.py"]
+
+  soundhash_ingestion:
+    build: .
+    container_name: soundhash_ingestion
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=soundhash
+      - DATABASE_USER=soundhash_user
+      - DATABASE_PASSWORD=soundhash_password123
+      - TEMP_DIR=/app/temp
+    env_file:
+      - .env.docker
+    volumes:
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    networks:
+      - soundhash_network
+    restart: "no" # Run once for initial setup
+    command: ["python", "scripts/ingest_channels.py"]
+    profiles:
+      - ingestion
+
+  soundhash_twitter_bot:
+    build: .
+    container_name: soundhash_twitter_bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=soundhash
+      - DATABASE_USER=soundhash_user
+      - DATABASE_PASSWORD=soundhash_password123
+      - TEMP_DIR=/app/temp
+    env_file:
+      - .env.docker
+    volumes:
+      - ./temp:/app/temp
+      - ./logs:/app/logs
+    networks:
+      - soundhash_network
+    restart: unless-stopped
+    command: ["python", "src/bots/twitter_bot.py"]
+    profiles:
+      - bots
+
+  soundhash_setup:
+    build: .
+    container_name: soundhash_setup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=soundhash
+      - DATABASE_USER=soundhash_user
+      - DATABASE_PASSWORD=soundhash_password123
+    env_file:
+      - .env.docker
+    networks:
+      - soundhash_network
+    command: ["python", "scripts/setup_database.py"]
+    profiles:
+      - setup
+
+  soundhash_auth_server:
+    build: .
+    container_name: soundhash_auth_server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=soundhash
+      - DATABASE_USER=soundhash_user
+      - DATABASE_PASSWORD=soundhash_password123
+    env_file:
+      - .env.docker
+    ports:
+      - "8000:8000"
+    networks:
+      - soundhash_network
+    restart: unless-stopped
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "src.auth.auth_server:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+      ]
+    profiles:
+      - auth
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  soundhash_network:
+    driver: bridge
