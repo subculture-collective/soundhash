@@ -28,3 +28,6 @@ MANIFEST
 # Docker
 .dockerignore
 cookies.txt
+ingestion.log
+credentials.json
+token.json
