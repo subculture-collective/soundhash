@@ -27,3 +27,4 @@ MANIFEST
 
 # Docker
 .dockerignore
+cookies.txt
