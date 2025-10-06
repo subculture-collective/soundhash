@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from config.settings import Config
 from .models import Base
+import importlib
 
 class DatabaseManager:
     def __init__(self):
@@ -11,6 +12,16 @@ class DatabaseManager:
     def initialize(self):
         """Initialize database connection and create tables"""
         database_url = Config.get_database_url()
+
+        # Auto-select driver if none specified and appropriate driver is available
+        if database_url.startswith("postgresql://"):
+            driver = None
+            if importlib.util.find_spec("psycopg2") is not None:
+                driver = "psycopg2"
+            elif importlib.util.find_spec("psycopg") is not None:
+                driver = "psycopg"
+            if driver:
+                database_url = database_url.replace("postgresql://", f"postgresql+{driver}://", 1)
         self.engine = create_engine(
             database_url,
             pool_size=10,

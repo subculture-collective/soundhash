@@ -19,7 +19,8 @@ def test_database_connection():
     try:
         db_manager.initialize()
         session = db_manager.get_session()
-        result = session.execute("SELECT version()").scalar()
+        from sqlalchemy import text
+        result = session.execute(text("SELECT version()")).scalar()
         print(f"✅ Database connected: {result}")
         session.close()
         return True

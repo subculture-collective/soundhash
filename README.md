@@ -9,6 +9,7 @@ A sophisticated system for matching audio clips from videos across social media 
 -   Social media bot integration (Twitter, Reddit)
 -   YouTube channel ingestion
 -   Real-time clip matching
+-   Beautiful colored logging with progress tracking
 
 ## Target Channels
 
@@ -18,7 +19,7 @@ The system is initially configured to process videos from:
 -   UCDz8WxTg4R7FUTSz7GW2cYA
 -   UCBvc2dNfp1AC0VBVU0vRagw
 
-## Quick Start with Docker (Recommended)
+## Quick Start
 
 1. Clone and setup:
 
@@ -27,91 +28,74 @@ git clone <repository-url> soundhash
 cd soundhash
 ```
 
-2. Configure environment:
-
-```bash
-cp .env.docker.example .env.docker
-# Edit .env.docker with your API keys
-```
-
-3. Run complete setup:
-
-```bash
-./docker/manage.sh setup
-```
-
-4. Start processing channels:
-
-```bash
-./docker/manage.sh ingest
-```
-
-5. Start Twitter bot:
-
-```bash
-./docker/manage.sh bot
-```
-
-## Manual Setup (Without Docker)
-
-1. Install dependencies:
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Setup PostgreSQL database:
+3. Setup PostgreSQL database:
 
 ```bash
 createdb soundhash
 ```
 
-3. Copy environment file and configure:
+4. Configure environment:
 
 ```bash
 cp .env.example .env
 # Edit .env with your API keys and database credentials
 ```
 
-4. Run database migrations:
+5. Run database setup:
 
 ```bash
 python scripts/setup_database.py
 ```
 
-5. Start ingesting channel data:
+6. Start processing channels:
 
 ```bash
 python scripts/ingest_channels.py
 ```
 
-## Usage
-
-### Docker Commands
+7. Start Twitter bot:
 
 ```bash
-# Start all services
-./docker/manage.sh start
-
-# Check service status
-./docker/manage.sh status
-
-# View logs
-./docker/manage.sh logs
-
-# Stop services
-./docker/manage.sh stop
-
-# Run channel ingestion
-./docker/manage.sh ingest
-
-# Start Twitter bot
-./docker/manage.sh bot
+python src/bots/twitter_bot.py
 ```
 
-### Manual Bot Deployment
+## Usage
 
--   Configure API keys in `.env` or `.env.docker`
+### Command Line Options
+
+The ingestion script supports various options for flexible processing:
+
+```bash
+# Basic ingestion (unlimited videos per channel)
+python scripts/ingest_channels.py
+
+# Process specific channels with all their videos
+python scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA"
+
+# Limit videos per channel (useful for testing)
+python scripts/ingest_channels.py --max-videos 10
+
+# Dry run (no actual processing, shows what would be ingested)
+python scripts/ingest_channels.py --dry-run
+
+# Set log level
+python scripts/ingest_channels.py --log-level DEBUG
+
+# Disable colored output
+python scripts/ingest_channels.py --no-colors
+```
+
+**⚠️ Important**: By default, the system will fetch **ALL videos** from each channel. For channels with thousands of videos, this can take a very long time and generate a lot of processing jobs. Use `--max-videos` to limit the number if you want to test or process only recent content.
+
+### Bot Deployment
+
+-   Configure API keys in `.env`
 -   Run Twitter bot: `python src/bots/twitter_bot.py`
 -   Run Reddit bot: `python src/bots/reddit_bot.py`
 

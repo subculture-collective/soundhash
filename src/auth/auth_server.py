@@ -105,7 +105,7 @@ async def twitter_callback(oauth_token: str, oauth_verifier: str, state: str = N
                 <p><strong>Access Token Secret:</strong><br><code>{access_token_secret}</code></p>
             </div>
             
-            <p class="warning">⚠️ Keep these credentials secure! Add them to your .env.docker file:</p>
+            <p class="warning">⚠️ Keep these credentials secure! Add them to your .env file:</p>
             <div class="credentials">
                 <code>TWITTER_ACCESS_TOKEN={access_token}</code><br>
                 <code>TWITTER_ACCESS_TOKEN_SECRET={access_token_secret}</code>
@@ -188,7 +188,7 @@ async def reddit_callback(code: str, state: str):
                 <p><strong>Refresh Token:</strong><br><code>{refresh_token}</code></p>
             </div>
             
-            <p class="warning">⚠️ Keep this refresh token secure! Add it to your .env.docker file:</p>
+            <p class="warning">⚠️ Keep this refresh token secure! Add it to your .env file:</p>
             <div class="credentials">
                 <code>REDDIT_REFRESH_TOKEN={refresh_token}</code>
             </div>

@@ -1,6 +1,5 @@
 # Add to .gitignore
 .env
-.env.docker
 temp/
 logs/
 *.log

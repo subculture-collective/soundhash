@@ -29,7 +29,8 @@ def setup_database():
         
         # Test the connection
         session = db_manager.get_session()
-        session.execute("SELECT 1")
+        from sqlalchemy import text
+        session.execute(text("SELECT 1"))
         session.close()
         
         logger.info("Database connection test passed!")

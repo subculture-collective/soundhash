@@ -33,8 +33,22 @@ class Config:
     # Processing
     TEMP_DIR = os.getenv('TEMP_DIR', './temp')
     MAX_CONCURRENT_DOWNLOADS = int(os.getenv('MAX_CONCURRENT_DOWNLOADS', 3))
-    SEGMENT_LENGTH_SECONDS = int(os.getenv('SEGMENT_LENGTH_SECONDS', 30))
+    SEGMENT_LENGTH_SECONDS = int(os.getenv('SEGMENT_LENGTH_SECONDS', 90))  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv('FINGERPRINT_SAMPLE_RATE', 22050))
+    
+    # File management
+    KEEP_ORIGINAL_AUDIO = os.getenv('KEEP_ORIGINAL_AUDIO', 'true').lower() == 'true'
+    CLEANUP_SEGMENTS_AFTER_PROCESSING = os.getenv('CLEANUP_SEGMENTS_AFTER_PROCESSING', 'true').lower() == 'true'
+    
+    # Download configuration (for yt-dlp)
+    USE_PROXY = os.getenv('USE_PROXY', 'false').lower() == 'true'
+    PROXY_URL = os.getenv('PROXY_URL')  # Format: http://proxy.example.com:8080
+    PROXY_LIST = os.getenv('PROXY_LIST', '').split(',') if os.getenv('PROXY_LIST') else []
+    # YouTube cookies & extractor behavior
+    YT_COOKIES_FILE = os.getenv('YT_COOKIES_FILE')  # Path to a Netscape cookies.txt exported file
+    YT_COOKIES_FROM_BROWSER = os.getenv('YT_COOKIES_FROM_BROWSER')  # e.g., 'chrome', 'chromium', 'firefox', 'brave', 'edge'
+    YT_BROWSER_PROFILE = os.getenv('YT_BROWSER_PROFILE')  # e.g., 'Default', 'Profile 1', or a Firefox profile name
+    YT_PLAYER_CLIENT = os.getenv('YT_PLAYER_CLIENT')  # e.g., 'android', 'web_safari', 'tv'
     
     # Target channels
     TARGET_CHANNELS = os.getenv('TARGET_CHANNELS', '').split(',')

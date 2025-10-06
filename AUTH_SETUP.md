@@ -6,7 +6,7 @@ This guide will help you set up OAuth authentication for Twitter and Reddit usin
 
 1. Twitter Developer Account
 2. Reddit App (for Reddit integration)
-3. SoundHash Docker environment running
+3. SoundHash environment set up
 
 ## Twitter OAuth Setup
 
@@ -21,7 +21,7 @@ This guide will help you set up OAuth authentication for Twitter and Reddit usin
 
 ### 2. Configure Environment
 
-Add your Twitter credentials to `.env.docker`:
+Add your Twitter credentials to `.env`:
 
 ```env
 TWITTER_CONSUMER_KEY=your_api_key_here
@@ -31,7 +31,7 @@ TWITTER_CONSUMER_SECRET=your_api_secret_key_here
 ### 3. Start Authentication Server
 
 ```bash
-./docker/manage.sh auth
+python src/auth/auth_server.py
 ```
 
 ### 4. Authenticate
@@ -39,7 +39,7 @@ TWITTER_CONSUMER_SECRET=your_api_secret_key_here
 1. Open browser to: http://localhost:8000/auth/twitter
 2. Authorize the application on Twitter
 3. Copy the returned access tokens
-4. Add tokens to `.env.docker`:
+4. Add tokens to `.env`:
 
 ```env
 TWITTER_ACCESS_TOKEN=your_access_token_here
@@ -58,7 +58,7 @@ TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret_here
 
 ### 2. Configure Environment
 
-Add your Reddit credentials to `.env.docker`:
+Add your Reddit credentials to `.env`:
 
 ```env
 REDDIT_CLIENT_ID=your_client_id_here
@@ -70,7 +70,7 @@ REDDIT_CLIENT_SECRET=your_client_secret_here
 1. Open browser to: http://localhost:8000/auth/reddit
 2. Authorize the application on Reddit
 3. Copy the returned refresh token
-4. Add token to `.env.docker`:
+4. Add token to `.env`:
 
 ```env
 REDDIT_REFRESH_TOKEN=your_refresh_token_here
@@ -127,7 +127,7 @@ Update your app callback URLs accordingly:
 
 **Authentication server not starting:**
 
--   Check Docker logs: `./docker/manage.sh logs soundhash_auth_server`
+-   Check application logs in the terminal where you started the auth server
 -   Verify port 8000 is not in use by another service
 -   Check environment variables are properly set
 
@@ -136,8 +136,8 @@ Update your app callback URLs accordingly:
 To run the authentication server with debug logging:
 
 ```bash
-# Modify docker-compose.yml command temporarily:
-command: ["python", "-m", "uvicorn", "src.auth.auth_server:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]
+# Run with debug logging:
+python src/auth/auth_server.py --log-level debug
 ```
 
 ## Security Notes

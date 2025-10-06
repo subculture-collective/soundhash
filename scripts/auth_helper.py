@@ -41,7 +41,7 @@ def start_twitter_auth():
     
     print(f"If the browser doesn't open automatically, visit: {auth_url}")
     print("After completing authentication, your tokens will be displayed.")
-    print("Copy them to your .env.docker file.")
+    print("Copy them to your .env file.")
 
 def start_reddit_auth():
     """Start Reddit OAuth flow"""
@@ -53,7 +53,7 @@ def start_reddit_auth():
     
     print(f"If the browser doesn't open automatically, visit: {auth_url}")
     print("After completing authentication, your refresh token will be displayed.")
-    print("Copy it to your .env.docker file.")
+    print("Copy it to your .env file.")
 
 def print_status(status):
     """Print authentication status in a readable format"""

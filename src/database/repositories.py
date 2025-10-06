@@ -137,6 +137,26 @@ class JobRepository:
         
         return query.order_by(ProcessingJob.created_at).limit(limit).all()
     
+    def get_jobs_by_target(self, job_type: str, target_id: str, statuses: List[str] = None) -> List[ProcessingJob]:
+        """Get jobs by target id and type, optionally filtered by status list"""
+        query = self.session.query(ProcessingJob).filter(
+            ProcessingJob.job_type == job_type,
+            ProcessingJob.target_id == target_id,
+        )
+        if statuses:
+            query = query.filter(ProcessingJob.status.in_(statuses))
+        return query.order_by(ProcessingJob.created_at.desc()).all()
+    
+    def job_exists(self, job_type: str, target_id: str, statuses: List[str] = None) -> bool:
+        """Check if a job already exists for target_id and type (optionally in given statuses)"""
+        query = self.session.query(ProcessingJob).filter(
+            ProcessingJob.job_type == job_type,
+            ProcessingJob.target_id == target_id,
+        )
+        if statuses:
+            query = query.filter(ProcessingJob.status.in_(statuses))
+        return self.session.query(query.exists()).scalar()
+    
     def update_job_status(self, job_id: int, status: str, progress: float = None,
                          current_step: str = None, error_message: str = None):
         """Update job status and progress"""

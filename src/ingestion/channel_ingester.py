@@ -2,43 +2,96 @@ import asyncio
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from src.core.video_processor import VideoProcessor
+from src.core.video_processor import VideoProcessor as CoreVideoProcessor
 from src.core.audio_fingerprinting import AudioFingerprinter
 from src.database.repositories import VideoRepository, JobRepository, get_video_repository, get_job_repository
 from src.database.connection import db_manager
 from config.settings import Config
+from config.logging_config import create_section_logger, get_progress_logger
 import json
+
+try:
+    from src.api.youtube_service import YouTubeAPIService
+    YOUTUBE_API_AVAILABLE = True
+except ImportError:
+    YOUTUBE_API_AVAILABLE = False
+    YouTubeAPIService = None
 
 class ChannelIngester:
     """
     Handles ingestion of videos from YouTube channels and processing for fingerprinting.
     """
     
-    def __init__(self):
-        self.video_processor = VideoProcessor()
+    def __init__(self, initialize_db: bool = True, youtube_service=None):
+        # Initialize YouTube API service if available
+        self.youtube_service = youtube_service
+        if not self.youtube_service and YOUTUBE_API_AVAILABLE:
+            try:
+                self.youtube_service = YouTubeAPIService()
+                self.logger = create_section_logger(__name__)
+                self.logger.log_success("YouTube Data API service initialized")
+            except Exception as e:
+                self.logger = create_section_logger(__name__)
+                self.logger.log_warning_box(f"Failed to initialize YouTube API service: {e}")
+        else:
+            self.logger = create_section_logger(__name__)
+        
+        # Use the core video processor for download/segmentation
+        self.video_processor = CoreVideoProcessor(youtube_service=self.youtube_service)
         self.fingerprinter = AudioFingerprinter()
         self.target_channels = Config.TARGET_CHANNELS
-        self.logger = logging.getLogger(__name__)
+        self._db_initialized = False
         
-        # Initialize database
-        db_manager.initialize()
+        # Initialize database (can be skipped for dry-run)
+        if initialize_db:
+            db_manager.initialize()
+            self._db_initialized = True
     
-    async def ingest_all_channels(self):
-        """Ingest videos from all configured channels"""
-        self.logger.info(f"Starting ingestion for {len(self.target_channels)} channels")
+    async def ingest_all_channels(self, channels_override: Optional[list] = None, max_videos: int = None, dry_run: bool = False):
+        """Ingest videos from all configured channels or provided override list"""
+        channels = channels_override or self.target_channels
+        self.logger.info(f"🎯 Starting ingestion for {len(channels)} channels")
         
-        for channel_id in self.target_channels:
+        # Create progress tracker
+        progress = get_progress_logger(self.logger, len(channels), "Channel Ingestion")
+        
+        for i, channel_id in enumerate(channels):
             if channel_id.strip():  # Skip empty channel IDs
-                await self.ingest_channel(channel_id.strip())
+                progress.update(increment=0, item_name=f"Channel {channel_id}")
+                await self.ingest_channel(channel_id.strip(), max_videos=max_videos, dry_run=dry_run)
+                progress.update(increment=1)
+        
+        progress.complete()
     
-    async def ingest_channel(self, channel_id: str, max_videos: int = 100):
+    async def ingest_channel(self, channel_id: str, max_videos: int = None, dry_run: bool = False):
         """
         Ingest videos from a specific channel.
         Creates channel and video records, then queues processing jobs.
         """
-        self.logger.info(f"Starting ingestion for channel: {channel_id}")
+        self.logger.info(f"📺 Starting ingestion for channel: {channel_id}")
         
         try:
+            # Warn about unlimited processing
+            if max_videos is None:
+                self.logger.log_warning_box(f"Processing ALL videos for channel {channel_id}. This may take a very long time!")
+                
+            # Get videos from channel via yt-dlp
+            videos_info = self.video_processor.get_channel_videos(channel_id, max_videos)
+            
+            if not videos_info:
+                self.logger.log_warning_box(f"No videos found for channel {channel_id}")
+                return
+            
+            # Dry-run: just log summary and return without DB access
+            if dry_run or not self._db_initialized:
+                self.logger.info(f"🔍 [DRY-RUN] Channel {channel_id}: found {len(videos_info)} videos")
+                for i, vi in enumerate(videos_info[:5], 1):
+                    self.logger.info(f"   {i}. {vi.get('id')} | {vi.get('title')}")
+                if len(videos_info) > 5:
+                    self.logger.info(f"   ... and {len(videos_info) - 5} more videos")
+                return
+
+            # Proceed with DB operations
             video_repo = get_video_repository()
             job_repo = get_job_repository()
             
@@ -50,13 +103,6 @@ class ChannelIngester:
                     channel_id=channel_id,
                     channel_name=f"Channel {channel_id}",  # Will be updated with real name
                 )
-            
-            # Get videos from channel
-            videos_info = self.video_processor.get_channel_videos(channel_id, max_videos)
-            
-            if not videos_info:
-                self.logger.warning(f"No videos found for channel {channel_id}")
-                return
             
             # Update channel info with first video's channel data
             if videos_info and not channel.channel_name.startswith("Channel "):
@@ -80,6 +126,10 @@ class ChannelIngester:
                             updated_videos += 1
                     else:
                         # Create new video record
+                        if dry_run:
+                            self.logger.info(f"[DRY-RUN] Would create video and job for {video_info['id']}")
+                            continue
+                        
                         video = video_repo.create_video(
                             video_id=video_info['id'],
                             channel_id=channel.id,
@@ -93,15 +143,18 @@ class ChannelIngester:
                             thumbnail_url=video_info.get('thumbnail')
                         )
                         
-                        # Create processing job for this video
-                        job_repo.create_job(
-                            job_type='video_process',
-                            target_id=video_info['id'],
-                            parameters=json.dumps({
-                                'url': video_info.get('webpage_url'),
-                                'channel_id': channel_id
-                            })
-                        )
+                        # Create processing job for this video (idempotent)
+                        if not job_repo.job_exists('video_process', video_info['id'], statuses=['pending', 'running']):
+                            job_repo.create_job(
+                                job_type='video_process',
+                                target_id=video_info['id'],
+                                parameters=json.dumps({
+                                    'url': video_info.get('webpage_url'),
+                                    'channel_id': channel_id
+                                })
+                            )
+                        else:
+                            self.logger.debug(f"Job already exists for video {video_info['id']}, skipping job creation")
                         
                         new_videos += 1
                         
@@ -153,14 +206,15 @@ class ChannelIngester:
         except (ValueError, TypeError):
             return None
 
-class VideoProcessor:
+class VideoJobProcessor:
     """
     Processes individual videos for fingerprinting.
     Handles the complete pipeline from video to stored fingerprints.
     """
     
     def __init__(self):
-        self.video_processor = VideoProcessor()
+        # Use the core video processor implementation
+        self.video_processor = CoreVideoProcessor()
         self.fingerprinter = AudioFingerprinter()
         self.logger = logging.getLogger(__name__)
     
@@ -285,7 +339,7 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     
     ingester = ChannelIngester()
-    processor = VideoProcessor()
+    processor = VideoJobProcessor()
     
     # First, ingest channel data
     await ingester.ingest_all_channels()
