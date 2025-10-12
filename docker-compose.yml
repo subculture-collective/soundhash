@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-soundhash}
+      POSTGRES_USER: ${DATABASE_USER:-soundhash_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-soundhash_password123}
+    ports:
+      - "${DATABASE_PORT:-5435}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-soundhash_user} -d ${DATABASE_NAME:-soundhash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_URL: postgresql://${DATABASE_USER:-soundhash_user}:${DATABASE_PASSWORD:-soundhash_password123}@postgres:5432/${DATABASE_NAME:-soundhash}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+    ports:
+      - "8000:8000"
+    command: ["python", "scripts/ingest_channels.py", "--max-videos", "10"]
+
+volumes:
+  postgres_data:
