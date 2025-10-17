@@ -24,14 +24,14 @@ import sys
 def main():
     """Main function to add issues to project board."""
     github_token = os.getenv('GITHUB_TOKEN')
-    
+
     if not github_token:
         print("Error: GITHUB_TOKEN environment variable not set")
         print("\nPlease set your GitHub token:")
         print("  export GITHUB_TOKEN='your_token_here'")
         print("\nYour token needs 'project' and 'repo' scopes.")
         sys.exit(1)
-    
+
     print("GitHub Project Board Integration")
     print("=" * 50)
     print()
