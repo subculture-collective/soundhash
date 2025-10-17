@@ -1,200 +1,85 @@
-# SoundHash Installation Guide# SoundHash Installation Guide# SoundHash Installation Guide
+# SoundHash Installation Guide
 
-## Prerequisites## Prerequisites## Prerequisites
+## Prerequisites
 
-1. **Python 3.12+**1. **Python 3.12+**1. **Python 3.12+**
+1. **Python 3.12+**
 
 2. **PostgreSQL** (version 12+)
 
-3. **ffmpeg** (for audio processing)2. **PostgreSQL** (version 12+)2. **PostgreSQL** (version 12+)
+3. **ffmpeg** (for audio processing)
 
 4. **Git** (for version control)
-
-5. **ffmpeg** (for audio processing)3. **ffmpeg** (for audio processing)
-
-6. **Git** (for version control)4. **Git** (for version control)
 
 ## Installation Steps
 
 ### 1. Clone Repository
 
-## Installation Steps## Installation Steps
-
-`````bash
-
-git clone <repository-url> soundhash### 1. Clone Repository### 1. Clone Repository
-
+```bash
+git clone <repository-url> soundhash
 cd soundhash
+```
 
-````bash`bash
+### 2. Create Virtual Environment
 
-
-
-### 2. Create Virtual Environmentgit clone <repository-url> soundhashgit clone <repository-url> soundhash
-
-
-
-```bashcd soundhashcd soundhash
-
+```bash
 python3 -m venv .venv
-
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate````
-
-`````
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
 
 ### 3. Install Dependencies
 
-### 2. Create Virtual Environment### 2. Create Virtual Environment
-
 ```bash
-
 pip install -r requirements.txt
-
 ```
-
-`bash`bash
 
 ### 4. Install System Dependencies
 
-python3 -m venv .venvpython3 -m venv .venv
-
 **Ubuntu/Debian:**
 
-source .venv/bin/activate # On Windows: .venv\Scripts\activatesource .venv/bin/activate # On Windows: .venv\Scripts\activate
-
-`````bash
-
-sudo apt update````
-
+```bash
+sudo apt update
 sudo apt install postgresql postgresql-contrib ffmpeg
+```
 
-```### 3. Install Dependencies### 3. Install Dependencies
+**macOS:**
 
-
-
-**macOS:**`bash`bash
-
-
-
-```bashpip install -r requirements.txtpip install -r requirements.txt
-
+```bash
 brew install postgresql ffmpeg
-
-`````
+```
 
 **Windows:**
 
-- Install PostgreSQL from [official website](https://www.postgresql.org/download/windows/)### 4. Install System Dependencies### 4. Setup PostgreSQL Database
-
+- Install PostgreSQL from [official website](https://www.postgresql.org/download/windows/)
 - Install ffmpeg from [official website](https://ffmpeg.org/download.html)
 
 ### 5. Setup PostgreSQL Database
 
-**Ubuntu/Debian:**```bash
-
-````bash
-
-# Start PostgreSQL service (if not already running)# Create database
-
+```bash
+# Start PostgreSQL service (if not already running)
 sudo systemctl start postgresql  # Linux
+brew services start postgresql   # macOS
 
-brew services start postgresql   # macOS```bashcreatedb soundhash
+# Create database
+createdb soundhash
 
-
-
-# Create database and usersudo apt update
-
-sudo -u postgres psql
-
-```sudo apt install postgresql postgresql-contrib ffmpeg# Or using psql
-
-
-
-```sql```psql -c "CREATE DATABASE soundhash;"
-
-CREATE DATABASE soundhash;
-
-CREATE USER soundhash_user WITH PASSWORD 'your_password';```
-
-GRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;
-
-\q**macOS:**
-
-````
-
-### 5. Configure Environment
+# Create user (optional)
+psql -d soundhash -c "CREATE USER soundhash_user WITH PASSWORD 'your_password';"
+psql -d soundhash -c "GRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;"
+```
 
 ### 6. Configure Environment
 
-```````bash
-
 ```bash
+cp .env.example .env
+# Edit .env with your settings
+```
 
-cp .env.example .envbrew install postgresql ffmpeg```bash
+Key environment variables:
 
-# Edit .env with your configuration
-
-``````cp .env.example .env
-
-
-
-Required environment variables:# Edit .env with your configuration
-
-
-
-```bash**Windows:**```
-
-# Database
-
-DATABASE_URL=postgresql://soundhash_user:your_password@localhost:5432/soundhash
-
-
-
-# YouTube API (Required)- Install PostgreSQL from [official website](https://www.postgresql.org/download/windows/)Required environment variables:
-
-YOUTUBE_API_KEY=your_youtube_api_key
-
-- Install ffmpeg from [official website](https://ffmpeg.org/download.html)
-
-# Optional: Social Media APIs
-
-TWITTER_API_KEY=your_twitter_api_key-   `DATABASE_URL` - PostgreSQL connection string
-
-TWITTER_API_SECRET=your_twitter_api_secret
-
-TWITTER_ACCESS_TOKEN=your_access_token### 5. Setup PostgreSQL Database-   `YOUTUBE_API_KEY` - YouTube Data API key
-
-TWITTER_ACCESS_SECRET=your_access_secret
-
--   `TWITTER_API_KEY` - Twitter API credentials (optional)
-
-REDDIT_CLIENT_ID=your_reddit_client_id
-
-REDDIT_CLIENT_SECRET=your_reddit_client_secret```bash-   `REDDIT_CLIENT_ID` - Reddit API credentials (optional)
-
-REDDIT_USER_AGENT=your_user_agent
-
-# Start PostgreSQL service (if not already running)    ./docker/manage.sh bot
-
-# Processing Configuration
-
-SEGMENT_LENGTH_SECONDS=120sudo systemctl start postgresql  # Linux
-
-MAX_CONCURRENT_DOWNLOADS=3
-
-KEEP_ORIGINAL_AUDIO=falsebrew services start postgresql   # macOS# Complete cleanup
-
-CLEANUP_SEGMENTS_AFTER_PROCESSING=true
-
-
-
-# Target channels (comma-separated)
-
-TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA,UCBvc2dNfp1AC0VBVU0vRagw# Create database and user./docker/manage.sh cleanup
-
-```````
-
-sudo -u postgres psql
+- `DATABASE_URL` - PostgreSQL connection string
+- `TARGET_CHANNELS` - YouTube channel IDs to process
+- `YT_COOKIES_FILE` - Path to YouTube cookies (optional)
+- `PROXY_URL` - Proxy configuration (optional)
 
 ### 7. Initialize Database
 
@@ -204,535 +89,307 @@ python scripts/setup_database.py
 
 ### 8. Setup YouTube API (Required)
 
-CREATE USER soundhash_user WITH PASSWORD 'your_password';## Manual Installation (Without Docker)
-
 Follow the instructions in `YOUTUBE_OAUTH_SETUP.md` to:
 
-GRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;
-
 1. Create a Google Cloud project
-
-2. Enable YouTube Data API v3\q### Prerequisites for Manual Setup
-
+2. Enable YouTube Data API v3
 3. Create OAuth2 credentials
+4. Run the authentication flow
 
-4. Run the authentication flow```
-
-````bash1. **PostgreSQL** (version 12+)
-
+```bash
 python scripts/setup_youtube_api.py
+```
 
-```### 6. Configure Environment2. **Python** (version 3.8+)
+### 9. Test Installation
 
-
-
-### 9. Test Installation3. **FFmpeg** (for audio processing)
-
-
-
-```bash```bash4. **Git** (for version control)### Manual Installation Steps
-
+```bash
 # Test database connection
+python scripts/test_system.py
 
-python scripts/test_system.pycp .env.example .env
-
-
-
-# Test with a dry run (limited videos)# Edit .env with your configuration### 1. Clone and Setup Project
-
+# Test with a small batch
 python scripts/ingest_channels.py --dry-run --max-videos 5
+```
 
-````
+## Docker Installation (Recommended)
 
-### 10. Start Processing```````bash
+### Prerequisites
 
-```````bashRequired environment variables:git clone <repository-url> soundhash
+- Docker
+- Docker Compose
 
-# Process all configured channels (unlimited videos - this may take a very long time!)
+### Steps
 
-python scripts/ingest_channels.pycd soundhash
+1. Clone repository:
 
+```bash
+git clone <repository-url> soundhash
+cd soundhash
+```
 
+2. Configure environment:
 
-# Process specific channels with all videos- `DATABASE_URL` - PostgreSQL connection string````
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
 
-python scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA"
+3. Start services:
 
-- `YOUTUBE_API_KEY` - YouTube Data API key
+```bash
+docker compose up -d
+```
 
-# Limit videos for testing (recommended for first run)
+4. Initialize database:
 
-python scripts/ingest_channels.py --max-videos 10- `TWITTER_API_KEY` - Twitter API credentials (optional)### 2. Install Dependencies
+```bash
+docker compose exec app python scripts/setup_database.py
+```
 
+5. Setup YouTube API:
 
+```bash
+docker compose exec app python scripts/setup_youtube_api.py
+```
 
-# Start Twitter bot (optional)- `REDDIT_CLIENT_ID` - Reddit API credentials (optional)
+6. Verify installation:
 
+```bash
+docker compose logs app
+```
+
+## Manual Installation (Without Docker)
+
+### Prerequisites for Manual Setup
+
+1. **PostgreSQL** (version 12+)
+2. **Python** (version 3.8+)
+3. **FFmpeg** (for audio processing)
+4. **Git** (for version control)
+
+### Manual Installation Steps
+
+```bash
+cp .env.example .env
+# Edit .env with database credentials, API keys, etc.
+```
+
+Important environment variables:
+
+- `DATABASE_URL` or individual DB settings (`DB_HOST`, `DB_PORT`, etc.)
+- `TARGET_CHANNELS` - Comma-separated YouTube channel IDs
+- `SEGMENT_LENGTH_SECONDS` - Audio segment length (default: 10)
+- `FINGERPRINT_SAMPLE_RATE` - Audio sample rate (default: 16000)
+- `TEMP_DIR` - Temporary files directory
+- `CLEANUP_SEGMENTS_AFTER_PROCESSING` - Auto-cleanup flag
+
+## Configuration
+
+### Database Configuration
+
+Edit `.env` file:
+
+```env
+DATABASE_URL=postgresql://soundhash_user:your_password@localhost:5432/soundhash
+
+# Or use individual settings:
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=soundhash
+DB_USER=soundhash_user
+DB_PASSWORD=your_password
+```
+
+### YouTube Access Configuration
+
+For better reliability, configure cookies and/or proxy:
+
+```env
+# Cookie authentication (recommended)
+YT_COOKIES_FILE=/path/to/cookies.txt
+# OR
+YT_COOKIES_FROM_BROWSER=firefox
+# OR with profile
+YT_COOKIES_FROM_BROWSER=chrome:Profile 1
+
+# Proxy configuration (optional)
+USE_PROXY=true
+PROXY_URL=http://proxy.example.com:8080
+# OR proxy list
+PROXY_LIST=/path/to/proxies.txt
+
+# Client override (if needed)
+YT_PLAYER_CLIENT=android
+```
+
+### Processing Configuration
+
+```env
+SEGMENT_LENGTH_SECONDS=10
+FINGERPRINT_SAMPLE_RATE=16000
+TEMP_DIR=/tmp/soundhash
+CLEANUP_SEGMENTS_AFTER_PROCESSING=true
+MAX_CONCURRENT_DOWNLOADS=3
+```
+
+## Running the System
+
+### Ingestion
+
+```bash
+# Process all configured channels
+python scripts/ingest_channels.py
+
+# Process specific channels
+python scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA"
+
+# Limit number of videos per channel
+python scripts/ingest_channels.py --max-videos 10
+
+# Dry run (no actual processing)
+python scripts/ingest_channels.py --dry-run
+
+# Only process existing jobs (skip ingestion)
+python scripts/ingest_channels.py --only-process
+
+# Adjust log level
+python scripts/ingest_channels.py --log-level DEBUG
+
+# Disable colored output
+python scripts/ingest_channels.py --no-colors
+```
+
+### Bots
+
+```bash
+# Twitter bot
 python src/bots/twitter_bot.py
 
-``````bash
+# Reddit bot
+python src/bots/reddit_bot.py
+```
 
+## Testing
 
+### Manual Testing
 
-## Configuration OptionsExample `.env` configuration:# Create virtual environment
+```python
+from src.core.audio_fingerprinting import AudioFingerprinter
+from src.core.video_processor import VideoProcessor
 
+processor = VideoProcessor()
+fingerprinter = AudioFingerprinter()
 
+# Test with a video
+audio_file = processor.download_video_audio("https://youtube.com/watch?v=...")
+fingerprint = fingerprinter.extract_fingerprint(audio_file)
 
-### Command Line Argumentspython -m venv venv
-
-
-
-```bash```bashsource venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Show all available options
-
-python scripts/ingest_channels.py --help# Database
-
-
-
-# Common optionsDATABASE_URL=postgresql://soundhash_user:your_password@localhost:5432/soundhash# Install Python packages
-
---channels "CHANNEL_ID1,CHANNEL_ID2"  # Specific channels
-
---max-videos 10                       # Limit videos per channel (default: unlimited)pip install -r requirements.txt
-
---dry-run                            # Test without processing
-
---log-level DEBUG                    # Increase verbosity# YouTube API```
-
---no-colors                          # Disable colored output
-
---skip-processing                    # Only ingest metadataYOUTUBE_API_KEY=your_youtube_api_key
-
---only-process                       # Only process existing jobs
-
-```### 3. Install System Dependencies
-
-
-
-**⚠️ Performance Note**: The default behavior fetches **ALL videos** from each channel. Large channels may have thousands of videos (we've seen channels with 1000+ videos), which will take significant time and storage. Consider using `--max-videos` for initial testing.# Optional: Twitter API
-
-
-
-### Environment VariablesTWITTER_API_KEY=your_twitter_api_key**Ubuntu/Debian:**
-
-
-
-Key configuration options in `.env`:TWITTER_API_SECRET=your_twitter_api_secret
-
-
-
-```bashTWITTER_ACCESS_TOKEN=your_access_token```bash
-
-# Segment length for audio fingerprinting (seconds)
-
-SEGMENT_LENGTH_SECONDS=120TWITTER_ACCESS_SECRET=your_access_secretsudo apt update
-
-
-
-# Number of concurrent downloadssudo apt install postgresql postgresql-contrib ffmpeg
-
-MAX_CONCURRENT_DOWNLOADS=3
-
-# Optional: Reddit API```
-
-# File management
-
-KEEP_ORIGINAL_AUDIO=falseREDDIT_CLIENT_ID=your_reddit_client_id
-
-CLEANUP_SEGMENTS_AFTER_PROCESSING=true
-
-REDDIT_CLIENT_SECRET=your_reddit_client_secret**macOS:**
-
-# Target channels (comma-separated)
-
-TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA,UCBvc2dNfp1AC0VBVU0vRagwREDDIT_USER_AGENT=your_user_agent
-
-```````
-
-````````bash
+print(f"Fingerprint confidence: {fingerprint['confidence_score']}")
+```
 
 ## Troubleshooting
 
-# Processing Configurationbrew install postgresql ffmpeg
+### Common Issues
 
-### Database Connection Issues
-
-SEGMENT_LENGTH_SECONDS=120```
+**Database connection fails:**
 
 - Check PostgreSQL is running: `sudo systemctl status postgresql`
-
-- Verify credentials in `.env` fileMAX_CONCURRENT_DOWNLOADS=3
-
+- Verify credentials in `.env` file
 - Test connection: `psql -h localhost -U soundhash_user -d soundhash`
 
-KEEP_ORIGINAL_AUDIO=false### 4. Setup PostgreSQL Database
-
-### FFmpeg Issues
-
-CLEANUP_SEGMENTS_AFTER_PROCESSING=true
+**FFmpeg not found:**
 
 - Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)
-
-- Verify installation: `ffmpeg -version```````bash
-
-
-
-### Video Download Issues# Start PostgreSQL service
-
-
-
-- Update yt-dlp: `pip install --upgrade yt-dlp`### 7. Initialize Databasesudo systemctl start postgresql  # Linux
-
-- Check video URL accessibility
-
-- Some videos may be geo-restrictedbrew services start postgresql   # macOS
-
-
-
-### Performance Issues```bash
-
-
-
-- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`python scripts/setup_database.py# Create database and user
-
-- Process smaller batches of videos using `--max-videos`
-
-- Monitor disk space in temp directory```sudo -u postgres psql
-
-
-
-### Database Performance```````
-
-
-
-- Create indexes for frequently queried columns### 8. Setup YouTube API (Required)
-
-- Monitor database size and consider partitioning for large datasets
-
-- Use connection pooling for high-throughput scenariosIn PostgreSQL shell:
-
-
-
-## Fresh StartFollow the instructions in `YOUTUBE_OAUTH_SETUP.md` to:
-
-
-
-If you need to completely reset the system:```sql
-
-
-
-```bash1. Create a Google Cloud projectCREATE DATABASE soundhash;
-
-python scripts/fresh_start.py
-
-```2. Enable YouTube Data API v3CREATE USER soundhash_user WITH PASSWORD 'your_secure_password';
-
-
-
-This will:3. Create OAuth2 credentialsGRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;
-
-
-
-- Clear all database data4. Run the authentication flow\q
-
-- Remove temporary files
-
-- Reset processing state```
-
-- Verify system readiness
-
-```bash
-
-## Logging
-
-python scripts/setup_youtube_api.py### 5. Configure Environment
-
-The system features enhanced logging with:
-
-````````
-
-- Colored output with emojis
-
-- Progress bars with ETA````bash
-
-- Structured section logging
-
-- Configurable log levels### 9. Test Installation# Copy environment template
-
-Log files are written to `ingestion.log` for debugging purposes.cp .env.example .env
-
-## Processing Scale Expectations```bash
-
-### Channel Sizes (Approximate)# Test database connection# Edit .env file with your settings
-
-- Small channels: 50-200 videos
-
-- Medium channels: 200-1000 videos python scripts/test_system.pynano .env
-
-- Large channels: 1000+ videos (some have 5000+)
-
-```text
-
-### Processing Time Estimates
-
-- **Video ingestion**: ~0.1 seconds per video
-
-- **Audio download**: ~10-30 seconds per video
-
-- **Audio segmentation**: ~1-5 seconds per videopython scripts/ingest_channels.py --dry-run --max-videos 5Required settings in `.env`:
-
-- **Fingerprint generation**: ~5-15 seconds per video
-
-```
-
-For a channel with 1000 videos, expect:
-
-- Ingestion: ~2 minutes```env
-
-- Full processing: 4-12 hours (depending on video lengths)
-
-### 10. Start ProcessingDATABASE_URL=postgresql://soundhash_user:your_secure_password@localhost:5432/soundhash
-
-## Next Steps
-
-YOUTUBE_API_KEY=your_youtube_api_key
-
-1. Configure your target channels in `.env`
-
-2. Set up YouTube API authentication```bashTWITTER_BEARER_TOKEN=your_twitter_bearer_token
-
-3. Run initial ingestion with `--dry-run --max-videos 10` to test
-
-4. Start with limited processing: `--max-videos 50`# Process all configured channels# ... other API keys
-
-5. Monitor logs for any issues
-
-6. Scale up to full channel processing when confidentpython scripts/ingest_channels.py```
-
-7. Set up social media bots (optional)
-
-For more details, see:
-
-## Process specific channels
-
-### 6. Initialize Database
-
-- `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup
-
-- `AUTH_SETUP.md` - Social media API setuppython scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA"
-
-- `ARCHITECTURE.md` - System architecture overview
-
-````bash
-
-# Start Twitter bot (optional)python scripts/setup_database.py
-
-python src/bots/twitter_bot.py```
-
-````
-
-### 7. Start Channel Ingestion
-
-## Configuration Options
-
-```bash
-
-### Command Line Argumentspython scripts/ingest_channels.py
-
-```
-
-```bash
-
-# Show all available options## API Keys Setup
-
-python scripts/ingest_channels.py --help
-
-### YouTube Data API
-
-# Common options
-
---channels "CHANNEL_ID1,CHANNEL_ID2"  # Specific channels1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-
---max-videos 10                       # Limit videos per channel2. Create a new project or select existing
-
---dry-run                            # Test without processing3. Enable YouTube Data API v3
-
---log-level DEBUG                    # Increase verbosity4. Create credentials (API Key)
-
---no-colors                          # Disable colored output5. Add key to `.env` file
-
---skip-processing                    # Only ingest metadata
-
---only-process                       # Only process existing jobs### Twitter API
-
-```
-
-1. Apply for [Twitter Developer Account](https://developer.twitter.com/)
-
-2. Create a new app
-
-3. Generate API keys and tokens
-
-### Environment Variables
-
-Key configuration options in `.env`:4. Add to `.env` file
-
-````bash### Reddit API (Optional)
-
-# Segment length for audio fingerprinting (seconds)
-
-SEGMENT_LENGTH_SECONDS=1201. Go to [Reddit App Preferences](https://www.reddit.com/prefs/apps)
-
-2. Create new app (script type)
-
-# Number of concurrent downloads3. Note client ID and secret
-
-MAX_CONCURRENT_DOWNLOADS=34. Add to `.env` file
-
-
-
-# File management## Running the System
-
-KEEP_ORIGINAL_AUDIO=false
-
-CLEANUP_SEGMENTS_AFTER_PROCESSING=true### Start Channel Processing
-
-
-
-# Target channels (comma-separated)```bash
-
-TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA,UCBvc2dNfp1AC0VBVU0vRagwpython scripts/ingest_channels.py
-
-````
-
-## Troubleshooting### Run Twitter Bot
-
-### Database Connection Issues```bash
-
-python src/bots/twitter_bot.py
-
-- Check PostgreSQL is running: `sudo systemctl status postgresql````
-
-- Verify credentials in `.env` file
-
-- Test connection: `psql -h localhost -U soundhash_user -d soundhash`### Manual Testing
-
-### FFmpeg Issues```python
-
-from src.core.audio_fingerprinting import AudioFingerprinter
-
-- Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)from src.core.video_processor import VideoProcessor
-
 - Verify installation: `ffmpeg -version`
 
-processor = VideoProcessor()
-
-### Video Download Issuesfingerprinter = AudioFingerprinter()
-
-- Update yt-dlp: `pip install --upgrade yt-dlp`# Test with a video
-
-- Check video URL accessibilityaudio_file = processor.download_video_audio("<https://youtube.com/watch?v=>...")
-
-- Some videos may be geo-restrictedfingerprint = fingerprinter.extract_fingerprint(audio_file)
-
-print(f"Fingerprint confidence: {fingerprint['confidence_score']}")
-
-### Performance Issues```
-
-- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`## Troubleshooting
-
-- Process smaller batches of videos
-
-- Monitor disk space in temp directory### Common Issues
-
-### Database Performance**Database connection fails:**
-
-- Check PostgreSQL is running: `sudo systemctl status postgresql`
-
-- Verify credentials in `.env` file
-
-- Test connection: `psql -h localhost -U soundhash_user -d soundhash`**FFmpeg not found:**
-
-If you need to completely reset the system:- Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)
-
-- Verify installation: `ffmpeg -version`
-
-```bash
-
-python scripts/fresh_start.py**yt-dlp download errors:**
-
-```
+**YouTube download fails:**
 
 - Update yt-dlp: `pip install --upgrade yt-dlp`
+- Configure cookies: See YouTube Access Configuration section
+- Check rate limits: Consider using proxy or reducing concurrent downloads
 
-This will:- Check video URL accessibility
+**Import errors:**
 
-- Some videos may be geo-restricted
+- Ensure virtual environment is activated
+- Reinstall dependencies: `pip install -r requirements.txt`
+- Check Python version: `python --version` (requires 3.8+)
 
-- Clear all database data
+### Performance Issues
 
-- Remove temporary files**Memory issues during processing:**
-
-- Reset processing state
-
-- Verify system readiness- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`
-
+- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`
 - Process smaller batches of videos
+- Monitor disk space in temp directory
+- Enable `CLEANUP_SEGMENTS_AFTER_PROCESSING`
 
-## Logging- Monitor disk space in temp directory
+### Database Performance
 
-The system features enhanced logging with:### Performance Optimization
+- Add indexes on frequently queried columns
+- Use connection pooling
+- Monitor query performance with EXPLAIN
+- Consider batch operations for bulk inserts
 
-- Colored output with emojis**Database:**
+## Maintenance
 
-- Progress bars with ETA
+### Database Backup
 
-- Structured section logging- Create indexes for frequently queried columns
+```bash
+# Backup
+pg_dump soundhash > backup.sql
 
-- Configurable log levels- Use connection pooling for high load
+# Restore
+psql soundhash < backup.sql
+```
 
-- Consider read replicas for scaling
+### Cleanup
 
-Log files are written to `ingestion.log` for debugging purposes.
+```bash
+# Clean temporary files
+rm -rf $TEMP_DIR/*
 
-**Processing:**
+# Clean old processing jobs (optional)
+# This requires a custom cleanup script
+```
 
-## Finalize
+### Updates
 
-- Adjust segment length for your use case
+```bash
+# Pull latest changes
+git pull origin main
 
-1. Configure your target channels in `.env`- Tune fingerprinting parameters
+# Update dependencies
+pip install -r requirements.txt --upgrade
 
-2. Set up YouTube API authentication- Use SSD storage for temp files
+# Run migrations (if applicable)
+python scripts/setup_database.py
+```
 
-3. Run initial ingestion with `--dry-run` to test
+## Fresh Start
 
-4. Start full processing## Monitoring
+If you need to completely reset the system:
 
-5. Monitor logs for any issues
+```bash
+# Stop all services
+docker compose down  # If using Docker
 
-6. Set up social media bots (optional)### Logs
+# Drop and recreate database
+dropdb soundhash
+createdb soundhash
 
-For more details, see:- Application logs: Check terminal output
+# Reinitialize
+python scripts/setup_database.py
+```
 
-- Database logs: `/var/log/postgresql/`
+## Additional Resources
 
-- `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup- Processing jobs: Monitor `processing_jobs` table
+- **Architecture**: See `ARCHITECTURE.md`
+- **YouTube OAuth Setup**: See `YOUTUBE_OAUTH_SETUP.md`
+- **Authentication**: See `AUTH_SETUP.md`
+- **Roadmap**: See `ROADMAP.md` or [Issue #34](https://github.com/onnwee/soundhash/issues/34)
 
-- `AUTH_SETUP.md` - Social media API setup
+## Support
 
-- `ARCHITECTURE.md` - System architecture overview### Metrics
+For issues and questions:
 
-- Videos processed per hour
-- Fingerprint match accuracy
-- Database size growth
-- API rate limit usage
+- Check existing [GitHub Issues](https://github.com/onnwee/soundhash/issues)
+- Review the [project roadmap](https://github.com/onnwee/soundhash/issues/34)
+- See troubleshooting section above
 
-## Security Notes
-
-- Keep `.env` file secure and never commit to git
-- Use strong database passwords
-- Regularly rotate API keys
-- Monitor API usage to prevent abuse
-- Consider rate limiting for public APIs
