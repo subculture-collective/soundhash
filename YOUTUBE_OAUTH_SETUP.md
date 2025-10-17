@@ -59,10 +59,10 @@ python scripts/setup_youtube_api.py
 
 This will:
 
--   Check for credentials.json
--   Run OAuth flow (opens browser for consent)
--   Test API connectivity
--   Save refresh token for future use
+- Check for credentials.json
+- Run OAuth flow (opens browser for consent)
+- Test API connectivity
+- Save refresh token for future use
 
 ## Authentication Flow
 
@@ -83,17 +83,17 @@ This will:
 
 ## API Quotas and Limits
 
-### YouTube Data API v3 Quotas (per day):
+### YouTube Data API v3 Quotas (per day)
 
--   **Default**: 10,000 units
--   **Channel list**: ~3 units per request
--   **Video details**: ~1 unit per video
--   **Playlist items**: ~1 unit per request
+- **Default**: 10,000 units
+- **Channel list**: ~3 units per request
+- **Video details**: ~1 unit per video
+- **Playlist items**: ~1 unit per request
 
-### Estimated Usage:
+### Estimated Usage
 
--   **3 channels, 50 videos each**: ~200 units per run
--   **Daily runs**: Fits comfortably within quota
+- **3 channels, 50 videos each**: ~200 units per run
+- **Daily runs**: Fits comfortably within quota
 
 ## Fallback Strategy
 
@@ -101,31 +101,32 @@ If YouTube Data API fails:
 
 1. System falls back to yt-dlp with browser cookies
 2. Manual cookie export may be needed:
+
     ```bash
     yt-dlp --cookies-from-browser chrome --extract-audio URL
     ```
 
 ## Benefits of API Approach
 
-### ✅ Advantages:
+### ✅ Advantages
 
--   No bot detection issues
--   Reliable metadata access
--   Official Google-supported method
--   Structured data format
--   Rate limiting instead of blocking
+- No bot detection issues
+- Reliable metadata access
+- Official Google-supported method
+- Structured data format
+- Rate limiting instead of blocking
 
-### ⚠️ Considerations:
+### ⚠️ Considerations
 
--   Requires OAuth setup
--   API quota limits (generous for our use)
--   Cannot download audio directly (still need yt-dlp for audio)
+- Requires OAuth setup
+- API quota limits (generous for our use)
+- Cannot download audio directly (still need yt-dlp for audio)
 
 ## Troubleshooting
 
-### Common Issues:
+### Common Issues
 
-**"Error 403: access_denied" - App in Testing Mode**
+#### **"Error 403: access_denied" - App in Testing Mode**
 
 This means your OAuth consent screen is in "Testing" mode and you haven't added yourself as a test user.
 
@@ -138,43 +139,43 @@ This means your OAuth consent screen is in "Testing" mode and you haven't added 
 
 **Alternative**: Change to "External" user type if you want anyone to access (requires verification for production use)
 
-**"redirect_uri_mismatch" Error**
+#### **"redirect_uri_mismatch" Error**
 
--   Go to Google Cloud Console > APIs & Services > Credentials
--   Edit your OAuth 2.0 Client ID
--   Add these redirect URIs:
-    -   `http://localhost:8080/`
-    -   `http://localhost:8000/`
-    -   `http://localhost/`
--   Save and try again
+- Go to Google Cloud Console > APIs & Services > Credentials
+- Edit your OAuth 2.0 Client ID
+- Add these redirect URIs:
+  - `http://localhost:8080/`
+  - `http://localhost:8000/`
+  - `http://localhost/`
+- Save and try again
 
-**"Credentials file not found"**
+#### **"Credentials file not found"**
 
--   Ensure `credentials.json` is in project root
--   Check file permissions
+- Ensure `credentials.json` is in project root
+- Check file permissions
 
-**"API not enabled"**
+#### **"API not enabled"**
 
--   Verify YouTube Data API v3 is enabled in Google Cloud Console
+- Verify YouTube Data API v3 is enabled in Google Cloud Console
 
-**"Quota exceeded"**
+#### **"Quota exceeded"**
 
--   Wait until quota resets (daily)
--   Consider requesting quota increase
+- Wait until quota resets (daily)
+- Consider requesting quota increase
 
-**"Invalid credentials"**
+#### **"Invalid credentials"**
 
--   Re-download credentials.json
--   Delete token.json and re-authenticate
+- Re-download credentials.json
+- Delete token.json and re-authenticate
 
-## Files Created:
+## Files Created
 
--   `credentials.json` - OAuth client credentials (download from Google)
--   `token.json` - Refresh token (generated during first auth)
+- `credentials.json` - OAuth client credentials (download from Google)
+- `token.json` - Refresh token (generated during first auth)
 
-## Security Notes:
+## Security Notes
 
--   Keep `credentials.json` secure
--   Add both files to `.gitignore`
--   Don't share credentials or tokens
--   Revoke access in Google Cloud Console if compromised
+- Keep `credentials.json` secure
+- Add both files to `.gitignore`
+- Don't share credentials or tokens
+- Revoke access in Google Cloud Console if compromised
