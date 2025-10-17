@@ -116,7 +116,7 @@ class VideoProcessor:
 
             cmd.append(url)
 
-            result: subprocess.CompletedProcess[str] = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
 
             # Parse the output
             if result.stdout.strip():
