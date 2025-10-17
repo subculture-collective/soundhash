@@ -31,3 +31,7 @@ cookies.txt
 ingestion.log
 credentials.json
 token.json
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

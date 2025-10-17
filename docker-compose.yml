@@ -8,7 +8,11 @@ services:
     ports:
       - "${DATABASE_PORT:-5435}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-soundhash_user} -d ${DATABASE_NAME:-soundhash}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_USER:-soundhash_user} -d ${DATABASE_NAME:-soundhash}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +36,7 @@ services:
       - ./logs:/app/logs
       - ./temp:/app/temp
     ports:
-      - "8000:8000"
+      - "8001:8000"
     command: ["python", "scripts/ingest_channels.py", "--max-videos", "10"]
 
 volumes:
