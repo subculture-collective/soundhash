@@ -40,22 +40,56 @@ ignore = [
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
-check_untyped_defs = false
+check_untyped_defs = true
 disallow_untyped_calls = false
-warn_redundant_casts = false
+warn_redundant_casts = true
 warn_unused_ignores = false
-warn_no_return = false
-warn_unreachable = false
-strict_optional = false
+warn_no_return = true
+warn_unreachable = true
+strict_optional = true
 ignore_missing_imports = true
 # Be lenient for now, can be tightened later
-no_implicit_optional = false
+no_implicit_optional = true
 strict_equality = false
+show_error_codes = true
+pretty = true
+
+# SQLAlchemy plugin for better ORM support
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = "src.core.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "src.database.*"
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "src.ingestion.*"
+disallow_untyped_defs = true
+
+# Ignore stubs for packages without proper type support
+[[tool.mypy.overrides]]
+module = [
+    "librosa.*",
+    "scipy.*",
+    "soundfile.*",
+    "yt_dlp.*",
+    "ffmpeg.*",
+    "tweepy.*",
+    "praw.*",
+    "uvicorn.*",
+    "colorlog.*",
+    "tqdm.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"

@@ -1,13 +1,14 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text, LargeBinary, ForeignKey, Index
+from typing import Any, List as ListType
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, LargeBinary, ForeignKey, Index
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, DeclarativeMeta, Mapped
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
 
-Base = declarative_base()
+Base: DeclarativeMeta = declarative_base()  # type: ignore[assignment]
 
-class Channel(Base):
+class Channel(Base):  # type: ignore[misc,valid-type]
     __tablename__ = 'channels'
     
     id = Column(Integer, primary_key=True)
@@ -22,9 +23,9 @@ class Channel(Base):
     is_active = Column(Boolean, default=True)
     
     # Relationships
-    videos = relationship("Video", back_populates="channel")
+    videos: Mapped[ListType["Video"]] = relationship("Video", back_populates="channel")  # type: ignore[assignment]
 
-class Video(Base):
+class Video(Base):  # type: ignore[misc,valid-type]
     __tablename__ = 'videos'
     
     id = Column(Integer, primary_key=True)
@@ -50,10 +51,10 @@ class Video(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    channel = relationship("Channel", back_populates="videos")
-    fingerprints = relationship("AudioFingerprint", back_populates="video")
+    channel: Mapped["Channel"] = relationship("Channel", back_populates="videos")  # type: ignore[assignment]
+    fingerprints: Mapped[ListType["AudioFingerprint"]] = relationship("AudioFingerprint", back_populates="video")  # type: ignore[assignment]
 
-class AudioFingerprint(Base):
+class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     __tablename__ = 'audio_fingerprints'
     
     id = Column(Integer, primary_key=True)
@@ -79,9 +80,9 @@ class AudioFingerprint(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    video = relationship("Video", back_populates="fingerprints")
+    video: Mapped["Video"] = relationship("Video", back_populates="fingerprints")  # type: ignore[assignment]
 
-class MatchResult(Base):
+class MatchResult(Base):  # type: ignore[misc,valid-type]
     __tablename__ = 'match_results'
     
     id = Column(Integer, primary_key=True)
@@ -103,7 +104,7 @@ class MatchResult(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
-class ProcessingJob(Base):
+class ProcessingJob(Base):  # type: ignore[misc,valid-type]
     __tablename__ = 'processing_jobs'
     
     id = Column(Integer, primary_key=True)

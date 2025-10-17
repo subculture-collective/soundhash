@@ -1,15 +1,15 @@
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any
 from .models import Channel, Video, AudioFingerprint, MatchResult, ProcessingJob
 from .connection import db_manager
 from datetime import datetime
 
 class VideoRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.session = session
     
-    def create_channel(self, channel_id: str, channel_name: str = None, 
-                      description: str = None) -> Channel:
+    def create_channel(self, channel_id: str, channel_name: Optional[str] = None, 
+                      description: Optional[str] = None) -> Channel:
         """Create a new channel record"""
         channel = Channel(
             channel_id=channel_id,
@@ -26,14 +26,14 @@ class VideoRepository:
             Channel.channel_id == channel_id
         ).first()
     
-    def create_video(self, video_id: str, channel_id: int, title: str = None,
-                    duration: float = None, url: str = None, **kwargs) -> Video:
+    def create_video(self, video_id: str, channel_id: int, title: Optional[str] = None,
+                    duration: Optional[float] = None, url: Optional[str] = None, **kwargs: Any) -> Video:
         """Create a new video record"""
         video = Video(
             video_id=video_id,
             channel_id=channel_id,
             title=title,
-            duration=duration,
+            duration=duration,  # type: ignore[arg-type]
             url=url,
             **kwargs
         )
@@ -54,7 +54,7 @@ class VideoRepository:
         ).limit(limit).all()
     
     def mark_video_processed(self, video_id: int, success: bool = True, 
-                           error_message: str = None):
+                           error_message: Optional[str] = None) -> None:
         """Mark a video as processed"""
         video = self.session.get(Video, video_id)
         if video:
@@ -66,12 +66,12 @@ class VideoRepository:
     
     def create_fingerprint(self, video_id: int, start_time: float, end_time: float,
                           fingerprint_hash: str, fingerprint_data: bytes,
-                          **kwargs) -> AudioFingerprint:
+                          **kwargs: Any) -> AudioFingerprint:
         """Create a new audio fingerprint"""
         fingerprint = AudioFingerprint(
             video_id=video_id,
-            start_time=start_time,
-            end_time=end_time,
+            start_time=start_time,  # type: ignore[arg-type]
+            end_time=end_time,  # type: ignore[arg-type]
             fingerprint_hash=fingerprint_hash,
             fingerprint_data=fingerprint_data,
             **kwargs
@@ -88,13 +88,13 @@ class VideoRepository:
         ).all()
     
     def create_match_result(self, query_fp_id: int, matched_fp_id: int,
-                           similarity_score: float, query_source: str = None,
-                           query_url: str = None, query_user: str = None) -> MatchResult:
+                           similarity_score: float, query_source: Optional[str] = None,
+                           query_url: Optional[str] = None, query_user: Optional[str] = None) -> MatchResult:
         """Create a match result record"""
         match = MatchResult(
             query_fingerprint_id=query_fp_id,
             matched_fingerprint_id=matched_fp_id,
-            similarity_score=similarity_score,
+            similarity_score=similarity_score,  # type: ignore[arg-type]
             query_source=query_source,
             query_url=query_url,
             query_user=query_user
@@ -112,10 +112,10 @@ class VideoRepository:
         ).limit(limit).all()
 
 class JobRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session) -> None:
         self.session = session
     
-    def create_job(self, job_type: str, target_id: str, parameters: str = None) -> ProcessingJob:
+    def create_job(self, job_type: str, target_id: str, parameters: Optional[str] = None) -> ProcessingJob:
         """Create a new processing job"""
         job = ProcessingJob(
             job_type=job_type,
@@ -127,7 +127,7 @@ class JobRepository:
         self.session.commit()
         return job
     
-    def get_pending_jobs(self, job_type: str = None, limit: int = 10) -> List[ProcessingJob]:
+    def get_pending_jobs(self, job_type: Optional[str] = None, limit: int = 10) -> List[ProcessingJob]:
         """Get pending jobs"""
         query = self.session.query(ProcessingJob).filter(
             ProcessingJob.status == 'pending'
@@ -137,7 +137,7 @@ class JobRepository:
         
         return query.order_by(ProcessingJob.created_at).limit(limit).all()
     
-    def get_jobs_by_target(self, job_type: str, target_id: str, statuses: List[str] = None) -> List[ProcessingJob]:
+    def get_jobs_by_target(self, job_type: str, target_id: str, statuses: Optional[List[str]] = None) -> List[ProcessingJob]:
         """Get jobs by target id and type, optionally filtered by status list"""
         query = self.session.query(ProcessingJob).filter(
             ProcessingJob.job_type == job_type,
@@ -147,7 +147,7 @@ class JobRepository:
             query = query.filter(ProcessingJob.status.in_(statuses))
         return query.order_by(ProcessingJob.created_at.desc()).all()
     
-    def job_exists(self, job_type: str, target_id: str, statuses: List[str] = None) -> bool:
+    def job_exists(self, job_type: str, target_id: str, statuses: Optional[List[str]] = None) -> bool:
         """Check if a job already exists for target_id and type (optionally in given statuses)"""
         query = self.session.query(ProcessingJob).filter(
             ProcessingJob.job_type == job_type,
@@ -157,14 +157,14 @@ class JobRepository:
             query = query.filter(ProcessingJob.status.in_(statuses))
         return self.session.query(query.exists()).scalar()
     
-    def update_job_status(self, job_id: int, status: str, progress: float = None,
-                         current_step: str = None, error_message: str = None):
+    def update_job_status(self, job_id: int, status: str, progress: Optional[float] = None,
+                         current_step: Optional[str] = None, error_message: Optional[str] = None) -> None:
         """Update job status and progress"""
         job = self.session.get(ProcessingJob, job_id)
         if job:
             job.status = status
             if progress is not None:
-                job.progress = progress
+                job.progress = progress  # type: ignore[assignment]
             if current_step:
                 job.current_step = current_step
             if error_message:
