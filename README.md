@@ -2,6 +2,10 @@
 
 A sophisticated system for matching audio clips from videos across social media platforms using audio fingerprinting and PostgreSQL.
 
+## Project Status
+
+📋 **Roadmap**: [Issue #34](https://github.com/onnwee/soundhash/issues/34) | 🗂️ **Project Board**: [@onnwee's soundhash](https://github.com/users/onnwee/projects) | 🏁 **Milestones**: [View all](https://github.com/onnwee/soundhash/milestones)
+
 ## Features
 
 -   Audio fingerprinting using spectral analysis
