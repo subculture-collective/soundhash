@@ -1,5 +1,10 @@
 # Roadmap
 
-Please refer to the GitHub Issues Roadmap master issue for the live plan.
+Please refer to the following resources for the live plan:
 
-This file intentionally stays brief; all task tracking and status live in Issues and Milestones.
+- **Master Roadmap Issue**: [#34 - Roadmap (Master): Foundations → Matching → Ops](https://github.com/onnwee/soundhash/issues/34)
+- **GitHub Project Board**: [@onnwee's soundhash](https://github.com/users/onnwee/projects) - Kanban view with milestones
+- **All Issues**: [Issues page](https://github.com/onnwee/soundhash/issues)
+- **Milestones**: [Milestones page](https://github.com/onnwee/soundhash/milestones)
+
+This file intentionally stays brief; all task tracking and status live in Issues, Milestones, and the Project Board.

@@ -36,7 +36,7 @@ python src/auth/auth_server.py
 
 ### 4. Authenticate
 
-1. Open browser to: http://localhost:8000/auth/twitter
+1. Open browser to: <http://localhost:8000/auth/twitter>
 2. Authorize the application on Twitter
 3. Copy the returned access tokens
 4. Add tokens to `.env`:
@@ -56,7 +56,7 @@ TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret_here
 4. Add redirect URI: `http://localhost:8000/auth/reddit/callback`
 5. Note down your client ID and secret
 
-### 2. Configure Environment
+### 2. Configure Environment Variables
 
 Add your Reddit credentials to `.env`:
 
@@ -67,7 +67,7 @@ REDDIT_CLIENT_SECRET=your_client_secret_here
 
 ### 3. Authenticate
 
-1. Open browser to: http://localhost:8000/auth/reddit
+1. Open browser to: <http://localhost:8000/auth/reddit>
 2. Authorize the application on Reddit
 3. Copy the returned refresh token
 4. Add token to `.env`:
@@ -106,8 +106,8 @@ AUTH_SERVER_PORT=8000
 
 Update your app callback URLs accordingly:
 
--   Twitter: `https://yourdomain.com/auth/twitter/callback`
--   Reddit: `https://yourdomain.com/auth/reddit/callback`
+- Twitter: `https://yourdomain.com/auth/twitter/callback`
+- Reddit: `https://yourdomain.com/auth/reddit/callback`
 
 ## Troubleshooting
 
@@ -115,21 +115,21 @@ Update your app callback URLs accordingly:
 
 **"Invalid callback URL" error:**
 
--   Ensure the callback URL in your app settings exactly matches the one configured
--   Check for typos in the URL
--   Verify the authentication server is accessible
+- Ensure the callback URL in your app settings exactly matches the one configured
+- Check for typos in the URL
+- Verify the authentication server is accessible
 
 **"Application not authorized" error:**
 
--   Check your API keys are correct
--   Ensure your app has the necessary permissions
--   Verify the app is not suspended
+- Check your API keys are correct
+- Ensure your app has the necessary permissions
+- Verify the app is not suspended
 
 **Authentication server not starting:**
 
--   Check application logs in the terminal where you started the auth server
--   Verify port 8000 is not in use by another service
--   Check environment variables are properly set
+- Check application logs in the terminal where you started the auth server
+- Verify port 8000 is not in use by another service
+- Check environment variables are properly set
 
 ### Debug Mode
 
@@ -142,8 +142,8 @@ python src/auth/auth_server.py --log-level debug
 
 ## Security Notes
 
--   Keep your API keys and tokens secure
--   Never commit authentication credentials to version control
--   Use environment variables or secure key management in production
--   Regularly rotate your API keys and tokens
--   Monitor for unauthorized access to your applications
+- Keep your API keys and tokens secure
+- Never commit authentication credentials to version control
+- Use environment variables or secure key management in production
+- Regularly rotate your API keys and tokens
+- Monitor for unauthorized access to your applications
