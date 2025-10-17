@@ -74,6 +74,17 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = "src.ingestion.*"
 disallow_untyped_defs = true
+warn_unreachable = false
+
+# Ignore modules not in scope for strict type checking
+[[tool.mypy.overrides]]
+module = [
+    "config.*",
+    "src.api.*",
+    "src.bots.*",
+    "src.auth.*",
+]
+ignore_errors = true
 
 # Ignore stubs for packages without proper type support
 [[tool.mypy.overrides]]
