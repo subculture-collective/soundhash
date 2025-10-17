@@ -6,7 +6,7 @@ This document tracks CodeQL security findings, false positives, and their resolu
 
 ## Workflow Configuration
 
-- **Triggers**: 
+- **Triggers**:
   - Push to `main` branch
   - Pull requests to `main` branch
   - Weekly schedule (Mondays at 00:00 UTC)
