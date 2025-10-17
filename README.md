@@ -243,4 +243,3 @@ If you suspect a credential has been compromised:
 - [Twitter & Reddit Auth Setup](AUTH_SETUP.md)
 - [GitHub Secrets Documentation](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [OWASP Secrets Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
-

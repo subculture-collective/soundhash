@@ -2,7 +2,7 @@
 """
 Script to add all repository issues to the GitHub Project board.
 
-This script helps automate the process of adding issues #1-#34 to the 
+This script helps automate the process of adding issues #1-#34 to the
 "@onnwee's soundhash" project board.
 
 Requirements:
@@ -21,9 +21,10 @@ You may need to manually add issues via the web interface or use the gh CLI:
 import os
 import sys
 
+
 def main():
     """Main function to add issues to project board."""
-    github_token = os.getenv('GITHUB_TOKEN')
+    github_token = os.getenv("GITHUB_TOKEN")
 
     if not github_token:
         print("Error: GITHUB_TOKEN environment variable not set")
@@ -66,6 +67,7 @@ def main():
     print("=" * 50)
     print()
     print("See .github/PROJECT_BOARD_SETUP.md for detailed instructions.")
+
 
 if __name__ == "__main__":
     main()

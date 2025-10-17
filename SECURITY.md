@@ -70,7 +70,7 @@ This repository has automatic security scanning configured:
    # For recent commits (not pushed yet)
    git reset --soft HEAD~1
    git restore --staged <file-with-secret>
-   
+
    # For pushed commits (requires force push - coordinate with team)
    # Use BFG Repo-Cleaner or git-filter-branch
    ```

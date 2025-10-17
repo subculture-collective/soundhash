@@ -11,6 +11,53 @@ Thank you for your interest in contributing to SoundHash! This document provides
    pip install -r requirements-dev.txt
    ```
 
+3. Install pre-commit hooks (recommended):
+   ```bash
+   pre-commit install
+   ```
+
+   This will automatically run code formatters and linters on every commit, ensuring code quality before you push changes.
+
+## Pre-commit Hooks
+
+This project uses [pre-commit](https://pre-commit.com/) to automatically enforce code quality standards. The hooks run automatically on every commit after installation.
+
+### Installation
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+### Running Manually
+
+To run all hooks on all files:
+```bash
+pre-commit run --all-files
+```
+
+To run hooks on staged files only:
+```bash
+pre-commit run
+```
+
+### Configured Hooks
+
+The following tools run automatically on commit:
+- **trailing-whitespace** - Removes trailing whitespace
+- **end-of-file-fixer** - Ensures files end with a newline
+- **check-yaml** - Validates YAML files
+- **check-toml** - Validates TOML files
+- **Black** - Automatically formats Python code
+- **Ruff** - Fast linting with auto-fix for common issues
+
+### Skipping Hooks (Not Recommended)
+
+If you need to skip hooks temporarily (not recommended):
+```bash
+git commit --no-verify
+```
+
 ## Code Quality
 
 This project uses several tools to maintain code quality:
