@@ -58,13 +58,9 @@ jobs:
 
       - name: Run ruff
         run: ruff check src scripts config
-        # TODO: Remove continue-on-error once existing linting issues are fixed
-        continue-on-error: true
 
       - name: Run black
         run: black --check src scripts config
-        # TODO: Remove continue-on-error once existing formatting issues are fixed
-        continue-on-error: true
 
   type-check:
     name: Type Check
