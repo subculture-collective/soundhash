@@ -12,9 +12,9 @@
 
 5. **ffmpeg** (for audio processing)3. **ffmpeg** (for audio processing)
 
-## Installation Steps
+6. **Git** (for version control)4. **Git** (for version control)
 
-4. **Git** (for version control)4. **Git** (for version control)
+## Installation Steps
 
 ### 1. Clone Repository
 
@@ -84,9 +84,9 @@ brew install postgresql ffmpeg
 
 **Windows:**
 
--   Install PostgreSQL from [official website](https://www.postgresql.org/download/windows/)### 4. Install System Dependencies### 4. Setup PostgreSQL Database
+- Install PostgreSQL from [official website](https://www.postgresql.org/download/windows/)### 4. Install System Dependencies### 4. Setup PostgreSQL Database
 
--   Install ffmpeg from [official website](https://ffmpeg.org/download.html)
+- Install ffmpeg from [official website](https://ffmpeg.org/download.html)
 
 ### 5. Setup PostgreSQL Database
 
@@ -198,15 +198,9 @@ sudo -u postgres psql
 
 ### 7. Initialize Database
 
-````
-
 ```bash
-
-python scripts/setup_database.py```sqlThe Docker setup uses PostgreSQL on port **5433** (instead of 5432) to avoid conflicts with existing PostgreSQL instances.
-
+python scripts/setup_database.py
 ```
-
-CREATE DATABASE soundhash;
 
 ### 8. Setup YouTube API (Required)
 
@@ -224,9 +218,7 @@ GRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;
 
 4. Run the authentication flow```
 
-
-
-```bash1. **PostgreSQL** (version 12+)
+````bash1. **PostgreSQL** (version 12+)
 
 python scripts/setup_youtube_api.py
 
@@ -460,13 +452,13 @@ The system features enhanced logging with:
 
 ````````
 
--   Colored output with emojis
+- Colored output with emojis
 
--   Progress bars with ETA````bash
+- Progress bars with ETA````bash
 
--   Structured section logging
+- Structured section logging
 
--   Configurable log levels### 9. Test Installation# Copy environment template
+- Configurable log levels### 9. Test Installation# Copy environment template
 
 Log files are written to `ingestion.log` for debugging purposes.cp .env.example .env
 
@@ -474,17 +466,17 @@ Log files are written to `ingestion.log` for debugging purposes.cp .env.example 
 
 ### Channel Sizes (Approximate)# Test database connection# Edit .env file with your settings
 
--   Small channels: 50-200 videos
+- Small channels: 50-200 videos
 
--   Medium channels: 200-1000 videos python scripts/test_system.pynano .env
+- Medium channels: 200-1000 videos python scripts/test_system.pynano .env
 
--   Large channels: 1000+ videos (some have 5000+)
+- Large channels: 1000+ videos (some have 5000+)
 
-```
+```text
 
 ### Processing Time Estimates
 
-- **Video ingestion**: ~0.1 seconds per video# Test with a dry run
+- **Video ingestion**: ~0.1 seconds per video
 
 - **Audio download**: ~10-30 seconds per video
 
@@ -496,9 +488,9 @@ Log files are written to `ingestion.log` for debugging purposes.cp .env.example 
 
 For a channel with 1000 videos, expect:
 
--   Ingestion: ~2 minutes```env
+- Ingestion: ~2 minutes```env
 
--   Full processing: 4-12 hours (depending on video lengths)
+- Full processing: 4-12 hours (depending on video lengths)
 
 ### 10. Start ProcessingDATABASE_URL=postgresql://soundhash_user:your_secure_password@localhost:5432/soundhash
 
@@ -522,13 +514,15 @@ YOUTUBE_API_KEY=your_youtube_api_key
 
 For more details, see:
 
-# Process specific channels### 6. Initialize Database
+## Process specific channels
 
--   `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup
+### 6. Initialize Database
 
--   `AUTH_SETUP.md` - Social media API setuppython scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA"
+- `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup
 
--   `ARCHITECTURE.md` - System architecture overview
+- `AUTH_SETUP.md` - Social media API setuppython scripts/ingest_channels.py --channels "UCo_QGM_tJZOkOCIFi2ik5kA"
+
+- `ARCHITECTURE.md` - System architecture overview
 
 ````bash
 
@@ -576,9 +570,11 @@ python scripts/ingest_channels.py --help
 
 1. Apply for [Twitter Developer Account](https://developer.twitter.com/)
 
-### Environment Variables2. Create a new app
+2. Create a new app
 
 3. Generate API keys and tokens
+
+### Environment Variables
 
 Key configuration options in `.env`:4. Add to `.env` file
 
@@ -616,53 +612,51 @@ TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA,UCBvc2dNfp1AC0
 
 python src/bots/twitter_bot.py
 
--   Check PostgreSQL is running: `sudo systemctl status postgresql````
+- Check PostgreSQL is running: `sudo systemctl status postgresql````
 
--   Verify credentials in `.env` file
+- Verify credentials in `.env` file
 
--   Test connection: `psql -h localhost -U soundhash_user -d soundhash`### Manual Testing
+- Test connection: `psql -h localhost -U soundhash_user -d soundhash`### Manual Testing
 
 ### FFmpeg Issues```python
 
 from src.core.audio_fingerprinting import AudioFingerprinter
 
--   Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)from src.core.video_processor import VideoProcessor
+- Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)from src.core.video_processor import VideoProcessor
 
--   Verify installation: `ffmpeg -version`
+- Verify installation: `ffmpeg -version`
 
 processor = VideoProcessor()
 
 ### Video Download Issuesfingerprinter = AudioFingerprinter()
 
--   Update yt-dlp: `pip install --upgrade yt-dlp`# Test with a video
+- Update yt-dlp: `pip install --upgrade yt-dlp`# Test with a video
 
--   Check video URL accessibilityaudio_file = processor.download_video_audio("https://youtube.com/watch?v=...")
+- Check video URL accessibilityaudio_file = processor.download_video_audio("<https://youtube.com/watch?v=>...")
 
--   Some videos may be geo-restrictedfingerprint = fingerprinter.extract_fingerprint(audio_file)
+- Some videos may be geo-restrictedfingerprint = fingerprinter.extract_fingerprint(audio_file)
 
 print(f"Fingerprint confidence: {fingerprint['confidence_score']}")
 
 ### Performance Issues```
 
--   Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`## Troubleshooting
+- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`## Troubleshooting
 
--   Process smaller batches of videos
+- Process smaller batches of videos
 
--   Monitor disk space in temp directory### Common Issues
+- Monitor disk space in temp directory### Common Issues
 
 ### Database Performance**Database connection fails:**
 
--   Create indexes for frequently queried columns- Check PostgreSQL is running: `sudo systemctl status postgresql`
+- Check PostgreSQL is running: `sudo systemctl status postgresql`
 
--   Monitor database size and consider partitioning for large datasets- Verify credentials in `.env` file
+- Verify credentials in `.env` file
 
--   Use connection pooling for high-throughput scenarios- Test connection: `psql -h localhost -U soundhash_user -d soundhash`
-
-## Fresh Start**FFmpeg not found:**
+- Test connection: `psql -h localhost -U soundhash_user -d soundhash`**FFmpeg not found:**
 
 If you need to completely reset the system:- Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)
 
--   Verify installation: `ffmpeg -version`
+- Verify installation: `ffmpeg -version`
 
 ```bash
 
@@ -670,43 +664,43 @@ python scripts/fresh_start.py**yt-dlp download errors:**
 
 ```
 
--   Update yt-dlp: `pip install --upgrade yt-dlp`
+- Update yt-dlp: `pip install --upgrade yt-dlp`
 
 This will:- Check video URL accessibility
 
--   Some videos may be geo-restricted
+- Some videos may be geo-restricted
 
--   Clear all database data
+- Clear all database data
 
--   Remove temporary files**Memory issues during processing:**
+- Remove temporary files**Memory issues during processing:**
 
--   Reset processing state
+- Reset processing state
 
--   Verify system readiness- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`
+- Verify system readiness- Reduce `MAX_CONCURRENT_DOWNLOADS` in `.env`
 
--   Process smaller batches of videos
+- Process smaller batches of videos
 
 ## Logging- Monitor disk space in temp directory
 
 The system features enhanced logging with:### Performance Optimization
 
--   Colored output with emojis**Database:**
+- Colored output with emojis**Database:**
 
--   Progress bars with ETA
+- Progress bars with ETA
 
--   Structured section logging- Create indexes for frequently queried columns
+- Structured section logging- Create indexes for frequently queried columns
 
--   Configurable log levels- Use connection pooling for high load
+- Configurable log levels- Use connection pooling for high load
 
--   Consider read replicas for scaling
+- Consider read replicas for scaling
 
 Log files are written to `ingestion.log` for debugging purposes.
 
 **Processing:**
 
-## Next Steps
+## Finalize
 
--   Adjust segment length for your use case
+- Adjust segment length for your use case
 
 1. Configure your target channels in `.env`- Tune fingerprinting parameters
 
@@ -722,23 +716,23 @@ Log files are written to `ingestion.log` for debugging purposes.
 
 For more details, see:- Application logs: Check terminal output
 
--   Database logs: `/var/log/postgresql/`
+- Database logs: `/var/log/postgresql/`
 
--   `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup- Processing jobs: Monitor `processing_jobs` table
+- `YOUTUBE_OAUTH_SETUP.md` - YouTube API setup- Processing jobs: Monitor `processing_jobs` table
 
--   `AUTH_SETUP.md` - Social media API setup
+- `AUTH_SETUP.md` - Social media API setup
 
--   `ARCHITECTURE.md` - System architecture overview### Metrics
+- `ARCHITECTURE.md` - System architecture overview### Metrics
 
--   Videos processed per hour
--   Fingerprint match accuracy
--   Database size growth
--   API rate limit usage
+- Videos processed per hour
+- Fingerprint match accuracy
+- Database size growth
+- API rate limit usage
 
 ## Security Notes
 
--   Keep `.env` file secure and never commit to git
--   Use strong database passwords
--   Regularly rotate API keys
--   Monitor API usage to prevent abuse
--   Consider rate limiting for public APIs
+- Keep `.env` file secure and never commit to git
+- Use strong database passwords
+- Regularly rotate API keys
+- Monitor API usage to prevent abuse
+- Consider rate limiting for public APIs

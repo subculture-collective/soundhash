@@ -6,6 +6,7 @@ This repository uses bracketed prefixes in issue titles to emulate milestones an
 - [M1][P1] MVP item
 
 When custom GitHub Labels are added in the future, use these categories:
+
 - priority: P0, P1, P2
 - kind: feature, bug, refactor, infra, test, docs, perf, security
 - area: ingestion, video-io, fingerprinting, matching, db, api, bots, logging, ci, infra, observability, devx, tooling

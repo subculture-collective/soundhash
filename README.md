@@ -8,20 +8,20 @@ A sophisticated system for matching audio clips from videos across social media 
 
 ## Features
 
--   Audio fingerprinting using spectral analysis
--   PostgreSQL database for scalable storage
--   Social media bot integration (Twitter, Reddit)
--   YouTube channel ingestion
--   Real-time clip matching
--   Beautiful colored logging with progress tracking
+- Audio fingerprinting using spectral analysis
+- PostgreSQL database for scalable storage
+- Social media bot integration (Twitter, Reddit)
+- YouTube channel ingestion
+- Real-time clip matching
+- Beautiful colored logging with progress tracking
 
 ## Target Channels
 
 The system is initially configured to process videos from:
 
--   UCo_QGM_tJZOkOCIFi2ik5kA
--   UCDz8WxTg4R7FUTSz7GW2cYA
--   UCBvc2dNfp1AC0VBVU0vRagw
+- UCo_QGM_tJZOkOCIFi2ik5kA
+- UCDz8WxTg4R7FUTSz7GW2cYA
+- UCBvc2dNfp1AC0VBVU0vRagw
 
 ## Quick Start
 
@@ -99,9 +99,9 @@ python scripts/ingest_channels.py --no-colors
 
 ### Bot Deployment
 
--   Configure API keys in `.env`
--   Run Twitter bot: `python src/bots/twitter_bot.py`
--   Run Reddit bot: `python src/bots/reddit_bot.py`
+- Configure API keys in `.env`
+- Run Twitter bot: `python src/bots/twitter_bot.py`
+- Run Reddit bot: `python src/bots/reddit_bot.py`
 
 ### Manual Testing
 
@@ -119,8 +119,8 @@ fingerprint = fingerprinter.extract_fingerprint(audio_file)
 
 ## Architecture
 
--   `src/core/` - Core audio processing and fingerprinting
--   `src/database/` - Database models and operations
--   `src/bots/` - Social media bot implementations
--   `src/ingestion/` - Channel data ingestion system
--   `scripts/` - Utility scripts for setup and maintenance
+- `src/core/` - Core audio processing and fingerprinting
+- `src/database/` - Database models and operations
+- `src/bots/` - Social media bot implementations
+- `src/ingestion/` - Channel data ingestion system
+- `scripts/` - Utility scripts for setup and maintenance

@@ -8,7 +8,7 @@ The user has created a GitHub Project called **"@onnwee's soundhash"** to visual
 
 ### Accessing the Project
 
-- **Project URL**: https://github.com/users/onnwee/projects
+- **Project URL**: <https://github.com/users/onnwee/projects>
 - **Alternative**: Navigate to your GitHub profile → Projects tab
 
 ### Connecting Issues to the Project
@@ -50,6 +50,7 @@ Configure the following automation:
 ### Master Roadmap Issue
 
 Issue #34 serves as the master tracking issue. Keep it updated with:
+
 - Links to all sub-issues
 - Status checkboxes for each milestone deliverable
 - Notes on scope changes or reprioritization
@@ -72,6 +73,7 @@ The repository uses a structured label taxonomy:
 - **Standard**: `enhancement`, `bug`, `documentation`, `good first issue`, `help wanted`
 
 Milestones:
+
 - **M0**: Repo hygiene and CI (Baseline quality)
 - **M1**: Core pipeline ready (Download → Segment → Fingerprint → Store)
 - **M2**: Integrations, DX, and robustness
@@ -79,7 +81,7 @@ Milestones:
 
 ### Next Steps
 
-1. Navigate to https://github.com/users/onnwee/projects
+1. Navigate to <https://github.com/users/onnwee/projects>
 2. Open the "@onnwee's soundhash" project
 3. Configure automation settings
 4. Bulk-add all existing issues (#1-#34)
