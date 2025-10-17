@@ -66,7 +66,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           # Install runtime dependencies for type checking
-          pip install -r requirements.txt || true
+          test -f requirements.txt && pip install -r requirements.txt
       
       - name: Run mypy
         run: mypy src scripts
