@@ -17,7 +17,7 @@ tags = ["api", "youtube", "key"]
 [[rules]]
 id = "generic-api-key-header"
 description = "API Key in header or config"
-regex = '''(?i)(api[_-]?key|apikey)\s*[:=]\s*['"]?[a-zA-Z0-9_\-]{20,}['"]?'''
+regex = '''(?i)(api[_-]?key|apikey)\s*[:=]\s*['"]?[a-zA-Z0-9_\-/+]{32,}['"]?'''
 tags = ["api", "key"]
 
 [[rules]]
