@@ -9,8 +9,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
-from db import db_manager, Base
-from config import Config
+from src.database.connection import db_manager
+from src.database.models import Base
+from config.settings import Config
 
 
 def setup_database():
