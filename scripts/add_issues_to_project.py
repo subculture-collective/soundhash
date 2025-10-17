@@ -55,7 +55,7 @@ def main():
     print("  for i in $(seq 1 34); do")
     print("    gh project item-add PROJECT_NUMBER \\")
     print("      --owner @me \\")
-    print("      --url https://github.com/onnwee/soundhash/issues/$i")
+    print("      --url https://github.com/onnwee/soundhash/issues/${i}")
     print("  done")
     print()
     print("Configure automation:")
