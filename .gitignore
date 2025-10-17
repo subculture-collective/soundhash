@@ -1,5 +1,6 @@
 # Add to .gitignore
 .env
+.venv
 temp/
 logs/
 *.log
