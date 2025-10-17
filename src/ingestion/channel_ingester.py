@@ -1,6 +1,6 @@
+from typing import List, Dict, Optional, Any, TYPE_CHECKING
 import asyncio
 import logging
-from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from src.core.video_processor import VideoProcessor as CoreVideoProcessor
 from src.core.audio_fingerprinting import AudioFingerprinter
@@ -10,24 +10,27 @@ from config.settings import Config
 from config.logging_config import create_section_logger, get_progress_logger
 import json
 
-try:
+if TYPE_CHECKING:
     from src.api.youtube_service import YouTubeAPIService
+
+try:
+    from src.api.youtube_service import YouTubeAPIService as _YouTubeAPIService
     YOUTUBE_API_AVAILABLE = True
+    YouTubeAPIService = _YouTubeAPIService  # type: ignore[misc,assignment]
 except ImportError:
     YOUTUBE_API_AVAILABLE = False
-    YouTubeAPIService = None
 
 class ChannelIngester:
     """
     Handles ingestion of videos from YouTube channels and processing for fingerprinting.
     """
     
-    def __init__(self, initialize_db: bool = True, youtube_service=None):
+    def __init__(self, initialize_db: bool = True, youtube_service: Optional[Any] = None) -> None:
         # Initialize YouTube API service if available
         self.youtube_service = youtube_service
         if not self.youtube_service and YOUTUBE_API_AVAILABLE:
             try:
-                self.youtube_service = YouTubeAPIService()
+                self.youtube_service = YouTubeAPIService()  # type: ignore[misc]
                 self.logger = create_section_logger(__name__)
                 self.logger.log_success("YouTube Data API service initialized")
             except Exception as e:
@@ -47,7 +50,7 @@ class ChannelIngester:
             db_manager.initialize()
             self._db_initialized = True
     
-    async def ingest_all_channels(self, channels_override: Optional[list] = None, max_videos: int = None, dry_run: bool = False):
+    async def ingest_all_channels(self, channels_override: Optional[List[str]] = None, max_videos: Optional[int] = None, dry_run: bool = False) -> None:
         """Ingest videos from all configured channels or provided override list"""
         channels = channels_override or self.target_channels
         self.logger.info(f"🎯 Starting ingestion for {len(channels)} channels")
@@ -63,7 +66,7 @@ class ChannelIngester:
         
         progress.complete()
     
-    async def ingest_channel(self, channel_id: str, max_videos: int = None, dry_run: bool = False):
+    async def ingest_channel(self, channel_id: str, max_videos: Optional[int] = None, dry_run: bool = False) -> None:
         """
         Ingest videos from a specific channel.
         Creates channel and video records, then queues processing jobs.
@@ -105,7 +108,7 @@ class ChannelIngester:
                 )
             
             # Update channel info with first video's channel data
-            if videos_info and not channel.channel_name.startswith("Channel "):
+            if videos_info and channel.channel_name and not channel.channel_name.startswith("Channel "):
                 first_video = videos_info[0]
                 if first_video.get('channel'):
                     channel.channel_name = first_video['channel']
@@ -132,10 +135,10 @@ class ChannelIngester:
                         
                         video = video_repo.create_video(
                             video_id=video_info['id'],
-                            channel_id=channel.id,
+                            channel_id=int(channel.id),  # type: ignore[arg-type]
                             title=video_info.get('title'),
                             description=video_info.get('description'),
-                            duration=video_info.get('duration'),
+                            duration=float(video_info['duration']) if video_info.get('duration') else None,
                             view_count=video_info.get('view_count'),
                             like_count=video_info.get('like_count'),
                             upload_date=self._parse_upload_date(video_info.get('upload_date')),
@@ -172,7 +175,7 @@ class ChannelIngester:
             self.logger.error(f"Error ingesting channel {channel_id}: {str(e)}")
             raise
     
-    def _should_update_video(self, existing_video, video_info: Dict) -> bool:
+    def _should_update_video(self, existing_video: Any, video_info: Dict[str, Any]) -> bool:
         """Check if video record should be updated with new info"""
         # Update if view count or like count has changed significantly
         current_views = existing_video.view_count or 0
@@ -187,7 +190,7 @@ class ChannelIngester:
         
         return False
     
-    def _update_video_record(self, video, video_info: Dict, repo: VideoRepository):
+    def _update_video_record(self, video: Any, video_info: Dict[str, Any], repo: VideoRepository) -> None:
         """Update existing video record with new information"""
         video.view_count = video_info.get('view_count')
         video.like_count = video_info.get('like_count')
@@ -196,7 +199,7 @@ class ChannelIngester:
         video.updated_at = datetime.utcnow()
         repo.session.commit()
     
-    def _parse_upload_date(self, upload_date_str: str) -> Optional[datetime]:
+    def _parse_upload_date(self, upload_date_str: Optional[str]) -> Optional[datetime]:
         """Parse upload date string from yt-dlp"""
         if not upload_date_str:
             return None
@@ -212,13 +215,13 @@ class VideoJobProcessor:
     Handles the complete pipeline from video to stored fingerprints.
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         # Use the core video processor implementation
         self.video_processor = CoreVideoProcessor()
         self.fingerprinter = AudioFingerprinter()
         self.logger = logging.getLogger(__name__)
     
-    async def process_pending_videos(self, batch_size: int = 5):
+    async def process_pending_videos(self, batch_size: int = 5) -> None:
         """Process videos that are queued for processing"""
         job_repo = get_job_repository()
         video_repo = get_video_repository()
@@ -238,12 +241,13 @@ class VideoJobProcessor:
                     await self.process_video_job(job, video_repo, job_repo)
                 except Exception as e:
                     self.logger.error(f"Error processing job {job.id}: {str(e)}")
-                    job_repo.update_job_status(
-                        job.id, 'failed', 
-                        error_message=str(e)
-                    )
+                    if job.id:
+                        job_repo.update_job_status(
+                            job.id, 'failed', 
+                            error_message=str(e)
+                        )
     
-    async def process_video_job(self, job, video_repo: VideoRepository, job_repo: JobRepository):
+    async def process_video_job(self, job: Any, video_repo: VideoRepository, job_repo: JobRepository) -> None:
         """Process a single video processing job"""
         job_repo.update_job_status(job.id, 'running', 0.0, 'Starting video processing')
         
@@ -287,7 +291,7 @@ class VideoJobProcessor:
                     serialized_data = self.fingerprinter.serialize_fingerprint(fingerprint_data)
                     
                     video_repo.create_fingerprint(
-                        video_id=video.id,
+                        video_id=int(video.id),  # type: ignore[arg-type]
                         start_time=start_time,
                         end_time=end_time,
                         fingerprint_hash=fingerprint_data['fingerprint_hash'],
@@ -306,9 +310,9 @@ class VideoJobProcessor:
                         os.remove(segment_file)
                     
                     # Update progress
-                    progress = 0.5 + (0.4 * (i + 1) / len(segments))
+                    progress_value = 0.5 + (0.4 * (i + 1) / len(segments))
                     job_repo.update_job_status(
-                        job.id, 'running', progress, 
+                        job.id, 'running', progress_value, 
                         f'Processed segment {i+1}/{len(segments)}'
                     )
                     
@@ -317,24 +321,26 @@ class VideoJobProcessor:
                     continue
             
             # Mark video as processed
-            video_repo.mark_video_processed(video.id, success=True)
+            if video.id:
+                video_repo.mark_video_processed(video.id, success=True)
             
-            job_repo.update_job_status(
-                job.id, 'completed', 1.0, 
-                f'Created {fingerprints_created} fingerprints'
-            )
+            if job.id:
+                job_repo.update_job_status(
+                    job.id, 'completed', 1.0, 
+                    f'Created {fingerprints_created} fingerprints'
+                )
             
             self.logger.info(f"Successfully processed video {video_id}: {fingerprints_created} fingerprints")
             
         except Exception as e:
             # Mark video as failed
             video = video_repo.get_video_by_id(job.target_id)
-            if video:
+            if video and video.id:
                 video_repo.mark_video_processed(video.id, success=False, error_message=str(e))
             
             raise
 
-async def main():
+async def main() -> None:
     """Main ingestion process"""
     logging.basicConfig(level=logging.INFO)
     
