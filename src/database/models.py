@@ -2,8 +2,6 @@ from typing import Any, List as ListType
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, LargeBinary, ForeignKey, Index
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, DeclarativeMeta, Mapped
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 from datetime import datetime
 
 Base: DeclarativeMeta = declarative_base()  # type: ignore[assignment]
