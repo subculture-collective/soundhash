@@ -5,14 +5,10 @@ Creates the database schema and initializes the system.
 """
 
 import os
-import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
-
-from config.settings import Config
-from src.database.connection import db_manager
 
 
 def setup_database():
@@ -27,7 +23,7 @@ def setup_database():
         db_manager.initialize()
 
         logger.info("Database setup completed successfully!")
-        logger.info(f"Connected to database: host={Config.DATABASE_HOST}, port={Config.DATABASE_PORT}, db={Config.DATABASE_NAME}")
+        logger.info(f"Connected to: {Config.get_database_url()}")
 
         # Test the connection
         session = db_manager.get_session()
@@ -40,7 +36,9 @@ def setup_database():
 
     except Exception as e:
         logger.error(f"Database setup failed: {str(e)}")
-        logger.error("Make sure PostgreSQL is running and credentials are correct in .env file")
+        logger.error(
+            "Make sure PostgreSQL is running and credentials are correct in .env file"
+        )
         sys.exit(1)
 
 
