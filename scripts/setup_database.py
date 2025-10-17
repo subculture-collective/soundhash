@@ -27,7 +27,7 @@ def setup_database():
         db_manager.initialize()
 
         logger.info("Database setup completed successfully!")
-        logger.info(f"Connected to: {Config.get_database_url()}")
+        logger.info(f"Connected to database: host={Config.DATABASE_HOST}, port={Config.DATABASE_PORT}, db={Config.DATABASE_NAME}")
 
         # Test the connection
         session = db_manager.get_session()
