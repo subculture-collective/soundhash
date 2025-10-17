@@ -130,6 +130,8 @@ fingerprint = fingerprinter.extract_fingerprint(audio_file)
 
 ## Security and Secrets Management
 
+> 📖 **Quick Reference:** See [SECURITY.md](SECURITY.md) for a condensed checklist and quick reference guide.
+
 ### Overview
 
 SoundHash requires various API credentials and tokens to function. It's critical to handle these securely to prevent unauthorized access to your accounts and services.
