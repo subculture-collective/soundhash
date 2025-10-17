@@ -29,7 +29,7 @@ Always run these checks before committing:
 
 ```bash
 # 1. Check for secrets in staged files
-gitleaks detect --no-git --verbose
+gitleaks protect --staged --verbose
 
 # 2. Verify sensitive files are ignored
 git status --ignored | grep -E "(\.env|credentials|token|cookies)"
