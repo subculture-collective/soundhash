@@ -300,7 +300,7 @@ class YouTubeAPIService:
         try:
             # Simple API call to test connectivity
             request = self.service.channels().list(part="snippet", mine=True)
-            request.execute()
+            _ = request.execute()
             self.logger.info("YouTube API connection test successful")
             return True
 
