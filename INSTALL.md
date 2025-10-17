@@ -12,8 +12,6 @@
 
 5. **ffmpeg** (for audio processing)3. **ffmpeg** (for audio processing)
 
-6. **Git** (for version control)4. **Git** (for version control)
-
 ## Installation Steps
 
 ### 1. Clone Repository
@@ -216,7 +214,7 @@ GRANT ALL PRIVILEGES ON DATABASE soundhash TO soundhash_user;
 
 3. Create OAuth2 credentials
 
-4. Run the authentication flow```
+4. Run the authentication flow
 
 ````bash1. **PostgreSQL** (version 12+)
 
@@ -632,7 +630,11 @@ processor = VideoProcessor()
 
 - Update yt-dlp: `pip install --upgrade yt-dlp`# Test with a video
 
-- Check video URL accessibilityaudio_file = processor.download_video_audio("<https://youtube.com/watch?v=>...")
+- Check video URL accessibility
+  
+```python
+  audio_file = processor.download_video_audio("<https://youtube.com/watch?v=>...")
+```
 
 - Some videos may be geo-restrictedfingerprint = fingerprinter.extract_fingerprint(audio_file)
 
@@ -652,7 +654,9 @@ print(f"Fingerprint confidence: {fingerprint['confidence_score']}")
 
 - Verify credentials in `.env` file
 
-- Test connection: `psql -h localhost -U soundhash_user -d soundhash`**FFmpeg not found:**
+- Test connection: `psql -h localhost -U soundhash_user -d soundhash`
+
+- **FFmpeg not found:**
 
 If you need to completely reset the system:- Install FFmpeg: `sudo apt install ffmpeg` (Ubuntu) or `brew install ffmpeg` (macOS)
 
