@@ -1,8 +1,8 @@
+from typing import List, Tuple, Optional, Dict, Any, TYPE_CHECKING
 import yt_dlp
 import subprocess
 import os
 import tempfile
-from typing import List, Tuple, Optional, Dict
 from pathlib import Path
 import logging
 import time
@@ -10,12 +10,15 @@ import random
 from config.settings import Config
 from config.logging_config import create_section_logger
 
-try:
+if TYPE_CHECKING:
     from src.api.youtube_service import YouTubeAPIService
+
+try:
+    from src.api.youtube_service import YouTubeAPIService as _YouTubeAPIService
     YOUTUBE_API_AVAILABLE = True
+    YouTubeAPIService = _YouTubeAPIService  # type: ignore[misc,assignment]
 except ImportError:
     YOUTUBE_API_AVAILABLE = False
-    YouTubeAPIService = None
 
 
 class VideoProcessor:
@@ -24,7 +27,7 @@ class VideoProcessor:
     Uses YouTube Data API for metadata when available, falls back to yt-dlp for audio download.
     """
 
-    def __init__(self, temp_dir: str = "./temp", segment_length: int = None, youtube_service = None):
+    def __init__(self, temp_dir: str = "./temp", segment_length: Optional[int] = None, youtube_service: Optional[Any] = None) -> None:
         """
         Initialize VideoProcessor.
         
@@ -41,7 +44,7 @@ class VideoProcessor:
         os.makedirs(self.temp_dir, exist_ok=True)
         
         # Setup yt-dlp configuration for audio download fallback
-        self.ydl_opts = {
+        self.ydl_opts: Dict[str, Any] = {
             'format': 'bestaudio/best',
             'outtmpl': f'{self.temp_dir}/%(id)s.%(ext)s',
             'extractaudio': True,
@@ -53,13 +56,13 @@ class VideoProcessor:
         # Try to initialize YouTube API service if not provided
         if not self.youtube_service and YOUTUBE_API_AVAILABLE:
             try:
-                self.youtube_service = YouTubeAPIService()
+                self.youtube_service = YouTubeAPIService()  # type: ignore[misc]
                 self.logger.info("YouTube Data API service initialized")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize YouTube API service: {e}")
                 self.logger.info("Will fall back to yt-dlp for all operations")
 
-    def download_video_info(self, url: str) -> Optional[Dict]:
+    def download_video_info(self, url: str) -> Optional[Dict[str, Any]]:
         """
         Extract video metadata without downloading using enhanced subprocess approach.
         Returns video information dictionary.
@@ -91,8 +94,8 @@ class VideoProcessor:
                 for chrome_path in chrome_paths:
                     if os.path.exists(chrome_path):
                         test_cmd = ['yt-dlp', '--cookies-from-browser', 'chrome', '--simulate', '--quiet', url]
-                        result = subprocess.run(test_cmd, capture_output=True, timeout=5)
-                        if result.returncode == 0:
+                        test_result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                        if test_result.returncode == 0:
                             cmd.extend(['--cookies-from-browser', 'chrome'])
                             break
                 else:
@@ -105,8 +108,8 @@ class VideoProcessor:
                     for firefox_path in firefox_paths:
                         if os.path.exists(firefox_path):
                             test_cmd = ['yt-dlp', '--cookies-from-browser', 'firefox', '--simulate', '--quiet', url]
-                            result = subprocess.run(test_cmd, capture_output=True, timeout=5)
-                            if result.returncode == 0:
+                            test_result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                            if test_result.returncode == 0:
                                 cmd.extend(['--cookies-from-browser', 'firefox'])
                                 break
             except:
@@ -115,7 +118,7 @@ class VideoProcessor:
             
             cmd.append(url)
             
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
+            result: subprocess.CompletedProcess[str] = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
             
             # Parse the output
             if result.stdout.strip():
@@ -196,14 +199,14 @@ class VideoProcessor:
                 cookies_configured = False
 
                 # Use explicit cookies file if provided
-                if getattr(Config, 'YT_COOKIES_FILE', None) and os.path.exists(Config.YT_COOKIES_FILE):
-                    cmd.extend(["--cookies", Config.YT_COOKIES_FILE])
+                if getattr(Config, 'YT_COOKIES_FILE', None) and os.path.exists(str(Config.YT_COOKIES_FILE)):
+                    cmd.extend(["--cookies", str(Config.YT_COOKIES_FILE)])
                     cookies_configured = True
                     self.logger.debug(f"Using cookies file: {Config.YT_COOKIES_FILE}")
 
                 # Use explicit cookies-from-browser if provided
                 elif getattr(Config, 'YT_COOKIES_FROM_BROWSER', None):
-                    browser_arg = Config.YT_COOKIES_FROM_BROWSER
+                    browser_arg = str(Config.YT_COOKIES_FROM_BROWSER)
                     if getattr(Config, 'YT_BROWSER_PROFILE', None):
                         browser_arg = f"{Config.YT_COOKIES_FROM_BROWSER}:{Config.YT_BROWSER_PROFILE}"
                     cmd.extend(["--cookies-from-browser", browser_arg])
@@ -215,8 +218,8 @@ class VideoProcessor:
                     try:
                         for browser in ["chrome", "chromium", "brave", "edge", "firefox"]:
                             test_cmd = ["yt-dlp", "--cookies-from-browser", browser, "--simulate", "--quiet", url]
-                            result = subprocess.run(test_cmd, capture_output=True, timeout=5)
-                            if result.returncode == 0:
+                            test_result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                            if test_result.returncode == 0:
                                 cmd.extend(["--cookies-from-browser", browser])
                                 self.logger.debug(f"Using {browser} cookies (auto)")
                                 cookies_configured = True
@@ -228,7 +231,7 @@ class VideoProcessor:
                 cmd.append(url)
                 
                 self.logger.debug(f"Running yt-dlp command: {' '.join(cmd[:8])}...")  # Don't log full command with user agent
-                result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
+                result: subprocess.CompletedProcess[str] = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=600)
                 
                 # Find the actual downloaded file
                 actual_file = None
@@ -323,7 +326,7 @@ class VideoProcessor:
                 return random.choice(valid_proxies)
         return None
 
-    def _convert_to_wav(self, input_file: str, output_file: str):
+    def _convert_to_wav(self, input_file: str, output_file: str) -> None:
         """Convert audio file to WAV format using ffmpeg"""
         try:
             subprocess.run([
@@ -338,7 +341,7 @@ class VideoProcessor:
             self.logger.error(f"Error converting {input_file} to WAV: {e}")
             raise
     
-    def segment_audio(self, audio_file: str, segment_length: int = None) -> List[Tuple[str, float, float]]:
+    def segment_audio(self, audio_file: str, segment_length: Optional[int] = None) -> List[Tuple[str, float, float]]:
         """
         Split audio file into segments for processing.
         Returns list of (segment_file_path, start_time, end_time) tuples.
@@ -347,7 +350,7 @@ class VideoProcessor:
             raise FileNotFoundError(f"Audio file not found: {audio_file}")
         
         segment_length = segment_length or self.segment_length
-        segments = []
+        segments: List[Tuple[str, float, float]] = []
         
         try:
             # Get audio duration using ffprobe
@@ -357,7 +360,7 @@ class VideoProcessor:
                 return []
             
             # Create segments
-            start_time = 0
+            start_time: float = 0.0
             segment_id = 0
             
             while start_time < duration:
@@ -423,7 +426,7 @@ class VideoProcessor:
             self.logger.error(f"Error extracting segment: {e}")
             return False
     
-    def cleanup_temp_files(self, file_pattern: str = None):
+    def cleanup_temp_files(self, file_pattern: Optional[str] = None) -> None:
         """Clean up temporary files"""
         try:
             if file_pattern:
@@ -441,7 +444,7 @@ class VideoProcessor:
         except Exception as e:
             self.logger.error(f"Error cleaning up temp files: {str(e)}")
     
-    def get_channel_videos(self, channel_id: str, max_results: int = None) -> List[Dict]:
+    def get_channel_videos(self, channel_id: str, max_results: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get list of videos from a YouTube channel using Data API when available,
         fallback to yt-dlp subprocess approach.
@@ -460,7 +463,7 @@ class VideoProcessor:
         # Fallback to yt-dlp subprocess
         return self._get_channel_videos_ytdlp(channel_id, max_results)
     
-    def process_video_for_fingerprinting(self, video_url: str, cleanup_segments: bool = None) -> Optional[List[Tuple[str, float, float]]]:
+    def process_video_for_fingerprinting(self, video_url: str, cleanup_segments: Optional[bool] = None) -> Optional[List[Tuple[str, float, float]]]:
         """
         Complete pipeline: download video, extract audio, and create segments.
         Returns list of (segment_file, start_time, end_time) or None if failed.
@@ -511,7 +514,7 @@ class VideoProcessor:
             
             return None
     
-    def cleanup_segments(self, segments: List[Tuple[str, float, float]]):
+    def cleanup_segments(self, segments: List[Tuple[str, float, float]]) -> None:
         """
         Clean up segment files after processing.
         
@@ -542,7 +545,7 @@ class VideoProcessor:
         except:
             return None
     
-    def _download_video_info_ytdlp(self, url: str) -> Optional[Dict]:
+    def _download_video_info_ytdlp(self, url: str) -> Optional[Dict[str, Any]]:
         """Fallback method using yt-dlp subprocess for video info"""
         try:
             # Use subprocess to get video info with cookies from browser to avoid bot detection
@@ -594,7 +597,7 @@ class VideoProcessor:
             self.logger.error(f"Error extracting video info from {url}: {str(e)}")
             return None
     
-    def _get_channel_videos_ytdlp(self, channel_id: str, max_results: int = None) -> List[Dict]:
+    def _get_channel_videos_ytdlp(self, channel_id: str, max_results: Optional[int] = None) -> List[Dict[str, Any]]:
         """Fallback method using yt-dlp subprocess for channel videos"""
         try:
             channel_url = f"https://www.youtube.com/channel/{channel_id}/videos"
