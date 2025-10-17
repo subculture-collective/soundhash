@@ -2,7 +2,7 @@
 psycopg[binary]==3.1.19
 sqlalchemy==2.0.23
 alembic==1.12.1
-setuptools<70.0.0
+setuptools<81.0.0
 
 # Audio processing
 librosa==0.10.1
