@@ -21,12 +21,22 @@ wheels/
 *.egg
 MANIFEST
 
-# Environment and Configuration
-.env
-.env.local
-.env.*.local
+# Testing
+.pytest_cache/
+.coverage
+coverage.xml
+junit.xml
+htmlcov/
 
-# Secrets and Credentials - DO NOT COMMIT
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Docker
+.dockerignore
+cookies.txt
+ingestion.log
 credentials.json
 token.json
 *.token
