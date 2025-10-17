@@ -489,7 +489,6 @@ class VideoProcessor:
             # Determine cleanup behavior
 
             # This is where fingerprinting would happen - for now just return the segments
-            # In a real implementation, you'd process each segment for fingerprinting here
             self.logger.info(f"Created {len(segments)} segments for fingerprinting")
 
             # Clean up based on configuration
