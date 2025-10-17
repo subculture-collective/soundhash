@@ -2,7 +2,7 @@
 psycopg2-binary==2.9.7
 sqlalchemy==2.0.23
 alembic==1.12.1
-setuptools<70.0.0
+setuptools<81.0.0
 
 # Audio processing
 librosa==0.10.1
@@ -11,7 +11,7 @@ numpy==1.24.4
 soundfile==0.12.1
 
 # Video processing
-yt-dlp==2023.10.13
+yt-dlp==2024.7.7
 ffmpeg-python==0.2.0
 
 # Social media APIs
@@ -24,16 +24,16 @@ uvicorn==0.24.0
 
 # Utilities
 python-dotenv==1.0.0
-requests==2.31.0
+requests==2.32.4
 python-dateutil==2.8.2
-tqdm==4.66.1
+tqdm==4.66.3
 colorlog==6.8.2
 
 # Development
 pytest==7.4.3
-black==23.11.0
+black==24.3.0
 flake8==6.1.0
 
 # Async support
 asyncio==3.4.3
-aiohttp==3.9.1
+aiohttp==3.12.14
