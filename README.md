@@ -203,8 +203,8 @@ This repository uses [Gitleaks](https://github.com/gitleaks/gitleaks) in CI to a
 
 If the CI fails due to detected secrets:
 
-1. **Remove the secret** from all commits (use `git filter-branch` or `BFG Repo-Cleaner`)
-2. **Rotate the compromised credential** immediately
+1. **Rotate the compromised credential** immediately
+2. **Remove the secret** from all commits (use `git filter-branch` or `BFG Repo-Cleaner`)
 3. **Update your local `.env`** with the new credential
 4. **Never commit the secret again**
 
