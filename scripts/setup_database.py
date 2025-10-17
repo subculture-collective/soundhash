@@ -6,12 +6,13 @@ Creates the database schema and initializes the system.
 
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
-from src.database.connection import db_manager
-from src.database.models import Base
+
 from config.settings import Config
+from src.database.connection import db_manager
 
 
 def setup_database():
