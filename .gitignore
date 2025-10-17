@@ -1,8 +1,4 @@
-# Add to .gitignore
-.env
-temp/
-logs/
-*.log
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -25,13 +21,49 @@ wheels/
 *.egg
 MANIFEST
 
-# Docker
-.dockerignore
-cookies.txt
-ingestion.log
+# Environment and Configuration
+.env
+.env.local
+.env.*.local
+
+# Secrets and Credentials - DO NOT COMMIT
 credentials.json
 token.json
+*.token
+*.token.json
+cookies.txt
+*.cookie
+*.cookies
+client_secret*.json
+service-account*.json
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa*
+.ssh/
 
+# API Keys and Tokens (backup patterns)
+*_secret_key*
+*_api_key*
+*_access_token*
+*.credentials
 
-#Ignore vscode AI rules
+# Logs and Temporary Files
+temp/
+logs/
+*.log
+ingestion.log
+
+# Docker
+.dockerignore
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
