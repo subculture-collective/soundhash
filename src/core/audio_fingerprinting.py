@@ -174,7 +174,12 @@ class AudioFingerprinter:
         Compare two fingerprints and return similarity score (0-1).
         Uses multiple comparison methods for robustness.
         """
-        if not fp1.get('compact_fingerprint') or not fp2.get('compact_fingerprint'):
+        compact1 = fp1.get('compact_fingerprint')
+        compact2 = fp2.get('compact_fingerprint')
+        
+        if compact1 is None or compact2 is None:
+            return 0.0
+        if len(compact1) == 0 or len(compact2) == 0:
             return 0.0
 
         compact1 = fp1['compact_fingerprint']
