@@ -1,5 +1,5 @@
 """Shared pytest fixtures for all tests."""
-import os
+
 import tempfile
 from pathlib import Path
 
@@ -22,14 +22,14 @@ def sine_wave_file(temp_dir):
     sample_rate = 22050
     duration = 1.0
     frequency = 440.0
-    
+
     t = np.linspace(0, duration, int(sample_rate * duration))
     audio_data = np.sin(2 * np.pi * frequency * t)
-    
+
     # Save to WAV file
     wav_path = Path(temp_dir) / "test_sine.wav"
     sf.write(wav_path, audio_data, sample_rate)
-    
+
     return str(wav_path)
 
 
@@ -40,11 +40,11 @@ def multi_second_sine_wave(temp_dir):
     sample_rate = 22050
     duration = 3.0
     frequency = 440.0
-    
+
     t = np.linspace(0, duration, int(sample_rate * duration))
     audio_data = np.sin(2 * np.pi * frequency * t)
-    
+
     wav_path = Path(temp_dir) / "test_multi_second.wav"
     sf.write(wav_path, audio_data, sample_rate)
-    
+
     return str(wav_path)

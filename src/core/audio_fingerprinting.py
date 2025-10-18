@@ -15,7 +15,9 @@ class AudioFingerprinter:
     Creates unique signatures for audio segments that can be matched against a database.
     """
 
-    def __init__(self, sample_rate: int | None = None, n_fft: int = 2048, hop_length: int = 512) -> None:
+    def __init__(
+        self, sample_rate: int | None = None, n_fft: int = 2048, hop_length: int = 512
+    ) -> None:
         self.sample_rate = sample_rate or Config.FINGERPRINT_SAMPLE_RATE
         self.n_fft = n_fft
         self.hop_length = hop_length
@@ -23,12 +25,12 @@ class AudioFingerprinter:
 
         # Frequency ranges for peak detection (in Hz)
         self.freq_ranges: list[tuple[int, int]] = [
-            (0, 250),      # Sub-bass
-            (250, 500),    # Bass
-            (500, 2000),   # Low midrange
+            (0, 250),  # Sub-bass
+            (250, 500),  # Bass
+            (500, 2000),  # Low midrange
             (2000, 4000),  # High midrange
             (4000, 8000),  # Presence
-            (8000, 16000), # Brilliance
+            (8000, 16000),  # Brilliance
         ]
 
         # Convert frequency ranges to bin indices
@@ -44,7 +46,7 @@ class AudioFingerprinter:
             y, sr = librosa.load(file_path, sr=self.sample_rate)
             return y, sr
         except Exception as e:
-            raise ValueError(f"Error loading audio file {file_path}: {str(e)}")
+            raise ValueError(f"Error loading audio file {file_path}: {str(e)}") from e
 
     def extract_fingerprint(self, audio_file: str) -> dict[str, Any]:
         """
@@ -68,13 +70,12 @@ class AudioFingerprinter:
         for frame_idx, frame in enumerate(magnitude.T):
             frame_peaks = self._extract_frame_peaks(frame)
             if frame_peaks:
-                fingerprint_data.append({
-                    'time': frame_idx * self.hop_length / sr,
-                    'peaks': frame_peaks
-                })
+                fingerprint_data.append(
+                    {"time": frame_idx * self.hop_length / sr, "peaks": frame_peaks}
+                )
 
                 # Calculate confidence based on peak strength
-                peak_strengths = [peak['magnitude'] for peak in frame_peaks]
+                peak_strengths = [peak["magnitude"] for peak in frame_peaks]
                 confidence = np.mean(peak_strengths) if peak_strengths else 0.0
                 confidence_scores.append(float(confidence))
 
@@ -85,19 +86,21 @@ class AudioFingerprinter:
         fingerprint_hash = self._hash_fingerprint(compact_fingerprint)
 
         # Count peaks safely by iterating through fingerprint_data
-        peak_count = sum(len(frame['peaks']) for frame in fingerprint_data)
+        peak_count = sum(len(frame["peaks"]) for frame in fingerprint_data)
 
         return {
-            'fingerprint_data': fingerprint_data,
-            'compact_fingerprint': compact_fingerprint,
-            'fingerprint_hash': fingerprint_hash,
-            'confidence_score': float(np.mean(confidence_scores)) if confidence_scores else 0.0,
-            'peak_count': peak_count,
-            'duration': float(len(y) / sr),
-            'sample_rate': sr
+            "fingerprint_data": fingerprint_data,
+            "compact_fingerprint": compact_fingerprint,
+            "fingerprint_hash": fingerprint_hash,
+            "confidence_score": float(np.mean(confidence_scores)) if confidence_scores else 0.0,
+            "peak_count": peak_count,
+            "duration": float(len(y) / sr),
+            "sample_rate": sr,
         }
 
-    def _extract_frame_peaks(self, frame: np.ndarray, max_peaks_per_range: int = 3) -> list[dict[str, Any]]:
+    def _extract_frame_peaks(
+        self, frame: np.ndarray, max_peaks_per_range: int = 3
+    ) -> list[dict[str, Any]]:
         """Extract spectral peaks from a single frame"""
         frame_peaks = []
 
@@ -112,9 +115,7 @@ class AudioFingerprinter:
             # Find peaks in this frequency range
             threshold = np.mean(range_data) + 2 * np.std(range_data)
             peaks, properties = find_peaks(
-                range_data,
-                height=threshold,
-                distance=5  # Minimum distance between peaks
+                range_data, height=threshold, distance=5  # Minimum distance between peaks
             )
 
             if len(peaks) == 0:
@@ -129,12 +130,14 @@ class AudioFingerprinter:
                 actual_bin = low_bin + peaks[peak_idx]
                 frequency = actual_bin * self.sample_rate / self.n_fft
 
-                frame_peaks.append({
-                    'frequency': frequency,
-                    'bin': actual_bin,
-                    'magnitude': float(peak_magnitudes[peak_idx]),
-                    'freq_range': range_idx
-                })
+                frame_peaks.append(
+                    {
+                        "frequency": frequency,
+                        "bin": actual_bin,
+                        "magnitude": float(peak_magnitudes[peak_idx]),
+                        "freq_range": range_idx,
+                    }
+                )
 
         return frame_peaks
 
@@ -151,10 +154,10 @@ class AudioFingerprinter:
         fingerprint_matrix = np.zeros((time_bins, freq_ranges))
 
         for time_idx, frame_data in enumerate(fingerprint_data):
-            for peak in frame_data['peaks']:
-                freq_range_idx = peak['freq_range']
+            for peak in frame_data["peaks"]:
+                freq_range_idx = peak["freq_range"]
                 # Use magnitude as the value
-                fingerprint_matrix[time_idx, freq_range_idx] += peak['magnitude']
+                fingerprint_matrix[time_idx, freq_range_idx] += peak["magnitude"]
 
         # Flatten and normalize
         compact = fingerprint_matrix.flatten()
@@ -174,16 +177,16 @@ class AudioFingerprinter:
         Compare two fingerprints and return similarity score (0-1).
         Uses multiple comparison methods for robustness.
         """
-        compact1 = fp1.get('compact_fingerprint')
-        compact2 = fp2.get('compact_fingerprint')
-        
+        compact1 = fp1.get("compact_fingerprint")
+        compact2 = fp2.get("compact_fingerprint")
+
         if compact1 is None or compact2 is None:
             return 0.0
         if len(compact1) == 0 or len(compact2) == 0:
             return 0.0
 
-        compact1 = fp1['compact_fingerprint']
-        compact2 = fp2['compact_fingerprint']
+        compact1 = fp1["compact_fingerprint"]
+        compact2 = fp2["compact_fingerprint"]
 
         # Ensure same length
         min_len = min(len(compact1), len(compact2))
@@ -211,11 +214,11 @@ class AudioFingerprinter:
         """Serialize fingerprint for database storage"""
         # Only serialize the compact representation and metadata
         serializable = {
-            'compact_fingerprint': fingerprint['compact_fingerprint'],
-            'confidence_score': fingerprint['confidence_score'],
-            'peak_count': fingerprint['peak_count'],
-            'duration': fingerprint['duration'],
-            'sample_rate': fingerprint['sample_rate']
+            "compact_fingerprint": fingerprint["compact_fingerprint"],
+            "confidence_score": fingerprint["confidence_score"],
+            "peak_count": fingerprint["peak_count"],
+            "duration": fingerprint["duration"],
+            "sample_rate": fingerprint["sample_rate"],
         }
         return pickle.dumps(serializable)
 
