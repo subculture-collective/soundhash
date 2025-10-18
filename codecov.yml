@@ -12,7 +12,7 @@ coverage:
         base: auto
 
 comment:
-  layout: "reach,diff,flags,tree"
+  layout: "reach,diff,flags,files"
   behavior: default
   require_changes: false
 
