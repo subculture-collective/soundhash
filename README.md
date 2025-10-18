@@ -6,7 +6,7 @@ A sophisticated system for matching audio clips from videos across social media 
 
 ## Table of Contents
 
-- [Quick Start](#quick-start--target-15-minutes) - Get running in <15 minutes
+- [Quick Start](#quick-start-target-15-minutes) - Get running in <15 minutes
 - [Architecture Overview](#architecture-overview) - System design and data flow
 - [Troubleshooting](#troubleshooting-common-issues) - Solutions to common problems
 - [Usage](#usage) - Command-line options and examples
