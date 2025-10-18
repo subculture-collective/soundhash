@@ -1,6 +1,7 @@
 # SoundHash - Video Clip Matching System
 
 [![CI](https://github.com/onnwee/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/onnwee/soundhash/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/onnwee/soundhash/branch/main/graph/badge.svg)](https://codecov.io/gh/onnwee/soundhash)
 
 A sophisticated system for matching audio clips from videos across social media platforms using audio fingerprinting and PostgreSQL.
 
