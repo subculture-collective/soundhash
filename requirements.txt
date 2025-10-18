@@ -32,7 +32,7 @@ colorlog==6.10.1
 # Development
 pytest==8.4.2
 black==25.9.0
-flake8==6.1.0
+flake8==7.3.0
 
 # Async support
 aiohttp==3.13.1
