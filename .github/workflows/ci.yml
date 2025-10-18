@@ -139,7 +139,7 @@ jobs:
           path: coverage.xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@4c0b20e2e6c8e9e1e8152ef749398a422a2b6b45
         with:
           files: ./coverage.xml
           flags: unittests
