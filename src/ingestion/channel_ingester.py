@@ -57,20 +57,66 @@ class ChannelIngester:
             self._db_initialized = True
 
     async def ingest_all_channels(self, channels_override: list[str] | None = None, max_videos: int | None = None, dry_run: bool = False) -> None:
-        """Ingest videos from all configured channels or provided override list"""
+        """Ingest videos from all configured channels or provided override list with bounded concurrency"""
         channels = channels_override or self.target_channels
         self.logger.info(f"🎯 Starting ingestion for {len(channels)} channels")
+        self.logger.info(f"⚙️  Max concurrent channels: {Config.MAX_CONCURRENT_CHANNELS}")
 
         # Create progress tracker
         progress = get_progress_logger(self.logger, len(channels), "Channel Ingestion")
 
-        for _i, channel_id in enumerate(channels):
-            if channel_id.strip():  # Skip empty channel IDs
+        # Use semaphore for bounded concurrency
+        semaphore = asyncio.Semaphore(Config.MAX_CONCURRENT_CHANNELS)
+
+        # Track results
+        results = {'success': 0, 'failed': 0, 'skipped': 0}
+
+        async def process_channel_with_semaphore(channel_id: str) -> None:
+            """Process a channel with semaphore for concurrency control"""
+            if not channel_id.strip():
+                results['skipped'] += 1
+                return
+
+            async with semaphore:
                 progress.update(increment=0, item_name=f"Channel {channel_id}")
-                await self.ingest_channel(channel_id.strip(), max_videos=max_videos, dry_run=dry_run)
+                success = await self._ingest_channel_with_retry(
+                    channel_id.strip(), max_videos=max_videos, dry_run=dry_run
+                )
+                if success:
+                    results['success'] += 1
+                else:
+                    results['failed'] += 1
                 progress.update(increment=1)
 
+        # Process all channels concurrently with bounded concurrency
+        await asyncio.gather(
+            *[process_channel_with_semaphore(ch) for ch in channels],
+            return_exceptions=True
+        )
+
         progress.complete()
+
+        # Log summary
+        self.logger.info(f"📊 Ingestion summary: {results['success']} succeeded, {results['failed']} failed, {results['skipped']} skipped")
+
+    async def _ingest_channel_with_retry(self, channel_id: str, max_videos: int | None = None, dry_run: bool = False) -> bool:
+        """Ingest a channel with retry logic and exponential backoff"""
+        for attempt in range(Config.CHANNEL_MAX_RETRIES):
+            try:
+                await self.ingest_channel(channel_id, max_videos=max_videos, dry_run=dry_run)
+                return True
+            except Exception as e:
+                if attempt < Config.CHANNEL_MAX_RETRIES - 1:
+                    delay = Config.CHANNEL_RETRY_DELAY * (2 ** attempt)  # exponential backoff
+                    self.logger.warning(
+                        f"⚠️  Channel {channel_id} failed (attempt {attempt + 1}/{Config.CHANNEL_MAX_RETRIES}): {str(e)}. "
+                        f"Retrying in {delay}s..."
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    self.logger.error(f"❌ Channel {channel_id} failed after {Config.CHANNEL_MAX_RETRIES} attempts: {str(e)}")
+                    return False
+        return False
 
     async def ingest_channel(self, channel_id: str, max_videos: int | None = None, dry_run: bool = False) -> None:
         """
@@ -122,60 +168,88 @@ class ChannelIngester:
 
             new_videos = 0
             updated_videos = 0
+            duplicate_videos = 0
+            failed_videos = 0
 
-            for video_info in videos_info:
+            # Create progress tracker for videos in this channel
+            video_progress = get_progress_logger(self.logger, len(videos_info), f"Videos for {channel_id}")
+
+            for idx, video_info in enumerate(videos_info):
                 try:
                     # Check if video already exists
                     existing_video = video_repo.get_video_by_id(video_info['id'])
 
                     if existing_video:
-                        # Update existing video if needed
-                        if self._should_update_video(existing_video, video_info):
+                        # Check if job already exists before deciding on update
+                        job_already_exists = job_repo.job_exists(
+                            'video_process', video_info['id'], statuses=['pending', 'running']
+                        )
+
+                        if job_already_exists:
+                            duplicate_videos += 1
+                            self.logger.debug(f"Video {video_info['id']} already exists with pending/running job")
+                        elif self._should_update_video(existing_video, video_info):
                             self._update_video_record(existing_video, video_info, video_repo)
                             updated_videos += 1
+                        else:
+                            duplicate_videos += 1
                     else:
                         # Create new video record
                         if dry_run:
                             self.logger.info(f"[DRY-RUN] Would create video and job for {video_info['id']}")
-                            continue
-
-                        video_repo.create_video(
-                            video_id=video_info['id'],
-                            channel_id=int(channel.id),  # type: ignore[arg-type]
-                            title=video_info.get('title'),
-                            description=video_info.get('description'),
-                            duration=float(video_info['duration']) if video_info.get('duration') else None,
-                            view_count=video_info.get('view_count'),
-                            like_count=video_info.get('like_count'),
-                            upload_date=self._parse_upload_date(video_info.get('upload_date')),
-                            url=video_info.get('webpage_url'),
-                            thumbnail_url=video_info.get('thumbnail')
-                        )
-
-                        # Create processing job for this video (idempotent)
-                        if not job_repo.job_exists('video_process', video_info['id'], statuses=['pending', 'running']):
-                            job_repo.create_job(
-                                job_type='video_process',
-                                target_id=video_info['id'],
-                                parameters=json.dumps({
-                                    'url': video_info.get('webpage_url'),
-                                    'channel_id': channel_id
-                                })
-                            )
+                            new_videos += 1
                         else:
-                            self.logger.debug(f"Job already exists for video {video_info['id']}, skipping job creation")
+                            video_repo.create_video(
+                                video_id=video_info['id'],
+                                channel_id=int(channel.id),  # type: ignore[arg-type]
+                                title=video_info.get('title'),
+                                description=video_info.get('description'),
+                                duration=float(video_info['duration']) if video_info.get('duration') else None,
+                                view_count=video_info.get('view_count'),
+                                like_count=video_info.get('like_count'),
+                                upload_date=self._parse_upload_date(video_info.get('upload_date')),
+                                url=video_info.get('webpage_url'),
+                                thumbnail_url=video_info.get('thumbnail')
+                            )
 
-                        new_videos += 1
+                            # Create processing job for this video (idempotent check)
+                            if not job_repo.job_exists('video_process', video_info['id'], statuses=['pending', 'running']):
+                                job_repo.create_job(
+                                    job_type='video_process',
+                                    target_id=video_info['id'],
+                                    parameters=json.dumps({
+                                        'url': video_info.get('webpage_url'),
+                                        'channel_id': channel_id
+                                    })
+                                )
+                            else:
+                                self.logger.debug(f"Job already exists for video {video_info['id']}, skipping job creation")
+
+                            new_videos += 1
+
+                    # Update progress periodically (every 10 videos)
+                    if (idx + 1) % 10 == 0:
+                        video_progress.update(increment=10)
 
                 except Exception as e:
                     self.logger.error(f"Error processing video {video_info.get('id', 'unknown')}: {str(e)}")
+                    failed_videos += 1
                     continue
+
+            # Complete remaining progress
+            remaining = len(videos_info) % 10
+            if remaining > 0:
+                video_progress.update(increment=remaining)
+            video_progress.complete()
 
             # Update channel last processed time
             channel.last_processed = datetime.utcnow()
             video_repo.session.commit()
 
-            self.logger.info(f"Channel {channel_id} ingestion complete: {new_videos} new videos, {updated_videos} updated")
+            self.logger.info(
+                f"✅ Channel {channel_id} complete: "
+                f"{new_videos} new, {updated_videos} updated, {duplicate_videos} duplicates, {failed_videos} failed"
+            )
 
         except Exception as e:
             self.logger.error(f"Error ingesting channel {channel_id}: {str(e)}")
