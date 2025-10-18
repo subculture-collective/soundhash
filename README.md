@@ -380,7 +380,11 @@ psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
 
 **Solutions**:
 
-1. **Follow OAuth setup guide**: See [YOUTUBE_OAUTH_SETUP.md](YOUTUBE_OAUTH_SETUP.md)
+1. **Follow OAuth setup guide**: 
+   - Create OAuth credentials in Google Cloud Console (type: Desktop App)
+   - Download `credentials.json` and place it in the project root
+   - Run `python scripts/setup_youtube_api.py` to generate `token.json`
+   - For detailed steps, see [Google's official guide](https://developers.google.com/youtube/v3/guides/auth/client-side-web-apps)
 
 2. **Regenerate token** if expired:
    ```bash
