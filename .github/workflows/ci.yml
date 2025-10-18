@@ -120,6 +120,10 @@ jobs:
           # Install project dependencies if requirements.txt exists
           test -f requirements.txt && pip install -r requirements.txt
 
+      - name: Check database migrations
+        run: |
+          python scripts/check_migrations.py
+
       - name: Run tests
         run: |
           pytest -q --junitxml=junit.xml --cov=src --cov-report=xml --cov-report=term-missing
