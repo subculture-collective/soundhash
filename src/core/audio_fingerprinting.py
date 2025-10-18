@@ -185,8 +185,6 @@ class AudioFingerprinter:
         if len(compact1) == 0 or len(compact2) == 0:
             return 0.0
 
-        compact1 = fp1["compact_fingerprint"]
-        compact2 = fp2["compact_fingerprint"]
 
         # Ensure same length
         min_len = min(len(compact1), len(compact2))
