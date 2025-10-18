@@ -1,12 +1,28 @@
 ---
 name: Roadmap (Master)
 about: Master roadmap issue to track milestones and priorities
-labels: documentation
+labels: ["type:docs", "area:devx"]
 ---
 
-<!-- This template is optional; the actual roadmap issue will be created automatically. -->
+<!-- This template is used to create master roadmap tracking issues -->
 
-# Roadmap: SoundHash to v1.0
+# Roadmap: SoundHash
 
-- Use this issue to track links to all sub-issues grouped by milestones (M0–M4), with priorities P0–P2.
-- Sub-issues: create detailed tasks with acceptance criteria.
+Use this issue to track progress across milestones and coordinate sub-issues.
+
+## Milestones
+
+### M0 - Core Stabilization
+- [ ] #issue - description
+
+### M1 - MVP Features
+- [ ] #issue - description
+
+### M2 - Production Readiness
+- [ ] #issue - description
+
+## Notes
+
+- Sub-issues should have appropriate `type:*`, `area:*`, and `priority:*` labels
+- Link related issues and PRs as work progresses
+- Update this issue regularly to reflect current status
