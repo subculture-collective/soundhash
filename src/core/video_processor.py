@@ -264,25 +264,71 @@ class VideoProcessor:
 
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"yt-dlp command failed (attempt {attempt + 1}): {e}")
+                err_text = ""
                 if e.stderr:
                     self.logger.error(f"yt-dlp stderr: {e.stderr}")
                     err_text = e.stderr if isinstance(e.stderr, str) else e.stderr.decode('utf-8', errors='ignore')
-                    if "Sign in to confirm you’re not a bot" in err_text or "not a bot" in err_text:
-                        self.logger.error(
-                            "YouTube requested sign-in to confirm you're not a bot. Remediation options: "
-                            "1) Set YT_COOKIES_FILE in .env to a Netscape cookies.txt exported from your browser; "
-                            "2) Set YT_COOKIES_FROM_BROWSER (e.g., chrome|chromium|firefox) and optionally YT_BROWSER_PROFILE; "
-                            "3) Configure a proxy via USE_PROXY/PROXY_URL; 4) Retry later."
-                        )
                 if e.stdout:
                     self.logger.error(f"yt-dlp stdout: {e.stdout}")
 
-                # Check if it's a 403 error or similar that might benefit from retry
-                if "403" in str(e.stderr) or "Forbidden" in str(e.stderr):
-                    if attempt < max_retries - 1:
-                        self.logger.info("Got 403 error, will retry with different parameters...")
+                # Detect specific error types and provide targeted remediation
+                should_retry = attempt < max_retries - 1
+
+                # HTTP 403 Forbidden - Usually geo-restriction, age-restriction, or bot detection
+                if "403" in err_text or "Forbidden" in err_text:
+                    self.logger.error(
+                        "HTTP 403 Forbidden - Video may be geo-restricted, age-restricted, or YouTube detected automation. "
+                        "Remediation: 1) Use authenticated cookies (YT_COOKIES_FILE or YT_COOKIES_FROM_BROWSER); "
+                        "2) Configure proxy (USE_PROXY=true, PROXY_URL=...); "
+                        "3) Try different player client (YT_PLAYER_CLIENT=android); "
+                        "4) Verify video is accessible in your browser."
+                    )
+                    if should_retry:
+                        self.logger.info("Retrying with exponential backoff...")
                         continue
 
+                # HTTP 429 Too Many Requests - Rate limiting
+                elif "429" in err_text or "Too Many Requests" in err_text:
+                    self.logger.error(
+                        "HTTP 429 Too Many Requests - YouTube rate limit exceeded. "
+                        "Remediation: 1) Reduce MAX_CONCURRENT_DOWNLOADS in .env; "
+                        "2) Use authenticated cookies (YT_COOKIES_FROM_BROWSER=chrome); "
+                        "3) Configure proxy rotation (PROXY_LIST=proxy1,proxy2,...); "
+                        "4) Wait before retrying (system will auto-retry with backoff)."
+                    )
+                    if should_retry:
+                        # Longer backoff for rate limits
+                        extra_delay = random.uniform(10, 30)
+                        self.logger.info(f"Rate limited - waiting extra {extra_delay:.1f}s before retry...")
+                        time.sleep(extra_delay)
+                        continue
+
+                # HTTP 410 Gone - Video deleted or unavailable
+                elif "410" in err_text or "Gone" in err_text or "has been removed" in err_text:
+                    self.logger.error(
+                        "HTTP 410 Gone - Video has been removed or is no longer available. "
+                        "This is permanent and cannot be remediated. Skipping video."
+                    )
+                    return None  # No point retrying a deleted video
+
+                # Bot detection / Sign-in required
+                elif "Sign in to confirm you're not a bot" in err_text or "not a bot" in err_text:
+                    self.logger.error(
+                        "YouTube bot detection - Sign-in required. "
+                        "Remediation: 1) Set YT_COOKIES_FILE in .env to a Netscape cookies.txt exported from your browser; "
+                        "2) Set YT_COOKIES_FROM_BROWSER (e.g., chrome|chromium|firefox) and optionally YT_BROWSER_PROFILE; "
+                        "3) Configure a proxy via USE_PROXY/PROXY_URL; "
+                        "4) Update yt-dlp (pip install --upgrade yt-dlp)."
+                    )
+                    if should_retry:
+                        continue
+
+                # Generic retry for other errors
+                elif should_retry:
+                    self.logger.info("Retrying after error...")
+                    continue
+
+                # Final attempt failed
                 if attempt == max_retries - 1:
                     return None
 

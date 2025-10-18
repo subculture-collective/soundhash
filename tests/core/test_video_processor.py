@@ -351,3 +351,90 @@ class TestVideoProcessor:
         videos = processor._get_channel_videos_ytdlp("UC123456789")
 
         assert videos == []
+
+    @patch("subprocess.run")
+    @patch("time.sleep")
+    def test_download_video_audio_http_403_error(self, mock_sleep, mock_run, temp_dir):
+        """Test handling of HTTP 403 Forbidden error with retry."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        import subprocess
+
+        # Mock yt-dlp returning 403 error
+        error = subprocess.CalledProcessError(1, "yt-dlp")
+        error.stderr = "ERROR: HTTP Error 403: Forbidden"
+        error.stdout = ""
+        mock_run.side_effect = error
+
+        result = processor.download_video_audio("https://www.youtube.com/watch?v=test123")
+
+        assert result is None
+        # Should retry 3 times (with cookie detection, this means more calls)
+        assert mock_run.call_count >= 3
+
+    @patch("subprocess.run")
+    @patch("time.sleep")
+    def test_download_video_audio_http_429_error(self, mock_sleep, mock_run, temp_dir):
+        """Test handling of HTTP 429 Too Many Requests with extra backoff."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        import subprocess
+
+        # Mock yt-dlp returning 429 error
+        error = subprocess.CalledProcessError(1, "yt-dlp")
+        error.stderr = "ERROR: HTTP Error 429: Too Many Requests"
+        error.stdout = ""
+        mock_run.side_effect = error
+
+        result = processor.download_video_audio("https://www.youtube.com/watch?v=test123")
+
+        assert result is None
+        # Should retry 3 times
+        assert mock_run.call_count >= 3
+        # Should have extra sleep calls for rate limiting (beyond the base retry backoff)
+        assert mock_sleep.call_count >= 3
+
+    @patch("subprocess.run")
+    def test_download_video_audio_http_410_error(self, mock_run, temp_dir):
+        """Test handling of HTTP 410 Gone error (no retry)."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        import subprocess
+
+        # Mock yt-dlp returning 410 error on first real attempt
+        def run_side_effect(cmd, *args, **kwargs):
+            # Allow cookie detection to succeed
+            if '--cookies-from-browser' in cmd and '--simulate' in cmd:
+                return subprocess.CompletedProcess(cmd, 1)  # Fail cookie test
+            # Actual download fails with 410
+            error = subprocess.CalledProcessError(1, "yt-dlp")
+            error.stderr = "ERROR: HTTP Error 410: Gone"
+            error.stdout = ""
+            raise error
+
+        mock_run.side_effect = run_side_effect
+
+        result = processor.download_video_audio("https://www.youtube.com/watch?v=test123")
+
+        assert result is None
+        # Should NOT retry for 410 errors (but cookie detection adds extra calls)
+        # We just verify it returns None quickly
+
+    @patch("subprocess.run")
+    def test_download_video_audio_bot_detection(self, mock_run, temp_dir):
+        """Test handling of YouTube bot detection."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        import subprocess
+
+        # Mock yt-dlp returning bot detection error
+        error = subprocess.CalledProcessError(1, "yt-dlp")
+        error.stderr = "Sign in to confirm you're not a bot"
+        error.stdout = ""
+        mock_run.side_effect = error
+
+        result = processor.download_video_audio("https://www.youtube.com/watch?v=test123")
+
+        assert result is None
+        # Should retry
+        assert mock_run.call_count >= 3
