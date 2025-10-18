@@ -1,17 +1,24 @@
 ---
-name: Task
-about: Detailed issue for a single deliverable
-labels: enhancement
+name: Chore/Task
+about: Maintenance, refactoring, or infrastructure work
+labels: ["type:chore"]
 ---
 
 ## Summary
 
-Describe the task and outcome.
+Describe the task and its purpose. This could be refactoring, documentation, tooling, infrastructure, or other maintenance work.
+
+## Scope
+
+What areas of the codebase are affected?
 
 ## Acceptance Criteria
+
+- [ ] ...
 - [ ] ...
 
 ## Notes
-- Area:
-- Milestone:
-- Priority:
+
+- **Area**: [e.g., area:ci, area:db, area:docs]
+- **Priority**: [e.g., priority:P1]
+- **Related Issues**: #
