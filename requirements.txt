@@ -1,33 +1,33 @@
 # Core dependencies
-psycopg[binary]==3.1.19
-sqlalchemy==2.0.23
-alembic==1.12.1
+psycopg[binary]==3.2.10
+sqlalchemy==2.0.44
+alembic==1.17.0
 setuptools<81.0.0
 
 # Audio processing
-librosa==0.10.1
-scipy==1.13.1
+librosa==0.11.0
+scipy==1.16.2
 numpy==1.26.4
-soundfile==0.12.1
+soundfile==0.13.1
 
 # Video processing
 yt-dlp==2025.10.14
 ffmpeg-python==0.2.0
 
 # Social media APIs
-tweepy==4.14.0
-praw==7.7.1
+tweepy==4.16.0
+praw==7.8.1
 
 # Web server for OAuth callbacks
-fastapi==0.104.1
-uvicorn==0.24.0
+fastapi==0.119.0
+uvicorn==0.37.0
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv==1.1.1
 requests==2.32.5
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 tqdm==4.67.1
-colorlog==6.8.2
+colorlog==6.10.1
 
 # Development
 pytest==8.4.2
