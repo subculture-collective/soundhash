@@ -24,9 +24,12 @@ class TestDatabaseManager:
 
     @patch("src.database.connection.create_engine")
     @patch("src.database.connection.sessionmaker")
-    @patch("src.database.connection.Base")
-    def test_initialize_mocked(self, mock_base, mock_sessionmaker, mock_create_engine):
-        """Test initialization with mocked dependencies."""
+    def test_initialize_mocked(self, mock_sessionmaker, mock_create_engine):
+        """Test initialization with mocked dependencies.
+
+        Note: Since migrations now handle table creation, we no longer
+        call Base.metadata.create_all() during initialization.
+        """
         manager = DatabaseManager()
 
         # Mock the engine and session
@@ -42,7 +45,7 @@ class TestDatabaseManager:
 
             assert manager.engine == mock_engine
             assert manager.Session == mock_session_class
-            mock_base.metadata.create_all.assert_called_once_with(mock_engine)
+            # Tables are now created via Alembic migrations, not here
 
     @patch("src.database.connection.create_engine")
     @patch("src.database.connection.sessionmaker")

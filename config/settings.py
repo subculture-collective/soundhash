@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from sqlalchemy.engine.url import make_url
 
 load_dotenv()
 
@@ -77,3 +78,9 @@ class Config:
         if cls.DATABASE_URL:
             return cls.DATABASE_URL
         return f"postgresql://{cls.DATABASE_USER}:{cls.DATABASE_PASSWORD}@{cls.DATABASE_HOST}:{cls.DATABASE_PORT}/{cls.DATABASE_NAME}"
+
+    @classmethod
+    def get_database_url_safe(cls):
+        """Get database URL with password masked for safe logging."""
+        url = cls.get_database_url()
+        return make_url(url).render_as_string(hide_password=True)

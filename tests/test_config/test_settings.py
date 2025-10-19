@@ -58,3 +58,32 @@ class TestConfig:
     def test_config_target_channels(self):
         """Test that TARGET_CHANNELS is a list."""
         assert isinstance(Config.TARGET_CHANNELS, list)
+
+    def test_get_database_url_safe_masks_password(self):
+        """Test get_database_url_safe masks the password."""
+        with patch.object(Config, "DATABASE_URL", "postgresql://user:secret_pass@localhost/testdb"):
+            safe_url = Config.get_database_url_safe()
+            # Password should be masked
+            assert "secret_pass" not in safe_url
+            assert "***" in safe_url
+            # Other components should still be present
+            assert "user" in safe_url
+            assert "localhost" in safe_url
+            assert "testdb" in safe_url
+
+    def test_get_database_url_safe_with_constructed_url(self):
+        """Test get_database_url_safe when URL is constructed from parts."""
+        with patch.object(Config, "DATABASE_URL", None):
+            with patch.object(Config, "DATABASE_USER", "testuser"):
+                with patch.object(Config, "DATABASE_PASSWORD", "super_secret"):
+                    with patch.object(Config, "DATABASE_HOST", "testhost"):
+                        with patch.object(Config, "DATABASE_PORT", 5433):
+                            with patch.object(Config, "DATABASE_NAME", "testdb"):
+                                safe_url = Config.get_database_url_safe()
+                                # Password should be masked
+                                assert "super_secret" not in safe_url
+                                assert "***" in safe_url
+                                # Other components should still be present
+                                assert "testuser" in safe_url
+                                assert "testhost" in safe_url
+                                assert "testdb" in safe_url
