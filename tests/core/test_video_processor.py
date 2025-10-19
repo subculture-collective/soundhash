@@ -250,6 +250,31 @@ class TestVideoProcessor:
 
             assert proxy is None
 
+    def test_get_proxy_filters_empty_strings(self, temp_dir):
+        """Test that _get_proxy filters out empty strings from PROXY_LIST."""
+        with patch("src.core.video_processor.Config") as mock_config:
+            mock_config.PROXY_URL = None
+            # Simulate what happens with trailing commas in env: "proxy1,,proxy2,"
+            mock_config.PROXY_LIST = ["http://proxy1.example.com", "", "  ", "http://proxy2.example.com", ""]
+
+            processor = VideoProcessor(temp_dir=temp_dir)
+            proxy = processor._get_proxy()
+
+            # Should only return valid proxies
+            assert proxy in ["http://proxy1.example.com", "http://proxy2.example.com"]
+
+    def test_get_proxy_all_empty_strings(self, temp_dir):
+        """Test that _get_proxy returns None when all entries are empty strings."""
+        with patch("src.core.video_processor.Config") as mock_config:
+            mock_config.PROXY_URL = None
+            # Simulate PROXY_LIST with only empty values
+            mock_config.PROXY_LIST = ["", "  ", "   "]
+
+            processor = VideoProcessor(temp_dir=temp_dir)
+            proxy = processor._get_proxy()
+
+            assert proxy is None
+
     @patch("subprocess.run")
     def test_convert_to_wav(self, mock_run, temp_dir):
         """Test converting audio to WAV format."""
