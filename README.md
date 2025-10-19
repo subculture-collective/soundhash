@@ -204,7 +204,7 @@ psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
 
 ### 🚫 YouTube Download Failures / Rate Limiting
 
-**Symptoms**: Downloads fail with "HTTP Error 429", "Video unavailable", or frequent timeouts
+**Symptoms**: Downloads fail with "HTTP Error 429", "HTTP Error 403", "Video unavailable", or frequent timeouts
 
 **Solutions** (in order of effectiveness):
 
@@ -219,6 +219,9 @@ psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
    YT_COOKIES_FROM_BROWSER=firefox
    # Or with specific profile:
    YT_COOKIES_FROM_BROWSER=chrome:Profile 1
+   # Or specify a different browser profile
+   YT_COOKIES_FROM_BROWSER=chrome
+   YT_BROWSER_PROFILE=Profile 1
    ```
 
 2. **Configure proxy**:
@@ -227,13 +230,14 @@ psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
    USE_PROXY=true
    PROXY_URL=http://proxy.example.com:8080
    
-   # Or rotating proxy list
-   PROXY_LIST=/path/to/proxies.txt
+   # Or rotating proxy list (comma-separated)
+   USE_PROXY=true
+   PROXY_LIST=http://proxy1.example.com:8080,http://proxy2.example.com:8080
    ```
 
 3. **Change player client** (if videos appear restricted):
    ```bash
-   YT_PLAYER_CLIENT=android  # or ios, web_embedded
+   YT_PLAYER_CLIENT=android  # or ios, web_safari, tv, web_embedded
    ```
 
 4. **Reduce concurrent downloads**:
@@ -245,6 +249,29 @@ psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
    ```bash
    pip install --upgrade yt-dlp
    ```
+
+**Understanding Error Messages**:
+
+The system now provides specific remediation advice for common errors:
+
+- **HTTP 403 Forbidden**: Video may be geo-restricted, age-restricted, or YouTube detected automation
+  - ✅ Use authenticated cookies (YT_COOKIES_FILE or YT_COOKIES_FROM_BROWSER)
+  - ✅ Configure proxy to change apparent location
+  - ✅ Try different player client (YT_PLAYER_CLIENT=android)
+  
+- **HTTP 429 Too Many Requests**: YouTube rate limit exceeded
+  - ✅ Reduce MAX_CONCURRENT_DOWNLOADS
+  - ✅ Use authenticated cookies to get higher quota
+  - ✅ Configure proxy rotation (PROXY_LIST)
+  - ⏱️ System auto-retries with exponential backoff
+  
+- **HTTP 410 Gone**: Video has been removed or is no longer available
+  - ⚠️ This is permanent - video cannot be retrieved
+  - System will skip without retrying
+  
+- **Bot Detection**: "Sign in to confirm you're not a bot"
+  - ✅ Set YT_COOKIES_FILE or YT_COOKIES_FROM_BROWSER
+  - ✅ Update yt-dlp: `pip install --upgrade yt-dlp`
 
 ### 🎵 ffmpeg Issues
 
