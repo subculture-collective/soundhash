@@ -291,7 +291,7 @@ class VideoProcessor:
                 elif "429" in err_text or "Too Many Requests" in err_text:
                     self.logger.error(
                         "HTTP 429 Too Many Requests - YouTube rate limit exceeded. "
-                        "Remediation: 1) Reduce MAX_CONCURRENT_DOWNLOADS in .env; "
+                        "Remediation: 1) Reduce concurrent downloads; "
                         "2) Use authenticated cookies (YT_COOKIES_FROM_BROWSER=chrome); "
                         "3) Configure proxy rotation (PROXY_LIST=proxy1,proxy2,...); "
                         "4) Wait before retrying (system will auto-retry with backoff)."
