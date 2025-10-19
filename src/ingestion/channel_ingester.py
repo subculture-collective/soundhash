@@ -185,14 +185,20 @@ class ChannelIngester:
                             'video_process', video_info['id'], statuses=['pending', 'running']
                         )
 
+                        is_duplicate = False
                         if job_already_exists:
-                            duplicate_videos += 1
-                            self.logger.debug(f"Video {video_info['id']} already exists with pending/running job")
+                            is_duplicate = True
+                            duplicate_reason = "already exists with pending/running job"
                         elif self._should_update_video(existing_video, video_info):
                             self._update_video_record(existing_video, video_info, video_repo)
                             updated_videos += 1
                         else:
+                            is_duplicate = True
+                            duplicate_reason = "exists and does not need updating"
+
+                        if is_duplicate:
                             duplicate_videos += 1
+                            self.logger.debug(f"Video {video_info['id']} {duplicate_reason}")
                     else:
                         # Create new video record
                         video_repo.create_video(
