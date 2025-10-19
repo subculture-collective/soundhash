@@ -35,10 +35,15 @@ class Config:
     # Processing
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
     MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", 3))
+    MAX_CONCURRENT_CHANNELS = int(os.getenv("MAX_CONCURRENT_CHANNELS", 2))
     SEGMENT_LENGTH_SECONDS = int(
         os.getenv("SEGMENT_LENGTH_SECONDS", 90)
     )  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
+
+    # Ingestion backoff settings
+    CHANNEL_RETRY_DELAY = int(os.getenv("CHANNEL_RETRY_DELAY", 5))  # seconds
+    CHANNEL_MAX_RETRIES = int(os.getenv("CHANNEL_MAX_RETRIES", 3))
 
     # File management
     KEEP_ORIGINAL_AUDIO = os.getenv("KEEP_ORIGINAL_AUDIO", "true").lower() == "true"

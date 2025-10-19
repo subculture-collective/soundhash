@@ -638,7 +638,9 @@ If you suspect a credential has been compromised:
    - Respect YouTube API quotas (10,000 units/day default)
 
 2. **Resource Management**:
-   - Set appropriate `MAX_CONCURRENT_DOWNLOADS` (1-3 recommended)
+   - Set appropriate `MAX_CONCURRENT_CHANNELS` (1-3 recommended) to limit parallel channel ingestion
+   - Set appropriate `MAX_CONCURRENT_DOWNLOADS` (1-3 recommended) for video processing
+   - Configure `CHANNEL_RETRY_DELAY` and `CHANNEL_MAX_RETRIES` for failure handling
    - Monitor PostgreSQL performance with `EXPLAIN ANALYZE`
    - Consider connection pooling for multiple workers
 
@@ -691,7 +693,7 @@ python -c "from src.core.video_processor import VideoProcessor; print(VideoProce
 A: Depends on video length and your hardware. Typically 30-60 seconds per video (download + segmentation + fingerprinting).
 
 **Q: Can I process multiple channels simultaneously?**  
-A: Yes, the system processes channels concurrently. Control concurrency with `MAX_CONCURRENT_DOWNLOADS` in `.env`.
+A: Yes, the system processes channels concurrently with bounded concurrency. Control the limit with `MAX_CONCURRENT_CHANNELS` in `.env` (default: 2). Each channel ingestion includes retry logic with exponential backoff for resilience.
 
 **Q: What happens if ingestion is interrupted?**  
 A: The system is idempotent - rerunning will skip already-created jobs. Use `--only-process` to process existing jobs without re-ingesting.
