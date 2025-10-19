@@ -52,7 +52,7 @@ class VideoRepository:
 
     def get_unprocessed_videos(self, limit: int = 100) -> list[Video]:
         """Get videos that haven't been processed yet"""
-        return self.session.query(Video).filter(not Video.processed).limit(limit).all()
+        return self.session.query(Video).filter(~Video.processed).limit(limit).all()
 
     def mark_video_processed(
         self, video_id: int, success: bool = True, error_message: str | None = None
