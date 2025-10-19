@@ -5,7 +5,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import pytest
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import create_engine, inspect, text
