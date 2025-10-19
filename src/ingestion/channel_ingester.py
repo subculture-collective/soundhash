@@ -195,37 +195,33 @@ class ChannelIngester:
                             duplicate_videos += 1
                     else:
                         # Create new video record
-                        if dry_run:
-                            self.logger.info(f"[DRY-RUN] Would create video and job for {video_info['id']}")
-                            new_videos += 1
-                        else:
-                            video_repo.create_video(
-                                video_id=video_info['id'],
-                                channel_id=int(channel.id),  # type: ignore[arg-type]
-                                title=video_info.get('title'),
-                                description=video_info.get('description'),
-                                duration=float(video_info['duration']) if video_info.get('duration') else None,
-                                view_count=video_info.get('view_count'),
-                                like_count=video_info.get('like_count'),
-                                upload_date=self._parse_upload_date(video_info.get('upload_date')),
-                                url=video_info.get('webpage_url'),
-                                thumbnail_url=video_info.get('thumbnail')
+                        video_repo.create_video(
+                            video_id=video_info['id'],
+                            channel_id=int(channel.id),  # type: ignore[arg-type]
+                            title=video_info.get('title'),
+                            description=video_info.get('description'),
+                            duration=float(video_info['duration']) if video_info.get('duration') else None,
+                            view_count=video_info.get('view_count'),
+                            like_count=video_info.get('like_count'),
+                            upload_date=self._parse_upload_date(video_info.get('upload_date')),
+                            url=video_info.get('webpage_url'),
+                            thumbnail_url=video_info.get('thumbnail')
+                        )
+
+                        # Create processing job for this video (idempotent check)
+                        if not job_repo.job_exists('video_process', video_info['id'], statuses=['pending', 'running']):
+                            job_repo.create_job(
+                                job_type='video_process',
+                                target_id=video_info['id'],
+                                parameters=json.dumps({
+                                    'url': video_info.get('webpage_url'),
+                                    'channel_id': channel_id
+                                })
                             )
+                        else:
+                            self.logger.debug(f"Job already exists for video {video_info['id']}, skipping job creation")
 
-                            # Create processing job for this video (idempotent check)
-                            if not job_repo.job_exists('video_process', video_info['id'], statuses=['pending', 'running']):
-                                job_repo.create_job(
-                                    job_type='video_process',
-                                    target_id=video_info['id'],
-                                    parameters=json.dumps({
-                                        'url': video_info.get('webpage_url'),
-                                        'channel_id': channel_id
-                                    })
-                                )
-                            else:
-                                self.logger.debug(f"Job already exists for video {video_info['id']}, skipping job creation")
-
-                            new_videos += 1
+                        new_videos += 1
 
                     # Update progress periodically (every 10 videos)
                     if (idx + 1) % 10 == 0:

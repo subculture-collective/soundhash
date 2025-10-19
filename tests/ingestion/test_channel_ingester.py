@@ -203,6 +203,54 @@ class TestChannelIngester:
             mock_job_repo.create_job.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_video_counting_no_double_count(self, ingester):
+        """Test that new video count is accurate without double counting."""
+        test_videos = [
+            {
+                'id': 'video1',
+                'title': 'Test Video 1',
+                'duration': 100,
+                'webpage_url': 'https://youtube.com/watch?v=video1',
+            },
+            {
+                'id': 'video2',
+                'title': 'Test Video 2',
+                'duration': 200,
+                'webpage_url': 'https://youtube.com/watch?v=video2',
+            },
+            {
+                'id': 'video3',
+                'title': 'Test Video 3',
+                'duration': 300,
+                'webpage_url': 'https://youtube.com/watch?v=video3',
+            }
+        ]
+
+        mock_video_repo = MagicMock()
+        mock_job_repo = MagicMock()
+        mock_channel = MagicMock()
+        mock_channel.id = 1
+        mock_channel.channel_name = 'Test Channel'
+
+        mock_video_repo.get_channel_by_id.return_value = mock_channel
+        # All videos are new (don't exist)
+        mock_video_repo.get_video_by_id.return_value = None
+        mock_job_repo.job_exists.return_value = False
+
+        with (
+            patch.object(ingester.video_processor, 'get_channel_videos', return_value=test_videos),
+            patch('src.ingestion.channel_ingester.get_video_repository', return_value=mock_video_repo),
+            patch('src.ingestion.channel_ingester.get_job_repository', return_value=mock_job_repo),
+        ):
+            ingester._db_initialized = True
+            await ingester.ingest_channel('test_channel', max_videos=3, dry_run=False)
+
+            # Verify create_video was called exactly 3 times (once per new video)
+            assert mock_video_repo.create_video.call_count == 3
+            # Verify create_job was called exactly 3 times (once per new video)
+            assert mock_job_repo.create_job.call_count == 3
+
+    @pytest.mark.asyncio
     async def test_ingest_all_channels_summary(self, ingester):
         """Test that ingestion summary is logged correctly."""
         channels = ['ch1', 'ch2', 'ch3']
