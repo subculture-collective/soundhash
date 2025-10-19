@@ -89,7 +89,7 @@ class VideoRepository:
         return fingerprint
 
     def find_matching_fingerprints(
-        self, fingerprint_hash: str, threshold: float = 0.8
+        self, fingerprint_hash: str
     ) -> list[AudioFingerprint]:
         """Find fingerprints with matching hash"""
         return (
