@@ -22,7 +22,7 @@ def setup_database():
 
     try:
         logger.info("Setting up SoundHash database...")
-        logger.info(f"Database URL: {Config.get_database_url()}")
+        logger.info(f"Database URL: {Config.get_database_url_safe()}")
 
         # Run Alembic migrations
         logger.info("Running database migrations...")
