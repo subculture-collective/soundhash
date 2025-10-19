@@ -83,8 +83,28 @@ Key environment variables:
 
 ### 7. Initialize Database
 
+The database schema is managed using Alembic migrations for safe schema evolution:
+
+```bash
+# Apply all migrations to create/update the database schema
+alembic upgrade head
+```
+
+Alternatively, use the setup script which runs migrations automatically:
+
 ```bash
 python scripts/setup_database.py
+```
+
+**For developers**: When making changes to database models in `src/database/models.py`, you must create a new migration:
+
+```bash
+# Generate a new migration after model changes
+alembic revision --autogenerate -m "Description of your changes"
+
+# Review the generated migration file in alembic/versions/
+# Then apply it
+alembic upgrade head
 ```
 
 ### 8. Setup YouTube API (Required)
@@ -322,10 +342,33 @@ print(f"Fingerprint confidence: {fingerprint['confidence_score']}")
 
 ### Database Performance
 
-- Add indexes on frequently queried columns
-- Use connection pooling
+- Add indexes on frequently queried columns (migrations handle this automatically)
+- Use connection pooling (configured in `src/database/connection.py`)
 - Monitor query performance with EXPLAIN
 - Consider batch operations for bulk inserts
+
+### Database Migrations
+
+SoundHash uses Alembic for database schema management:
+
+```bash
+# Check current migration version
+alembic current
+
+# View migration history
+alembic history
+
+# Upgrade to latest version
+alembic upgrade head
+
+# Downgrade to previous version (use with caution)
+alembic downgrade -1
+
+# Rollback all migrations
+alembic downgrade base
+```
+
+**CI Integration**: The CI pipeline automatically checks that migrations are in sync with models. If you modify models without creating a migration, CI will fail.
 
 ## Maintenance
 
@@ -358,9 +401,14 @@ git pull origin main
 # Update dependencies
 pip install -r requirements.txt --upgrade
 
-# Run migrations (if applicable)
+# Run database migrations to update schema
+alembic upgrade head
+
+# Or use the setup script
 python scripts/setup_database.py
 ```
+
+**Important**: Always run migrations after pulling changes that may include database schema updates.
 
 ## Fresh Start
 
@@ -374,8 +422,9 @@ docker compose down  # If using Docker
 dropdb soundhash
 createdb soundhash
 
-# Reinitialize
-python scripts/setup_database.py
+# Reinitialize with migrations
+alembic upgrade head
+# Or use: python scripts/setup_database.py
 ```
 
 ## Additional Resources

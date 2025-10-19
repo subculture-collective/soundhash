@@ -1,0 +1,138 @@
+# Database Migrations
+
+This directory contains Alembic database migrations for SoundHash.
+
+## Overview
+
+SoundHash uses [Alembic](https://alembic.sqlalchemy.org/) to manage database schema changes. This ensures that:
+- Schema changes are tracked in version control
+- Migrations can be applied consistently across environments
+- Schema evolution is safe and reversible
+
+## Directory Structure
+
+- `alembic.ini` - Alembic configuration file (in project root)
+- `env.py` - Migration environment configuration
+- `script.py.mako` - Template for new migration files
+- `versions/` - Individual migration files
+
+## Common Commands
+
+### Apply Migrations
+
+```bash
+# Upgrade to the latest version
+alembic upgrade head
+
+# Upgrade to a specific version
+alembic upgrade <revision>
+
+# Upgrade by one revision
+alembic upgrade +1
+```
+
+### Create New Migrations
+
+```bash
+# Auto-generate migration from model changes
+alembic revision --autogenerate -m "Description of changes"
+
+# Create empty migration (for custom SQL)
+alembic revision -m "Description of changes"
+```
+
+**Important**: Always review auto-generated migrations before applying them!
+
+### Check Status
+
+```bash
+# Show current version
+alembic current
+
+# Show migration history
+alembic history
+
+# Show pending migrations
+alembic heads
+```
+
+### Rollback
+
+```bash
+# Downgrade by one revision
+alembic downgrade -1
+
+# Downgrade to a specific version
+alembic downgrade <revision>
+
+# Rollback all migrations (DANGEROUS!)
+alembic downgrade base
+```
+
+## Creating a New Migration
+
+1. Make changes to models in `src/database/models.py`
+2. Generate migration:
+   ```bash
+   alembic revision --autogenerate -m "Add new field to Video model"
+   ```
+3. Review the generated file in `versions/`
+4. Test the migration:
+   ```bash
+   alembic upgrade head
+   alembic downgrade -1
+   alembic upgrade head
+   ```
+5. Commit the migration file to version control
+
+## CI/CD Integration
+
+The CI pipeline includes a migration check that verifies:
+- Models match the latest migration state
+- No unapplied model changes exist
+
+To run this check locally:
+```bash
+python scripts/check_migrations.py
+```
+
+If CI fails with migration errors, you likely need to create a new migration for your model changes.
+
+## Best Practices
+
+1. **Always review auto-generated migrations** - They may not capture everything correctly
+2. **Test migrations on a copy of production data** before deploying
+3. **Keep migrations small and focused** - One logical change per migration
+4. **Never modify existing migrations** that have been deployed - Create new ones instead
+5. **Include both upgrade and downgrade** - Make rollbacks possible
+6. **Use meaningful revision messages** - Future you will thank you
+
+## Troubleshooting
+
+### "Target database is not up to date"
+
+Run: `alembic upgrade head`
+
+### "Can't locate revision identified by 'xyz'"
+
+The migration file may be missing. Check `alembic/versions/` directory.
+
+### "FAILED: Migrations are out of sync with models"
+
+You made changes to models without creating a migration. Run:
+```bash
+alembic revision --autogenerate -m "Sync models"
+```
+
+### Multiple heads detected
+
+This happens when migrations branch. Resolve by creating a merge migration:
+```bash
+alembic merge -m "Merge migrations" <rev1> <rev2>
+```
+
+## More Information
+
+- [Alembic Documentation](https://alembic.sqlalchemy.org/)
+- [SoundHash Installation Guide](../INSTALL.md)
+- See `env.py` for configuration details
