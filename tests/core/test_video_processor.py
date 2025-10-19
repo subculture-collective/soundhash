@@ -403,7 +403,7 @@ class TestVideoProcessor:
 
         # Mock yt-dlp returning 410 error on first real attempt
         def run_side_effect(cmd, *args, **kwargs):
-            # Allow cookie detection to succeed
+            # Fail cookie test
             if '--cookies-from-browser' in cmd and '--simulate' in cmd:
                 return subprocess.CompletedProcess(cmd, 1)  # Fail cookie test
             # Actual download fails with 410
