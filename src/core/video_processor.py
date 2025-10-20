@@ -28,7 +28,7 @@ class VideoProcessor:
 
     def __init__(
         self,
-        temp_dir: str = "./temp",
+        temp_dir: str | None = None,
         segment_length: int | None = None,
         youtube_service: Any | None = None,
     ) -> None:
@@ -36,11 +36,11 @@ class VideoProcessor:
         Initialize VideoProcessor.
 
         Args:
-            temp_dir: Directory for temporary files
+            temp_dir: Directory for temporary files (uses Config.TEMP_DIR if None)
             segment_length: Length of audio segments in seconds (uses Config.SEGMENT_LENGTH_SECONDS if None)
             youtube_service: Optional YouTube API service instance
         """
-        self.temp_dir = temp_dir
+        self.temp_dir = temp_dir or Config.TEMP_DIR
         self.segment_length = segment_length or Config.SEGMENT_LENGTH_SECONDS
         self.youtube_service = youtube_service
 
@@ -475,6 +475,8 @@ class VideoProcessor:
         """
         Split audio file into segments for processing.
         Returns list of (segment_file_path, start_time, end_time) tuples.
+
+        Logs progress per segment including count and durations.
         """
         if not os.path.exists(audio_file):
             raise FileNotFoundError(f"Audio file not found: {audio_file}")
@@ -489,33 +491,51 @@ class VideoProcessor:
                 self.logger.error(f"Could not determine duration of {audio_file}")
                 return []
 
-            # Create segments
+            self.logger.info(f"Segmenting audio file (duration: {duration:.2f}s, segment length: {segment_length}s)")
+
+            # Create segments with unique prefix using timestamp
+            import time
+            unique_prefix = f"{Path(audio_file).stem}_{int(time.time() * 1000)}"
+
             start_time: float = 0.0
             segment_id = 0
 
             while start_time < duration:
                 end_time = min(start_time + segment_length, duration)
+                actual_duration = end_time - start_time
 
-                # Create segment file path
-                base_name = Path(audio_file).stem
-                segment_file = f"{self.temp_dir}/{base_name}_segment_{segment_id:04d}.wav"
+                # Create segment file path with unique prefix
+                segment_file = os.path.join(
+                    self.temp_dir,
+                    f"{unique_prefix}_segment_{segment_id:04d}.wav"
+                )
 
                 # Extract segment using ffmpeg
                 success = self._extract_audio_segment(
-                    audio_file, segment_file, start_time, end_time - start_time
+                    audio_file, segment_file, start_time, actual_duration
                 )
 
                 if success:
                     segments.append((segment_file, start_time, end_time))
+                    self.logger.debug(
+                        f"Created segment {segment_id + 1}: {start_time:.2f}s - {end_time:.2f}s "
+                        f"(duration: {actual_duration:.2f}s)"
+                    )
                     segment_id += 1
                 else:
                     self.logger.warning(
-                        f"Failed to extract segment {start_time}-{end_time} from {audio_file}"
+                        f"Failed to extract segment {start_time:.2f}s - {end_time:.2f}s from {audio_file}"
                     )
 
                 start_time = end_time
 
-            self.logger.info(f"Created {len(segments)} segments from {audio_file}")
+            # Log final summary with handling for off-by-one at tail
+            total_expected = int(duration / segment_length) + (1 if duration % segment_length > 0 else 0)
+            self.logger.info(
+                f"Created {len(segments)} segment(s) from {audio_file} "
+                f"(expected: {total_expected}, total duration: {duration:.2f}s)"
+            )
+
             return segments
 
         except Exception as e:
@@ -647,13 +667,11 @@ class VideoProcessor:
             if not segments:
                 return None
 
-            # Determine cleanup behavior
-
             # This is where fingerprinting would happen - for now just return the segments
             # In a real implementation, you'd process each segment for fingerprinting here
             self.logger.info(f"Created {len(segments)} segments for fingerprinting")
 
-            # Clean up based on configuration
+            # Clean up original audio based on configuration
             if not Config.KEEP_ORIGINAL_AUDIO and audio_file and os.path.exists(audio_file):
                 os.remove(audio_file)
                 self.logger.info(f"Removed original audio file: {audio_file}")
@@ -663,12 +681,22 @@ class VideoProcessor:
         except Exception as e:
             self.logger.error(f"Error processing video {video_url}: {str(e)}")
 
-            # Clean up on error
+            # Clean up on error - remove audio file
             if audio_file and os.path.exists(audio_file):
-                os.remove(audio_file)
+                try:
+                    os.remove(audio_file)
+                    self.logger.debug(f"Cleaned up audio file on error: {audio_file}")
+                except Exception as cleanup_error:
+                    self.logger.warning(f"Failed to clean up audio file: {cleanup_error}")
+
+            # Clean up on error - remove segment files
             for segment_file, _, _ in segments:
                 if os.path.exists(segment_file):
-                    os.remove(segment_file)
+                    try:
+                        os.remove(segment_file)
+                        self.logger.debug(f"Cleaned up segment on error: {segment_file}")
+                    except Exception as cleanup_error:
+                        self.logger.warning(f"Failed to clean up segment: {cleanup_error}")
 
             return None
 
@@ -679,13 +707,21 @@ class VideoProcessor:
         Args:
             segments: List of (segment_file, start_time, end_time) tuples
         """
+        if not segments:
+            return
+
         try:
+            removed_count = 0
             for segment_file, _, _ in segments:
                 if os.path.exists(segment_file):
-                    os.remove(segment_file)
-                    self.logger.debug(f"Removed segment file: {segment_file}")
+                    try:
+                        os.remove(segment_file)
+                        removed_count += 1
+                        self.logger.debug(f"Removed segment file: {segment_file}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to remove segment {segment_file}: {e}")
 
-            self.logger.info(f"Cleaned up {len(segments)} segment files")
+            self.logger.info(f"Cleaned up {removed_count}/{len(segments)} segment files")
 
         except Exception as e:
             self.logger.error(f"Error cleaning up segment files: {str(e)}")

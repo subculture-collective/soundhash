@@ -207,6 +207,110 @@ class TestVideoProcessor:
         for segment_file, _, _ in segments:
             assert not os.path.exists(segment_file)
 
+    def test_cleanup_segments_handles_missing_files(self, temp_dir):
+        """Test cleanup handles missing files gracefully."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        # Create segments list with some missing files
+        segments = [
+            (str(Path(temp_dir) / "segment_0.wav"), 0.0, 1.0),
+            (str(Path(temp_dir) / "segment_1.wav"), 1.0, 2.0),
+        ]
+
+        # Only create one file
+        Path(segments[0][0]).touch()
+
+        # Should not raise error even though one file doesn't exist
+        processor.cleanup_segments(segments)
+
+        # Verify the existing file was deleted
+        assert not os.path.exists(segments[0][0])
+
+    def test_cleanup_segments_empty_list(self, temp_dir):
+        """Test cleanup with empty segments list."""
+        processor = VideoProcessor(temp_dir=temp_dir)
+
+        # Should not raise error with empty list
+        processor.cleanup_segments([])
+
+    @patch("subprocess.run")
+    def test_segment_audio_with_progress_logging(self, mock_run, temp_dir, multi_second_sine_wave, caplog):
+        """Test that segment_audio logs progress information."""
+        processor = VideoProcessor(temp_dir=temp_dir, segment_length=1)
+
+        # Mock ffprobe to return duration
+        def mock_subprocess(cmd, *args, **kwargs):
+            if cmd[0] == "ffprobe":
+                result = MagicMock()
+                result.stdout = "3.5\n"  # Test off-by-one handling with non-integer duration
+                return result
+            elif cmd[0] == "ffmpeg":
+                # Create a dummy segment file
+                output_file = cmd[cmd.index("-y") + 1]
+                Path(output_file).touch()
+                return MagicMock()
+            return MagicMock()
+
+        mock_run.side_effect = mock_subprocess
+
+        # Capture logs
+        with caplog.at_level('INFO'):
+            segments = processor.segment_audio(multi_second_sine_wave)
+
+        # Should have 4 segments for 3.5-second audio with 1-second segments
+        assert len(segments) == 4
+
+        # Check that progress logging happened
+        log_output = caplog.text
+        assert 'Segmenting audio file' in log_output
+        assert 'Created 4 segment(s)' in log_output
+        assert 'expected: 4' in log_output  # Should correctly calculate expected segments
+
+        # Clean up created segments
+        processor.cleanup_segments(segments)
+
+    @patch("subprocess.run")
+    def test_segment_audio_uses_unique_prefix(self, mock_run, temp_dir, multi_second_sine_wave):
+        """Test that segment_audio creates segments with unique timestamp-based prefixes."""
+        processor = VideoProcessor(temp_dir=temp_dir, segment_length=1)
+
+        # Mock ffprobe to return duration
+        def mock_subprocess(cmd, *args, **kwargs):
+            if cmd[0] == "ffprobe":
+                result = MagicMock()
+                result.stdout = "2.0\n"
+                return result
+            elif cmd[0] == "ffmpeg":
+                # Create a dummy segment file
+                output_file = cmd[cmd.index("-y") + 1]
+                Path(output_file).touch()
+                return MagicMock()
+            return MagicMock()
+
+        mock_run.side_effect = mock_subprocess
+
+        segments = processor.segment_audio(multi_second_sine_wave)
+
+        # Check that segments have unique prefixes (includes timestamp)
+        assert len(segments) == 2
+        for segment_path, _, _ in segments:
+            # Should include a timestamp in milliseconds
+            assert '_segment_' in segment_path
+            # Pattern should be: {basename}_{timestamp}_segment_{id}.wav
+
+        # Clean up created segments
+        processor.cleanup_segments(segments)
+
+    def test_init_uses_config_temp_dir(self, temp_dir):
+        """Test that VideoProcessor uses Config.TEMP_DIR when temp_dir is None."""
+        with patch("src.core.video_processor.Config") as mock_config:
+            mock_config.TEMP_DIR = temp_dir
+            mock_config.SEGMENT_LENGTH_SECONDS = 90
+
+            processor = VideoProcessor()
+
+            assert processor.temp_dir == temp_dir
+
     def test_get_random_user_agent(self, temp_dir):
         """Test that random user agent is returned."""
         processor = VideoProcessor(temp_dir=temp_dir)
