@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from sqlalchemy.engine.url import make_url
 
 load_dotenv()
 
@@ -35,10 +36,15 @@ class Config:
     # Processing
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
     MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", 3))
+    MAX_CONCURRENT_CHANNELS = int(os.getenv("MAX_CONCURRENT_CHANNELS", 2))
     SEGMENT_LENGTH_SECONDS = int(
         os.getenv("SEGMENT_LENGTH_SECONDS", 90)
     )  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
+
+    # Ingestion backoff settings
+    CHANNEL_RETRY_DELAY = int(os.getenv("CHANNEL_RETRY_DELAY", 5))  # seconds
+    CHANNEL_MAX_RETRIES = int(os.getenv("CHANNEL_MAX_RETRIES", 3))
 
     # File management
     KEEP_ORIGINAL_AUDIO = os.getenv("KEEP_ORIGINAL_AUDIO", "true").lower() == "true"
@@ -72,3 +78,9 @@ class Config:
         if cls.DATABASE_URL:
             return cls.DATABASE_URL
         return f"postgresql://{cls.DATABASE_USER}:{cls.DATABASE_PASSWORD}@{cls.DATABASE_HOST}:{cls.DATABASE_PORT}/{cls.DATABASE_NAME}"
+
+    @classmethod
+    def get_database_url_safe(cls):
+        """Get database URL with password masked for safe logging."""
+        url = cls.get_database_url()
+        return make_url(url).render_as_string(hide_password=True)
