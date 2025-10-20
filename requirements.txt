@@ -1,13 +1,13 @@
 # Core dependencies
-psycopg[binary]==3.2.10
+psycopg[binary]==3.2.11
 sqlalchemy==2.0.44
 alembic==1.17.0
 setuptools<81.0.0
 
 # Audio processing
 librosa==0.11.0
-scipy==1.15.3
-numpy==2.2.6
+scipy==1.16.2
+numpy==2.3.4
 soundfile==0.13.1
 
 # Video processing
@@ -20,7 +20,7 @@ praw==7.8.1
 
 # Web server for OAuth callbacks
 fastapi==0.119.0
-uvicorn==0.37.0
+uvicorn==0.38.0
 
 # Utilities
 python-dotenv==1.1.1
