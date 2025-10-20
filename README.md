@@ -276,6 +276,28 @@ docker compose exec app python -c "from src.database.connection import db_manage
 docker compose stats
 ```
 
+#### Production Deployment
+
+For production use, combine the base `docker-compose.yml` with `docker-compose.prod.yml`:
+
+```bash
+# Start in production mode
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# View logs
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+
+# Stop services
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
+Production configuration includes:
+- Automatic restart policies
+- Resource limits (CPU and memory)
+- Log rotation
+- Removes source code mounts (baked into image)
+- Runs ingestion script by default
+
 > **⚠️ Security Note**: See the [Security and Secrets Management](#security-and-secrets-management) section below for important information about handling credentials safely.
 
 ## Troubleshooting Common Issues

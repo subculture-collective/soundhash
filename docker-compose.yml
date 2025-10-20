@@ -45,6 +45,7 @@ services:
       - ./src:/app/src:ro
       - ./scripts:/app/scripts:ro
       - ./config:/app/config:ro
+      - ./alembic:/app/alembic:ro
       # Persistent data directories
       - ./logs:/app/logs
       - ./temp:/app/temp
@@ -57,8 +58,9 @@ services:
     networks:
       - soundhash-network
     restart: unless-stopped
-    # Override command for dev (use shell access: docker compose exec app bash)
-    command: ["python", "scripts/ingest_channels.py", "--max-videos", "10"]
+    # Keep container running for development (use docker compose exec for commands)
+    # Override with: docker compose run --rm app python scripts/ingest_channels.py
+    command: ["tail", "-f", "/dev/null"]
 
 volumes:
   postgres_data:

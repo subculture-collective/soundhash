@@ -1,0 +1,42 @@
+# Production Docker Compose Configuration
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  db:
+    # Production settings for database
+    restart: always
+    # Uncomment for external database backup volume
+    # volumes:
+    #   - /backups/soundhash:/backups
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    # Production command - run actual ingestion
+    command: ["python", "scripts/ingest_channels.py"]
+    restart: always
+    # Remove read-only source mounts for production
+    volumes:
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json:ro
+      - ./cookies.txt:/app/cookies.txt:ro
+    # Production logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
