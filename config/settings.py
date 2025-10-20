@@ -44,18 +44,25 @@ class Config:
 
     # Similarity search thresholds and weights
     # Thresholds for considering a match valid
-    SIMILARITY_CORRELATION_THRESHOLD = float(
-        os.getenv("SIMILARITY_CORRELATION_THRESHOLD", "0.70")
-    )
+    SIMILARITY_CORRELATION_THRESHOLD = float(os.getenv("SIMILARITY_CORRELATION_THRESHOLD", "0.70"))
     SIMILARITY_L2_THRESHOLD = float(os.getenv("SIMILARITY_L2_THRESHOLD", "0.70"))
     # Combined minimum score
     SIMILARITY_MIN_SCORE = float(os.getenv("SIMILARITY_MIN_SCORE", "0.70"))
 
     # Weights for combining correlation and L2 similarity (must sum to 1.0)
-    SIMILARITY_CORRELATION_WEIGHT = float(
-        os.getenv("SIMILARITY_CORRELATION_WEIGHT", "0.5")
-    )
+    SIMILARITY_CORRELATION_WEIGHT = float(os.getenv("SIMILARITY_CORRELATION_WEIGHT", "0.5"))
     SIMILARITY_L2_WEIGHT = float(os.getenv("SIMILARITY_L2_WEIGHT", "0.5"))
+
+    # Validate that weights sum to 1.0
+    @classmethod
+    def _validate_similarity_weights(cls):
+        """Validate that similarity weights sum to 1.0."""
+        weights_sum = cls.SIMILARITY_CORRELATION_WEIGHT + cls.SIMILARITY_L2_WEIGHT
+        if not abs(weights_sum - 1.0) < 1e-9:
+            raise ValueError(
+                f"SIMILARITY_CORRELATION_WEIGHT and SIMILARITY_L2_WEIGHT must sum to 1.0, "
+                f"got {cls.SIMILARITY_CORRELATION_WEIGHT} + {cls.SIMILARITY_L2_WEIGHT} = {weights_sum}"
+            )
 
     # Minimum duration (in seconds) for valid matches
     SIMILARITY_MIN_DURATION = float(os.getenv("SIMILARITY_MIN_DURATION", "5.0"))
@@ -105,3 +112,7 @@ class Config:
         """Get database URL with password masked for safe logging."""
         url = cls.get_database_url()
         return make_url(url).render_as_string(hide_password=True)
+
+
+# Validate configuration on module import
+Config._validate_similarity_weights()

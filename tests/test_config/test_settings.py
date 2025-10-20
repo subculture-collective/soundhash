@@ -67,10 +67,12 @@ class TestConfig:
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy_list}, clear=False):
             # Need to reload the module to pick up the new env var
             import importlib
+
             import config.settings
+
             importlib.reload(config.settings)
             from config.settings import Config as ReloadedConfig
-            
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 3
             assert ReloadedConfig.PROXY_LIST[0] == "http://proxy1.example.com:8080"
@@ -82,10 +84,12 @@ class TestConfig:
         test_proxy = "http://single-proxy.example.com:8080"
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy}, clear=False):
             import importlib
+
             import config.settings
+
             importlib.reload(config.settings)
             from config.settings import Config as ReloadedConfig
-            
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 1
             assert ReloadedConfig.PROXY_LIST[0] == "http://single-proxy.example.com:8080"
@@ -94,10 +98,12 @@ class TestConfig:
         """Test that PROXY_LIST returns empty list when env var is empty."""
         with patch.dict(os.environ, {"PROXY_LIST": ""}, clear=False):
             import importlib
+
             import config.settings
+
             importlib.reload(config.settings)
             from config.settings import Config as ReloadedConfig
-            
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
 
@@ -107,12 +113,107 @@ class TestConfig:
         env_copy = os.environ.copy()
         if "PROXY_LIST" in env_copy:
             del env_copy["PROXY_LIST"]
-        
+
         with patch.dict(os.environ, env_copy, clear=True):
             import importlib
+
             import config.settings
+
             importlib.reload(config.settings)
             from config.settings import Config as ReloadedConfig
-            
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
+
+    def test_similarity_weights_default_sum_to_one(self):
+        """Test that default similarity weights sum to 1.0."""
+        assert hasattr(Config, "SIMILARITY_CORRELATION_WEIGHT")
+        assert hasattr(Config, "SIMILARITY_L2_WEIGHT")
+        weights_sum = Config.SIMILARITY_CORRELATION_WEIGHT + Config.SIMILARITY_L2_WEIGHT
+        assert abs(weights_sum - 1.0) < 1e-9
+
+    def test_similarity_weights_validation_passes(self):
+        """Test that valid weights pass validation."""
+        # Test with weights that sum to 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.7",
+                "SIMILARITY_L2_WEIGHT": "0.3",
+            },
+            clear=False,
+        ):
+            import importlib
+
+            import config.settings
+
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+
+            # Should not raise an exception
+            assert ReloadedConfig.SIMILARITY_CORRELATION_WEIGHT == 0.7
+            assert ReloadedConfig.SIMILARITY_L2_WEIGHT == 0.3
+
+    def test_similarity_weights_validation_fails_when_sum_not_one(self):
+        """Test that validation fails when weights don't sum to 1.0."""
+        # Test with weights that sum to more than 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.6",
+                "SIMILARITY_L2_WEIGHT": "0.5",
+            },
+            clear=False,
+        ):
+            import importlib
+
+            import pytest
+
+            import config.settings
+
+            with pytest.raises(ValueError, match="must sum to 1.0"):
+                importlib.reload(config.settings)
+
+    def test_similarity_weights_validation_fails_when_sum_too_low(self):
+        """Test that validation fails when weights sum to less than 1.0."""
+        # Test with weights that sum to less than 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.3",
+                "SIMILARITY_L2_WEIGHT": "0.3",
+            },
+            clear=False,
+        ):
+            import importlib
+
+            import pytest
+
+            import config.settings
+
+            with pytest.raises(ValueError, match="must sum to 1.0"):
+                importlib.reload(config.settings)
+
+    def test_similarity_weights_validation_handles_floating_point_precision(self):
+        """Test that validation handles floating point precision correctly."""
+        # Test with weights that have floating point imprecision but are very close to 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.3333333333",
+                "SIMILARITY_L2_WEIGHT": "0.6666666667",
+            },
+            clear=False,
+        ):
+            import importlib
+
+            import config.settings
+
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+
+            # Should pass validation despite floating point imprecision
+            weights_sum = (
+                ReloadedConfig.SIMILARITY_CORRELATION_WEIGHT + ReloadedConfig.SIMILARITY_L2_WEIGHT
+            )
+            assert abs(weights_sum - 1.0) < 1e-9
