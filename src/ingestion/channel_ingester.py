@@ -409,12 +409,6 @@ class VideoJobProcessor:
 
                     fingerprints_created += 1
 
-                    # Clean up segment file
-                    import os
-
-                    if os.path.exists(segment_file):
-                        os.remove(segment_file)
-
                     # Update progress
                     progress_value = 0.5 + (0.4 * (i + 1) / len(segments))
                     job_repo.update_job_status(
@@ -427,6 +421,10 @@ class VideoJobProcessor:
                 except Exception as e:
                     self.logger.error(f"Error processing segment {start_time}-{end_time}: {str(e)}")
                     continue
+
+            # Clean up segments based on configuration
+            if Config.CLEANUP_SEGMENTS_AFTER_PROCESSING:
+                self.video_processor.cleanup_segments(segments)
 
             # Mark video as processed
             if video.id:
