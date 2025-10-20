@@ -76,10 +76,14 @@ class AudioFingerprinter:
             raise ValueError(f"sample_rate must be positive, got {sample_rate}")
 
         if n_fft < 256:
-            raise ValueError(f"n_fft must be at least 256 for sufficient frequency resolution, got {n_fft}")
+            raise ValueError(
+                f"n_fft must be at least 256 for sufficient frequency resolution, got {n_fft}"
+            )
 
         if n_fft & (n_fft - 1) != 0:
-            raise ValueError(f"n_fft should be a power of 2 for efficient FFT computation, got {n_fft}")
+            raise ValueError(
+                f"n_fft should be a power of 2 for efficient FFT computation, got {n_fft}"
+            )
 
         if hop_length <= 0:
             raise ValueError(f"hop_length must be positive, got {hop_length}")

@@ -1,6 +1,4 @@
-from typing import Optional, List
-
-from pydantic import Field, field_validator, computed_field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine.url import make_url
 
@@ -8,16 +6,16 @@ from sqlalchemy.engine.url import make_url
 class Config(BaseSettings):
     """
     Centralized configuration management for SoundHash.
-    
+
     This class uses pydantic-settings to:
     - Load settings from environment variables
     - Provide sensible defaults
     - Validate configuration at startup
     - Raise clear errors for missing critical settings
-    
+
     All modules should import from this class rather than reading os.environ directly.
     """
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -26,27 +24,27 @@ class Config(BaseSettings):
         # Don't try to parse as JSON - use our custom parsers
         env_parse_none_str=None,
     )
-    
+
     # Database
-    DATABASE_URL: Optional[str] = None
+    DATABASE_URL: str | None = None
     DATABASE_HOST: str = "localhost"
     DATABASE_PORT: int = 5432
     DATABASE_NAME: str = "soundhash"
-    DATABASE_USER: Optional[str] = None
-    DATABASE_PASSWORD: Optional[str] = None
+    DATABASE_USER: str | None = None
+    DATABASE_PASSWORD: str | None = None
 
     # API Keys
-    YOUTUBE_API_KEY: Optional[str] = None
-    TWITTER_BEARER_TOKEN: Optional[str] = None
-    TWITTER_CONSUMER_KEY: Optional[str] = None
-    TWITTER_CONSUMER_SECRET: Optional[str] = None
-    TWITTER_ACCESS_TOKEN: Optional[str] = None
-    TWITTER_ACCESS_TOKEN_SECRET: Optional[str] = None
+    YOUTUBE_API_KEY: str | None = None
+    TWITTER_BEARER_TOKEN: str | None = None
+    TWITTER_CONSUMER_KEY: str | None = None
+    TWITTER_CONSUMER_SECRET: str | None = None
+    TWITTER_ACCESS_TOKEN: str | None = None
+    TWITTER_ACCESS_TOKEN_SECRET: str | None = None
 
-    REDDIT_CLIENT_ID: Optional[str] = None
-    REDDIT_CLIENT_SECRET: Optional[str] = None
+    REDDIT_CLIENT_ID: str | None = None
+    REDDIT_CLIENT_SECRET: str | None = None
     REDDIT_USER_AGENT: str = "soundhash_bot_v1.0"
-    REDDIT_REFRESH_TOKEN: Optional[str] = None
+    REDDIT_REFRESH_TOKEN: str | None = None
 
     # OAuth and Authentication
     CALLBACK_BASE_URL: str = "http://localhost:8000"
@@ -72,22 +70,20 @@ class Config(BaseSettings):
 
     # Download configuration (for yt-dlp)
     USE_PROXY: bool = False
-    PROXY_URL: Optional[str] = Field(
-        default=None, description="Format: http://proxy.example.com:8080"
-    )
+    PROXY_URL: str | None = Field(default=None, description="Format: http://proxy.example.com:8080")
     PROXY_LIST_STR: str = Field(default="", validation_alias="PROXY_LIST")
-    
+
     # YouTube cookies & extractor behavior
-    YT_COOKIES_FILE: Optional[str] = Field(
+    YT_COOKIES_FILE: str | None = Field(
         default=None, description="Path to a Netscape cookies.txt exported file"
     )
-    YT_COOKIES_FROM_BROWSER: Optional[str] = Field(
+    YT_COOKIES_FROM_BROWSER: str | None = Field(
         default=None, description="e.g., 'chrome', 'chromium', 'firefox', 'brave', 'edge'"
     )
-    YT_BROWSER_PROFILE: Optional[str] = Field(
+    YT_BROWSER_PROFILE: str | None = Field(
         default=None, description="e.g., 'Default', 'Profile 1', or a Firefox profile name"
     )
-    YT_PLAYER_CLIENT: Optional[str] = Field(
+    YT_PLAYER_CLIENT: str | None = Field(
         default=None, description="e.g., 'android', 'web_safari', 'tv'"
     )
 
@@ -102,7 +98,7 @@ class Config(BaseSettings):
 
     @computed_field
     @property
-    def PROXY_LIST(self) -> List[str]:
+    def PROXY_LIST(self) -> list[str]:
         """Parse comma-separated proxy list from environment variable."""
         if not self.PROXY_LIST_STR or not self.PROXY_LIST_STR.strip():
             return []
@@ -110,15 +106,17 @@ class Config(BaseSettings):
 
     @computed_field
     @property
-    def TARGET_CHANNELS(self) -> List[str]:
+    def TARGET_CHANNELS(self) -> list[str]:
         """Parse comma-separated channel list from environment variable."""
         if not self.TARGET_CHANNELS_STR or not self.TARGET_CHANNELS_STR.strip():
             return []
-        return [channel.strip() for channel in self.TARGET_CHANNELS_STR.split(",") if channel.strip()]
+        return [
+            channel.strip() for channel in self.TARGET_CHANNELS_STR.split(",") if channel.strip()
+        ]
 
     @computed_field
     @property
-    def BOT_KEYWORDS(self) -> List[str]:
+    def BOT_KEYWORDS(self) -> list[str]:
         """Parse comma-separated keywords from environment variable."""
         if not self.BOT_KEYWORDS_STR or not self.BOT_KEYWORDS_STR.strip():
             return ["find clip", "source video", "original", "what song"]
@@ -127,13 +125,13 @@ class Config(BaseSettings):
     def get_database_url(self) -> str:
         """
         Get the database connection URL.
-        
+
         Raises:
             ValueError: If database configuration is incomplete.
         """
         if self.DATABASE_URL:
             return self.DATABASE_URL
-        
+
         # Validate we have required credentials
         if not self.DATABASE_USER or not self.DATABASE_PASSWORD:
             raise ValueError(
@@ -141,7 +139,7 @@ class Config(BaseSettings):
                 "provide DATABASE_USER and DATABASE_PASSWORD (with optional "
                 "DATABASE_HOST, DATABASE_PORT, DATABASE_NAME)."
             )
-        
+
         return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
 
     def get_database_url_safe(self) -> str:
