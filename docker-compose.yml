@@ -1,6 +1,7 @@
 services:
-  postgres:
-    image: postgres:15
+  db:
+    image: postgres:15-alpine
+    container_name: soundhash-db
     environment:
       POSTGRES_DB: ${DATABASE_NAME:-soundhash}
       POSTGRES_USER: ${DATABASE_USER:-soundhash_user}
@@ -16,28 +17,56 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    networks:
+      - soundhash-network
+    restart: unless-stopped
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: soundhash-app
     env_file:
       - .env
     environment:
-      DATABASE_HOST: postgres
+      # Override DATABASE_* for container networking
+      DATABASE_HOST: db
       DATABASE_PORT: 5432
-      DATABASE_URL: postgresql://${DATABASE_USER:-soundhash_user}:${DATABASE_PASSWORD:-soundhash_password123}@postgres:5432/${DATABASE_NAME:-soundhash}
+      DATABASE_URL: postgresql://${DATABASE_USER:-soundhash_user}:${DATABASE_PASSWORD:-soundhash_password123}@db:5432/${DATABASE_NAME:-soundhash}
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
     volumes:
+      # Mount source code for development
+      - ./src:/app/src:ro
+      - ./scripts:/app/scripts:ro
+      - ./config:/app/config:ro
+      - ./alembic:/app/alembic:ro
+      # Persistent data directories
       - ./logs:/app/logs
       - ./temp:/app/temp
+      # Optional: mount for credentials (if needed)
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json:ro
+      - ./cookies.txt:/app/cookies.txt:ro
     ports:
-      - "8001:8000"
-    command: ["python", "scripts/ingest_channels.py", "--max-videos", "10"]
+      - "${AUTH_SERVER_PORT:-8001}:8000"
+    networks:
+      - soundhash-network
+    restart: unless-stopped
+    # Keep container running for development (use docker compose exec for commands)
+    # Override with: docker compose run --rm app python scripts/ingest_channels.py
+    command: ["tail", "-f", "/dev/null"]
 
 volumes:
   postgres_data:
+    name: soundhash-postgres-data
+
+networks:
+  soundhash-network:
+    name: soundhash-network
+    driver: bridge

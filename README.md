@@ -94,26 +94,41 @@ cp .env.example .env
 # Edit .env with your settings (DATABASE_URL will be overridden for Docker)
 
 # 3. Start services (PostgreSQL + App)
-docker compose up -d
+make up
+# Or: docker compose up -d
 
 # 4. Initialize database
-docker compose exec app python scripts/setup_database.py
+make setup-db
+# Or: docker compose exec app python scripts/setup_database.py
 
 # 5. Setup YouTube API (interactive OAuth flow)
 docker compose exec app python scripts/setup_youtube_api.py
 
 # 6. Test with limited videos
-docker compose exec app python scripts/ingest_channels.py --dry-run --max-videos 5
+make ingest
+# Or: docker compose exec app python scripts/ingest_channels.py --dry-run --max-videos 5
 
 # 7. View logs
-docker compose logs -f app
+make logs-app
+# Or: docker compose logs -f app
 ```
+
+**🔧 Makefile Commands**:
+- `make up` - Start all services
+- `make down` - Stop all services
+- `make logs` - View all logs
+- `make logs-app` - View app logs
+- `make shell` - Open shell in app container
+- `make setup-db` - Initialize database
+- `make test` - Run tests
+- `make help` - Show all available commands
 
 **✅ Advantages**:
 - No manual PostgreSQL or ffmpeg installation
 - Isolated environment
 - Production-like setup
-- Easy cleanup with `docker compose down -v`
+- Easy cleanup with `make clean` or `docker compose down -v`
+- Makefile for common operations
 
 ### Option B: Local Development
 
@@ -197,6 +212,91 @@ tail -f logs/soundhash.log
 # 4. Query database to see results
 psql soundhash -c "SELECT COUNT(*) FROM audio_fingerprints;"
 ```
+
+### Docker Configuration Details
+
+#### Environment Variables
+When running with Docker Compose, the `.env` file is automatically loaded. Key variables for Docker setup:
+
+```bash
+# Database (automatically configured for containers)
+DATABASE_HOST=db                  # Service name in docker-compose.yml
+DATABASE_PORT=5432                # Internal container port
+DATABASE_NAME=soundhash
+DATABASE_USER=soundhash_user
+DATABASE_PASSWORD=soundhash_password123
+
+# External database access (from host machine)
+DATABASE_PORT=5435                # Host port mapped to container
+
+# OAuth server (for YouTube API setup)
+AUTH_SERVER_PORT=8001            # Host port for OAuth callbacks
+```
+
+#### Docker Volumes
+Docker Compose mounts several directories for data persistence and development:
+
+- **`./logs`** → `/app/logs` - Application logs persist on host
+- **`./temp`** → `/app/temp` - Temporary audio files persist on host
+- **`./src`** → `/app/src` - Source code (read-only, for hot-reload in dev)
+- **`./scripts`** → `/app/scripts` - Scripts (read-only)
+- **`postgres_data`** - Named volume for PostgreSQL data (managed by Docker)
+
+**Credentials** (optional mounts):
+- `./credentials.json` → `/app/credentials.json` - YouTube OAuth credentials
+- `./token.json` → `/app/token.json` - OAuth refresh token
+- `./cookies.txt` → `/app/cookies.txt` - Browser cookies for yt-dlp
+
+#### Common Docker Operations
+
+```bash
+# View running containers
+make ps
+
+# Access app container shell
+make shell
+
+# Access database shell
+make shell-db
+
+# Rebuild after dependency changes
+make build
+make up
+
+# Clean restart (removes volumes - WARNING: destroys data!)
+make clean
+make up
+make setup-db
+
+# Run one-off commands
+docker compose exec app python scripts/ingest_channels.py --help
+docker compose exec app python -c "from src.database.connection import db_manager; print('OK')"
+
+# View resource usage
+docker compose stats
+```
+
+#### Production Deployment
+
+For production use, combine the base `docker-compose.yml` with `docker-compose.prod.yml`:
+
+```bash
+# Start in production mode
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# View logs
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
+
+# Stop services
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
+Production configuration includes:
+- Automatic restart policies
+- Resource limits (CPU and memory)
+- Log rotation
+- Removes source code mounts (baked into image)
+- Runs ingestion script by default
 
 > **⚠️ Security Note**: See the [Security and Secrets Management](#security-and-secrets-management) section below for important information about handling credentials safely.
 
