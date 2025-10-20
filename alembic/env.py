@@ -68,6 +68,21 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Get the database URL and ensure it has the correct driver
+    database_url = config.get_main_option("sqlalchemy.url")
+    
+    # Auto-select driver if none specified
+    if database_url and database_url.startswith("postgresql://"):
+        import importlib.util
+        driver = None
+        if importlib.util.find_spec("psycopg2") is not None:
+            driver = "psycopg2"
+        elif importlib.util.find_spec("psycopg") is not None:
+            driver = "psycopg"
+        if driver:
+            database_url = database_url.replace("postgresql://", f"postgresql+{driver}://", 1)
+            config.set_main_option("sqlalchemy.url", database_url)
+    
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
