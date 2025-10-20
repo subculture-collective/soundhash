@@ -42,6 +42,24 @@ class Config:
     )  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
 
+    # Similarity search thresholds and weights
+    # Thresholds for considering a match valid
+    SIMILARITY_CORRELATION_THRESHOLD = float(
+        os.getenv("SIMILARITY_CORRELATION_THRESHOLD", "0.70")
+    )
+    SIMILARITY_L2_THRESHOLD = float(os.getenv("SIMILARITY_L2_THRESHOLD", "0.70"))
+    # Combined minimum score
+    SIMILARITY_MIN_SCORE = float(os.getenv("SIMILARITY_MIN_SCORE", "0.70"))
+
+    # Weights for combining correlation and L2 similarity (must sum to 1.0)
+    SIMILARITY_CORRELATION_WEIGHT = float(
+        os.getenv("SIMILARITY_CORRELATION_WEIGHT", "0.5")
+    )
+    SIMILARITY_L2_WEIGHT = float(os.getenv("SIMILARITY_L2_WEIGHT", "0.5"))
+
+    # Minimum duration (in seconds) for valid matches
+    SIMILARITY_MIN_DURATION = float(os.getenv("SIMILARITY_MIN_DURATION", "5.0"))
+
     # Ingestion backoff settings
     CHANNEL_RETRY_DELAY = int(os.getenv("CHANNEL_RETRY_DELAY", 5))  # seconds
     CHANNEL_MAX_RETRIES = int(os.getenv("CHANNEL_MAX_RETRIES", 3))
@@ -77,7 +95,10 @@ class Config:
     def get_database_url(cls):
         if cls.DATABASE_URL:
             return cls.DATABASE_URL
-        return f"postgresql://{cls.DATABASE_USER}:{cls.DATABASE_PASSWORD}@{cls.DATABASE_HOST}:{cls.DATABASE_PORT}/{cls.DATABASE_NAME}"
+        return (
+            f"postgresql://{cls.DATABASE_USER}:{cls.DATABASE_PASSWORD}"
+            f"@{cls.DATABASE_HOST}:{cls.DATABASE_PORT}/{cls.DATABASE_NAME}"
+        )
 
     @classmethod
     def get_database_url_safe(cls):
