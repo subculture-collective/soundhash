@@ -76,10 +76,14 @@ class AudioFingerprinter:
             raise ValueError(f"sample_rate must be positive, got {sample_rate}")
 
         if n_fft < 256:
-            raise ValueError(f"n_fft must be at least 256 for sufficient frequency resolution, got {n_fft}")
+            raise ValueError(
+                f"n_fft must be at least 256 for sufficient frequency resolution, got {n_fft}"
+            )
 
         if n_fft & (n_fft - 1) != 0:
-            raise ValueError(f"n_fft should be a power of 2 for efficient FFT computation, got {n_fft}")
+            raise ValueError(
+                f"n_fft should be a power of 2 for efficient FFT computation, got {n_fft}"
+            )
 
         if hop_length <= 0:
             raise ValueError(f"hop_length must be positive, got {hop_length}")
@@ -271,7 +275,14 @@ class AudioFingerprinter:
         quantized = np.round(compact_fingerprint * 1000).astype(np.int32)
         return hashlib.md5(quantized.tobytes()).hexdigest()
 
-    def compare_fingerprints(self, fp1: dict[str, Any], fp2: dict[str, Any]) -> float:
+    def compare_fingerprints(
+        self,
+        fp1: dict[str, Any],
+        fp2: dict[str, Any],
+        correlation_weight: float | None = None,
+        l2_weight: float | None = None,
+        return_components: bool = False,
+    ) -> float | dict[str, float]:
         """
         Compare two fingerprints and return similarity score (0-1).
 
@@ -279,7 +290,7 @@ class AudioFingerprinter:
         1. Correlation coefficient: Measures linear relationship (shape similarity)
         2. Normalized Euclidean distance: Measures absolute difference (magnitude similarity)
 
-        Final score = (|correlation| + euclidean_similarity) / 2
+        Final score = correlation_weight * |correlation| + l2_weight * euclidean_similarity
 
         Recommended thresholds for matching:
         - > 0.85: Very high confidence match (same audio)
@@ -290,21 +301,40 @@ class AudioFingerprinter:
         Args:
             fp1: First fingerprint dictionary with 'compact_fingerprint' key
             fp2: Second fingerprint dictionary with 'compact_fingerprint' key
+            correlation_weight: Weight for correlation component
+                (default from Config)
+            l2_weight: Weight for L2 similarity component (default from Config)
+            return_components: If True, return dict with individual components
+                and combined score
 
         Returns:
-            Similarity score between 0.0 (completely different) and 1.0 (identical)
+            Similarity score between 0.0 (completely different) and 1.0
+            (identical). Or dict with 'correlation', 'l2_similarity', and
+            'combined_score' if return_components=True
         """
+        # Use config defaults if not specified
+        if correlation_weight is None:
+            correlation_weight = Config.SIMILARITY_CORRELATION_WEIGHT
+        if l2_weight is None:
+            l2_weight = Config.SIMILARITY_L2_WEIGHT
+
         compact1 = fp1.get("compact_fingerprint")
         compact2 = fp2.get("compact_fingerprint")
 
         if compact1 is None or compact2 is None:
+            if return_components:
+                return {"correlation": 0.0, "l2_similarity": 0.0, "combined_score": 0.0}
             return 0.0
         if len(compact1) == 0 or len(compact2) == 0:
+            if return_components:
+                return {"correlation": 0.0, "l2_similarity": 0.0, "combined_score": 0.0}
             return 0.0
 
         # Ensure same length
         min_len = min(len(compact1), len(compact2))
         if min_len == 0:
+            if return_components:
+                return {"correlation": 0.0, "l2_similarity": 0.0, "combined_score": 0.0}
             return 0.0
 
         compact1 = compact1[:min_len]
@@ -320,9 +350,20 @@ class AudioFingerprinter:
         max_distance = np.sqrt(2 * min_len)  # Maximum possible distance
         euclidean_similarity = 1.0 - (euclidean / max_distance)
 
-        # Combined similarity score
-        similarity = (abs(correlation) + euclidean_similarity) / 2.0
-        return max(0.0, min(1.0, similarity))
+        # Combined similarity score using weighted mean
+        similarity = (abs(correlation) * correlation_weight) + (
+            euclidean_similarity * l2_weight
+        )
+        similarity = max(0.0, min(1.0, similarity))
+
+        if return_components:
+            return {
+                "correlation": abs(correlation),
+                "l2_similarity": euclidean_similarity,
+                "combined_score": similarity,
+            }
+
+        return similarity
 
     def serialize_fingerprint(self, fingerprint: dict[str, Any]) -> bytes:
         """Serialize fingerprint for database storage"""
@@ -339,3 +380,85 @@ class AudioFingerprinter:
     def deserialize_fingerprint(self, data: bytes) -> dict[str, Any]:
         """Deserialize fingerprint from database"""
         return pickle.loads(data)
+
+    def rank_matches(
+        self,
+        query_fp: dict[str, Any],
+        candidate_fps: list[tuple[Any, dict[str, Any]]],
+        min_score: float | None = None,
+        min_duration: float | None = None,
+        correlation_threshold: float | None = None,
+        l2_threshold: float | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Rank candidate fingerprints against a query fingerprint.
+
+        Filters candidates based on thresholds and ranks by combined similarity score.
+        Applies tie-breaking rules: higher correlation > higher L2 > longer duration.
+
+        Args:
+            query_fp: Query fingerprint dictionary
+            candidate_fps: List of (identifier, fingerprint_dict) tuples
+            min_score: Minimum combined similarity score (default from Config)
+            min_duration: Minimum duration in seconds (default from Config)
+            correlation_threshold: Minimum correlation score (default from Config)
+            l2_threshold: Minimum L2 similarity score (default from Config)
+
+        Returns:
+            List of match dictionaries sorted by relevance, each containing:
+            - identifier: The candidate identifier
+            - score: Combined similarity score
+            - correlation: Correlation component
+            - l2_similarity: L2 similarity component
+            - duration: Candidate duration
+        """
+        # Use config defaults if not specified
+        if min_score is None:
+            min_score = Config.SIMILARITY_MIN_SCORE
+        if min_duration is None:
+            min_duration = Config.SIMILARITY_MIN_DURATION
+        if correlation_threshold is None:
+            correlation_threshold = Config.SIMILARITY_CORRELATION_THRESHOLD
+        if l2_threshold is None:
+            l2_threshold = Config.SIMILARITY_L2_THRESHOLD
+
+        matches = []
+        for identifier, candidate_fp in candidate_fps:
+            # Check minimum duration
+            candidate_duration = candidate_fp.get("duration", 0.0)
+            if candidate_duration < min_duration:
+                continue
+
+            # Compare fingerprints
+            components = self.compare_fingerprints(query_fp, candidate_fp, return_components=True)
+
+            # Apply thresholds
+            if components["correlation"] < correlation_threshold:
+                continue
+            if components["l2_similarity"] < l2_threshold:
+                continue
+            if components["combined_score"] < min_score:
+                continue
+
+            matches.append(
+                {
+                    "identifier": identifier,
+                    "score": components["combined_score"],
+                    "correlation": components["correlation"],
+                    "l2_similarity": components["l2_similarity"],
+                    "duration": candidate_duration,
+                }
+            )
+
+        # Sort by: score (desc), correlation (desc), l2_similarity (desc), duration (desc)
+        matches.sort(
+            key=lambda m: (
+                m["score"],
+                m["correlation"],
+                m["l2_similarity"],
+                m["duration"],
+            ),
+            reverse=True,
+        )
+
+        return matches
