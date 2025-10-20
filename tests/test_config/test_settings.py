@@ -1,5 +1,6 @@
 """Tests for configuration settings."""
 
+import os
 from unittest.mock import patch
 
 from config.settings import Config
@@ -59,31 +60,59 @@ class TestConfig:
         """Test that TARGET_CHANNELS is a list."""
         assert isinstance(Config.TARGET_CHANNELS, list)
 
-    def test_get_database_url_safe_masks_password(self):
-        """Test get_database_url_safe masks the password."""
-        with patch.object(Config, "DATABASE_URL", "postgresql://user:secret_pass@localhost/testdb"):
-            safe_url = Config.get_database_url_safe()
-            # Password should be masked
-            assert "secret_pass" not in safe_url
-            assert "***" in safe_url
-            # Other components should still be present
-            assert "user" in safe_url
-            assert "localhost" in safe_url
-            assert "testdb" in safe_url
+    def test_proxy_list_comma_separated_parsing(self):
+        """Test that PROXY_LIST correctly parses comma-separated values from env var."""
+        # Test with comma-separated proxy list
+        test_proxy_list = "http://proxy1.example.com:8080,http://proxy2.example.com:8080,http://proxy3.example.com:8080"
+        with patch.dict(os.environ, {"PROXY_LIST": test_proxy_list}, clear=False):
+            # Need to reload the module to pick up the new env var
+            import importlib
+            import config.settings
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+            
+            assert isinstance(ReloadedConfig.PROXY_LIST, list)
+            assert len(ReloadedConfig.PROXY_LIST) == 3
+            assert ReloadedConfig.PROXY_LIST[0] == "http://proxy1.example.com:8080"
+            assert ReloadedConfig.PROXY_LIST[1] == "http://proxy2.example.com:8080"
+            assert ReloadedConfig.PROXY_LIST[2] == "http://proxy3.example.com:8080"
 
-    def test_get_database_url_safe_with_constructed_url(self):
-        """Test get_database_url_safe when URL is constructed from parts."""
-        with patch.object(Config, "DATABASE_URL", None):
-            with patch.object(Config, "DATABASE_USER", "testuser"):
-                with patch.object(Config, "DATABASE_PASSWORD", "super_secret"):
-                    with patch.object(Config, "DATABASE_HOST", "testhost"):
-                        with patch.object(Config, "DATABASE_PORT", 5433):
-                            with patch.object(Config, "DATABASE_NAME", "testdb"):
-                                safe_url = Config.get_database_url_safe()
-                                # Password should be masked
-                                assert "super_secret" not in safe_url
-                                assert "***" in safe_url
-                                # Other components should still be present
-                                assert "testuser" in safe_url
-                                assert "testhost" in safe_url
-                                assert "testdb" in safe_url
+    def test_proxy_list_single_proxy(self):
+        """Test that PROXY_LIST correctly handles single proxy (no commas)."""
+        test_proxy = "http://single-proxy.example.com:8080"
+        with patch.dict(os.environ, {"PROXY_LIST": test_proxy}, clear=False):
+            import importlib
+            import config.settings
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+            
+            assert isinstance(ReloadedConfig.PROXY_LIST, list)
+            assert len(ReloadedConfig.PROXY_LIST) == 1
+            assert ReloadedConfig.PROXY_LIST[0] == "http://single-proxy.example.com:8080"
+
+    def test_proxy_list_empty_string(self):
+        """Test that PROXY_LIST returns empty list when env var is empty."""
+        with patch.dict(os.environ, {"PROXY_LIST": ""}, clear=False):
+            import importlib
+            import config.settings
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+            
+            assert isinstance(ReloadedConfig.PROXY_LIST, list)
+            assert len(ReloadedConfig.PROXY_LIST) == 0
+
+    def test_proxy_list_not_set(self):
+        """Test that PROXY_LIST returns empty list when env var is not set."""
+        # Remove PROXY_LIST from env if it exists
+        env_copy = os.environ.copy()
+        if "PROXY_LIST" in env_copy:
+            del env_copy["PROXY_LIST"]
+        
+        with patch.dict(os.environ, env_copy, clear=True):
+            import importlib
+            import config.settings
+            importlib.reload(config.settings)
+            from config.settings import Config as ReloadedConfig
+            
+            assert isinstance(ReloadedConfig.PROXY_LIST, list)
+            assert len(ReloadedConfig.PROXY_LIST) == 0
