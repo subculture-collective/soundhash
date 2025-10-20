@@ -1,0 +1,76 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+dist
+build
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+*.cover
+.hypothesis
+
+# Virtual environments
+.venv
+venv
+ENV
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Logs and temp files
+logs
+temp
+*.log
+
+# Credentials and secrets
+.env
+credentials.json
+token.json
+*.token
+*.token.json
+cookies.txt
+*.cookie
+*.cookies
+client_secret*.json
+service-account*.json
+*.pem
+*.key
+*.cert
+*.crt
+
+# Documentation
+*.md
+docs
+LICENSE
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+
+# Test files
+tests
+.pre-commit-config.yaml
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Misc
+fresh_start.sh
