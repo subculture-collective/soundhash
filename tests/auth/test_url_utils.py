@@ -3,7 +3,7 @@ Tests for URL sanitization and validation utilities.
 """
 
 import pytest
-
+from urllib.parse import urlparse
 from src.auth.url_utils import build_callback_url, sanitize_callback_url
 
 
@@ -186,9 +186,11 @@ class TestBuildCallbackUrl:
         path = "/auth/callback"
         result = build_callback_url(base, path)
         assert result == "http://p1.com:8080/auth/callback"
-        # Verify the result starts with the sanitized base
-        assert result.startswith("http://p1.com:8080")
-
+        # Verify the result has the expected scheme and netloc
+        parsed_result = urlparse(result)
+        parsed_base = urlparse(base)
+        assert parsed_result.scheme == parsed_base.scheme
+        assert parsed_result.netloc == parsed_base.netloc
     def test_prevent_query_injection_in_base(self):
         """Test that query parameters in base URL are rejected"""
         base = "https://example.com?malicious=true"
