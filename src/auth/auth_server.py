@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from config.settings import Config
+from src.auth.url_utils import build_callback_url
 
 app = FastAPI(title="SoundHash Authentication Server")
 logger = logging.getLogger(__name__)
@@ -24,11 +25,12 @@ async def root():
 async def twitter_auth():
     """Initiate Twitter OAuth flow"""
     try:
-        # Create OAuth 1.0a handler
+        # Create OAuth 1.0a handler with sanitized callback URL
+        callback_url = build_callback_url(Config.CALLBACK_BASE_URL, "/auth/twitter/callback")
         auth = tweepy.OAuth1UserHandler(
             Config.TWITTER_CONSUMER_KEY,
             Config.TWITTER_CONSUMER_SECRET,
-            callback=f"{Config.CALLBACK_BASE_URL}/auth/twitter/callback",
+            callback=callback_url,
         )
 
         # Get authorization URL
@@ -41,9 +43,14 @@ async def twitter_auth():
         # Redirect to Twitter
         return RedirectResponse(url=f"{authorization_url}&state={state}")
 
+    except ValueError as e:
+        logger.error(f"Invalid callback URL configuration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Invalid authentication configuration") from e
     except Exception as e:
         logger.error(f"Error initiating Twitter auth: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initiate Twitter authentication")
+        raise HTTPException(
+            status_code=500, detail="Failed to initiate Twitter authentication"
+        ) from e
 
 
 @app.get("/auth/twitter/callback")
@@ -107,7 +114,9 @@ async def twitter_callback(oauth_token: str, oauth_verifier: str, state: str = N
 
     except Exception as e:
         logger.error(f"Error in Twitter callback: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to complete Twitter authentication")
+        raise HTTPException(
+            status_code=500, detail="Failed to complete Twitter authentication"
+        ) from e
 
 
 @app.get("/auth/reddit")
@@ -116,10 +125,13 @@ async def reddit_auth():
     try:
         import praw
 
+        # Build sanitized callback URL
+        callback_url = build_callback_url(Config.CALLBACK_BASE_URL, "/auth/reddit/callback")
+
         reddit = praw.Reddit(
             client_id=Config.REDDIT_CLIENT_ID,
             client_secret=Config.REDDIT_CLIENT_SECRET,
-            redirect_uri=f"{Config.CALLBACK_BASE_URL}/auth/reddit/callback",
+            redirect_uri=callback_url,
             user_agent=Config.REDDIT_USER_AGENT,
         )
 
@@ -131,9 +143,14 @@ async def reddit_auth():
 
         return RedirectResponse(url=auth_url)
 
+    except ValueError as e:
+        logger.error(f"Invalid callback URL configuration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Invalid authentication configuration") from e
     except Exception as e:
         logger.error(f"Error initiating Reddit auth: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to initiate Reddit authentication")
+        raise HTTPException(
+            status_code=500, detail="Failed to initiate Reddit authentication"
+        ) from e
 
 
 @app.get("/auth/reddit/callback")
@@ -147,10 +164,13 @@ async def reddit_callback(code: str, state: str):
 
         import praw
 
+        # Build sanitized callback URL
+        callback_url = build_callback_url(Config.CALLBACK_BASE_URL, "/auth/reddit/callback")
+
         reddit = praw.Reddit(
             client_id=Config.REDDIT_CLIENT_ID,
             client_secret=Config.REDDIT_CLIENT_SECRET,
-            redirect_uri=f"{Config.CALLBACK_BASE_URL}/auth/reddit/callback",
+            redirect_uri=callback_url,
             user_agent=Config.REDDIT_USER_AGENT,
         )
 
@@ -191,9 +211,14 @@ async def reddit_callback(code: str, state: str):
         """
         )
 
+    except ValueError as e:
+        logger.error(f"Invalid callback URL configuration: {str(e)}")
+        raise HTTPException(status_code=500, detail="Invalid authentication configuration") from e
     except Exception as e:
         logger.error(f"Error in Reddit callback: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to complete Reddit authentication")
+        raise HTTPException(
+            status_code=500, detail="Failed to complete Reddit authentication"
+        ) from e
 
 
 @app.get("/auth/status")
@@ -216,7 +241,7 @@ async def auth_status():
         return status
     except Exception as e:
         logger.error(f"Error checking auth status: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to check authentication status")
+        raise HTTPException(status_code=500, detail="Failed to check authentication status") from e
 
 
 if __name__ == "__main__":
