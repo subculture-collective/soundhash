@@ -24,7 +24,8 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from config.logging_config import create_section_logger, setup_logging as setup_enhanced_logging
+from config.logging_config import create_section_logger
+from config.logging_config import setup_logging as setup_enhanced_logging
 from src.api.youtube_service import YouTubeAPIService
 
 
