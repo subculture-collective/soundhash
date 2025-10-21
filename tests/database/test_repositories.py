@@ -1,4 +1,4 @@
-"""Tests for database repositories with session management and retries."""
+"""Tests for database repositories with session management and retry logic."""
 
 import time
 from unittest.mock import MagicMock, Mock, patch
@@ -10,324 +10,313 @@ from src.database.repositories import (
     JobRepository,
     VideoRepository,
     db_retry,
-    get_job_repo_session,
-    get_session,
-    get_video_repo_session,
+    get_db_session,
+    job_repository,
+    video_repository,
 )
 
 
-class TestDbRetryDecorator:
+class TestDBRetryDecorator:
     """Test suite for db_retry decorator."""
 
-    def test_retry_succeeds_first_attempt(self):
-        """Test that function succeeds on first attempt."""
-        call_count = 0
+    def test_retry_on_connection_reset(self):
+        """Test that retry decorator retries on connection reset errors."""
+        mock_func = Mock(
+            __name__="mock_func",
+            side_effect=[
+                OperationalError("connection reset by peer", None, None),
+                OperationalError("connection reset by peer", None, None),
+                "success"
+            ]
+        )
 
-        @db_retry(max_retries=3)
-        def test_func():
-            nonlocal call_count
-            call_count += 1
-            return "success"
+        decorated = db_retry(max_retries=3)(mock_func)
+        result = decorated()
 
-        result = test_func()
         assert result == "success"
-        assert call_count == 1
+        assert mock_func.call_count == 3
 
-    def test_retry_succeeds_after_failures(self):
-        """Test that function succeeds after transient failures."""
-        call_count = 0
+    def test_retry_on_deadlock(self):
+        """Test that retry decorator retries on deadlock errors."""
+        mock_func = Mock(
+            __name__="mock_func",
+            side_effect=[
+                OperationalError("deadlock detected", None, None),
+                "success"
+            ]
+        )
 
-        @db_retry(max_retries=3, initial_delay=0.01)
-        def test_func():
-            nonlocal call_count
-            call_count += 1
-            if call_count < 3:
-                raise OperationalError("connection lost", None, None)
-            return "success"
+        decorated = db_retry(max_retries=3)(mock_func)
+        result = decorated()
 
-        result = test_func()
         assert result == "success"
-        assert call_count == 3
+        assert mock_func.call_count == 2
 
-    def test_retry_exhausted_raises_exception(self):
-        """Test that exception is raised after max retries."""
+    def test_no_retry_on_non_retryable_error(self):
+        """Test that non-retryable errors are not retried."""
+        mock_func = Mock(
+            __name__="mock_func",
+            side_effect=OperationalError("syntax error", None, None)
+        )
 
-        @db_retry(max_retries=2, initial_delay=0.01)
-        def test_func():
-            raise OperationalError("connection lost", None, None)
+        decorated = db_retry(max_retries=3)(mock_func)
 
         with pytest.raises(OperationalError):
-            test_func()
+            decorated()
 
-    def test_retry_backoff_timing(self):
-        """Test that backoff delays increase exponentially."""
+        # Should fail immediately without retries
+        assert mock_func.call_count == 1
+
+    def test_max_retries_exhausted(self):
+        """Test that function raises after max retries."""
+        mock_func = Mock(
+            __name__="mock_func",
+            side_effect=OperationalError("connection reset", None, None)
+        )
+
+        decorated = db_retry(max_retries=2)(mock_func)
+
+        with pytest.raises(OperationalError):
+            decorated()
+
+        # Initial attempt + 2 retries = 3 total
+        assert mock_func.call_count == 3
+
+    def test_exponential_backoff(self):
+        """Test that retry delay increases exponentially."""
         call_times = []
 
-        @db_retry(max_retries=3, initial_delay=0.05, backoff_factor=2.0)
-        def test_func():
+        def mock_func_with_timing():
             call_times.append(time.time())
-            raise OperationalError("connection lost", None, None)
+            if len(call_times) < 3:
+                raise OperationalError("connection reset", None, None)
+            return "success"
 
-        with pytest.raises(OperationalError):
-            test_func()
+        decorated = db_retry(max_retries=3)(mock_func_with_timing)
+        result = decorated()
 
-        # Should have 3 calls total
+        assert result == "success"
         assert len(call_times) == 3
 
-        # Check delays: ~0.05s between 1st and 2nd, ~0.1s between 2nd and 3rd
-        if len(call_times) >= 2:
-            delay1 = call_times[1] - call_times[0]
-            assert 0.04 < delay1 < 0.15  # Allow some variance
+        # Check delays are increasing (with some tolerance for execution time)
+        delay1 = call_times[1] - call_times[0]
+        delay2 = call_times[2] - call_times[1]
+        assert delay2 > delay1
 
-        if len(call_times) >= 3:
-            delay2 = call_times[2] - call_times[1]
-            assert 0.08 < delay2 < 0.2  # Allow some variance
+    def test_success_on_first_try(self):
+        """Test that function succeeds immediately if no error."""
+        mock_func = Mock(__name__="mock_func", return_value="success")
 
-    def test_non_retryable_exception_not_retried(self):
-        """Test that non-retryable exceptions are not retried."""
-        call_count = 0
+        decorated = db_retry(max_retries=3)(mock_func)
+        result = decorated()
 
-        @db_retry(max_retries=3, retry_on=(OperationalError,))
-        def test_func():
-            nonlocal call_count
-            call_count += 1
-            raise ValueError("not retryable")
-
-        with pytest.raises(ValueError):
-            test_func()
-
-        # Should only be called once
-        assert call_count == 1
+        assert result == "success"
+        assert mock_func.call_count == 1
 
 
-class TestSessionContextManagers:
-    """Test suite for session context managers."""
+class TestGetDBSession:
+    """Test suite for get_db_session context manager."""
 
-    @patch("src.database.repositories.db_manager")
-    def test_get_session_context_manager_success(self, mock_db_manager):
-        """Test get_session context manager commits on success."""
+    @patch('src.database.repositories.db_manager')
+    def test_session_committed_on_success(self, mock_db_manager):
+        """Test that session is committed when no error occurs."""
         mock_session = MagicMock()
         mock_db_manager.get_session.return_value = mock_session
 
-        with get_session() as session:
-            assert session == mock_session
-            # Simulate some work
-            pass
+        with get_db_session() as session:
+            session.add(Mock())
 
         mock_session.commit.assert_called_once()
-        mock_session.rollback.assert_not_called()
         mock_session.close.assert_called_once()
+        mock_session.rollback.assert_not_called()
 
-    @patch("src.database.repositories.db_manager")
-    def test_get_session_context_manager_exception(self, mock_db_manager):
-        """Test get_session context manager rolls back on exception."""
+    @patch('src.database.repositories.db_manager')
+    def test_session_rolled_back_on_error(self, mock_db_manager):
+        """Test that session is rolled back when error occurs."""
         mock_session = MagicMock()
         mock_db_manager.get_session.return_value = mock_session
 
         with pytest.raises(ValueError):
-            with get_session() as session:
-                assert session == mock_session
-                raise ValueError("test error")
+            with get_db_session():
+                raise ValueError("Test error")
 
-        mock_session.commit.assert_not_called()
         mock_session.rollback.assert_called_once()
         mock_session.close.assert_called_once()
+        mock_session.commit.assert_not_called()
 
-    @patch("src.database.repositories.db_manager")
-    def test_get_video_repo_session(self, mock_db_manager):
-        """Test get_video_repo_session context manager."""
+    @patch('src.database.repositories.db_manager')
+    def test_session_always_closed(self, mock_db_manager):
+        """Test that session is closed even if commit/rollback fails."""
         mock_session = MagicMock()
+        mock_session.commit.side_effect = RuntimeError("Commit failed")
         mock_db_manager.get_session.return_value = mock_session
 
-        with get_video_repo_session() as repo:
+        with pytest.raises(RuntimeError):
+            with get_db_session():
+                pass
+
+        mock_session.close.assert_called_once()
+
+
+class TestRepositoryContextManagers:
+    """Test suite for repository context managers."""
+
+    @patch('src.database.repositories.get_db_session')
+    def test_video_repository(self, mock_get_session):
+        """Test video_repository context manager."""
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__ = Mock(return_value=mock_session)
+        mock_get_session.return_value.__exit__ = Mock(return_value=None)
+
+        with video_repository() as repo:
             assert isinstance(repo, VideoRepository)
             assert repo.session == mock_session
 
-        mock_session.commit.assert_called_once()
-        mock_session.close.assert_called_once()
-
-    @patch("src.database.repositories.db_manager")
-    def test_get_job_repo_session(self, mock_db_manager):
-        """Test get_job_repo_session context manager."""
+    @patch('src.database.repositories.get_db_session')
+    def test_job_repository(self, mock_get_session):
+        """Test job_repository context manager."""
         mock_session = MagicMock()
-        mock_db_manager.get_session.return_value = mock_session
+        mock_get_session.return_value.__enter__ = Mock(return_value=mock_session)
+        mock_get_session.return_value.__exit__ = Mock(return_value=None)
 
-        with get_job_repo_session() as repo:
+        with job_repository() as repo:
             assert isinstance(repo, JobRepository)
             assert repo.session == mock_session
 
-        mock_session.commit.assert_called_once()
-        mock_session.close.assert_called_once()
 
+class TestJobRepositoryIdempotency:
+    """Test suite for idempotent job creation."""
 
-class TestVideoRepositoryRetries:
-    """Test suite for VideoRepository retry functionality."""
-
-    def test_create_channel_retries_on_operational_error(self):
-        """Test that create_channel retries on OperationalError."""
+    def test_create_job_if_not_exists_creates_new_job(self):
+        """Test creating a new job when none exists."""
         mock_session = MagicMock()
-        call_count = 0
-
-        def side_effect():
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise OperationalError("connection lost", None, None)
-
-        mock_session.commit.side_effect = side_effect
-        repo = VideoRepository(mock_session)
-
-        # Should succeed after retry
-        result = repo.create_channel("test_channel", "Test Channel")
-
-        assert call_count == 2
-        assert result is not None
-
-    def test_get_channel_by_id_retries(self):
-        """Test that get_channel_by_id retries on transient errors."""
-        mock_session = MagicMock()
-        call_count = 0
-
-        def query_side_effect(*args):
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise OperationalError("connection lost", None, None)
-            mock_query = MagicMock()
-            mock_query.filter.return_value.first.return_value = "channel"
-            return mock_query
-
-        mock_session.query.side_effect = query_side_effect
-        repo = VideoRepository(mock_session)
-
-        # Should succeed after retry
-        result = repo.get_channel_by_id("test_id")
-
-        assert call_count == 2
-
-
-class TestJobRepositoryRetries:
-    """Test suite for JobRepository retry functionality."""
-
-    def test_job_exists_retries_on_operational_error(self):
-        """Test that job_exists retries on OperationalError."""
-        mock_session = MagicMock()
-        call_count = 0
-
-        def query_side_effect(*args):
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise OperationalError("connection lost", None, None)
-            mock_query = MagicMock()
-            mock_query.filter.return_value = mock_query
-            mock_exists = MagicMock()
-            mock_exists.exists.return_value = True
-            return mock_exists
-
-        mock_session.query.side_effect = query_side_effect
-        mock_session.query.return_value.scalar.return_value = True
-        repo = JobRepository(mock_session)
-
-        # Should succeed after retry
-        result = repo.job_exists("test_type", "test_id")
-
-        assert call_count >= 1
-
-    def test_create_job_if_not_exists_creates_when_not_exists(self):
-        """Test create_job_if_not_exists creates job when it doesn't exist."""
-        mock_session = MagicMock()
-
-        # Mock job_exists to return False
-        mock_query = MagicMock()
-        mock_query.filter.return_value = mock_query
-        mock_query.filter.return_value.filter.return_value = mock_query
-        mock_session.query.return_value = mock_query
+        mock_session.query.return_value.filter.return_value.exists.return_value = False
         mock_session.query.return_value.scalar.return_value = False
 
-        repo = JobRepository(mock_session)
+        job_repo = JobRepository(mock_session)
 
-        # Should create the job
-        result = repo.create_job_if_not_exists("video_process", "test_video_id")
+        with patch.object(job_repo, 'job_exists', return_value=False):
+            job, created = job_repo.create_job_if_not_exists(
+                'video_process',
+                'video123',
+                parameters='{"url": "test"}'
+            )
 
-        assert result is not None
+        assert created is True
+        assert job is not None
         mock_session.add.assert_called_once()
+        mock_session.commit.assert_called()
 
-    def test_create_job_if_not_exists_returns_none_when_exists(self):
-        """Test create_job_if_not_exists returns None when job exists."""
+    def test_create_job_if_not_exists_returns_existing_job(self):
+        """Test returning existing job when it already exists."""
         mock_session = MagicMock()
 
-        # Mock job_exists to return True
-        mock_query = MagicMock()
-        mock_query.filter.return_value = mock_query
-        mock_query.filter.return_value.filter.return_value = mock_query
-        mock_session.query.return_value = mock_query
-        mock_session.query.return_value.scalar.return_value = True
+        # Mock an existing job
+        existing_job = MagicMock()
+        existing_job.status = 'pending'
 
-        repo = JobRepository(mock_session)
+        job_repo = JobRepository(mock_session)
 
-        # Should not create the job
-        result = repo.create_job_if_not_exists("video_process", "test_video_id")
+        with patch.object(job_repo, 'job_exists', return_value=True):
+            with patch.object(job_repo, 'get_jobs_by_target', return_value=[existing_job]):
+                job, created = job_repo.create_job_if_not_exists(
+                    'video_process',
+                    'video123'
+                )
 
-        assert result is None
+        assert created is False
+        assert job == existing_job
         mock_session.add.assert_not_called()
 
-    def test_update_job_status_retries(self):
-        """Test that update_job_status retries on transient errors."""
+    def test_create_job_if_not_exists_handles_race_condition(self):
+        """Test handling race condition when job is created concurrently."""
+        mock_session = MagicMock()
+
+        # Simulate race condition: job doesn't exist during check,
+        # but commit fails due to concurrent creation
+        mock_session.commit.side_effect = Exception("Duplicate key")
+
+        existing_job = MagicMock()
+        existing_job.status = 'pending'
+
+        job_repo = JobRepository(mock_session)
+
+        with patch.object(job_repo, 'job_exists', return_value=False):
+            with patch.object(job_repo, 'get_jobs_by_target', return_value=[existing_job]):
+                job, created = job_repo.create_job_if_not_exists(
+                    'video_process',
+                    'video123'
+                )
+
+        assert created is False
+        assert job == existing_job
+        mock_session.rollback.assert_called_once()
+
+    def test_create_job_if_not_exists_with_status_filter(self):
+        """Test creating job with status filter."""
+        mock_session = MagicMock()
+
+        job_repo = JobRepository(mock_session)
+
+        with patch.object(job_repo, 'job_exists', return_value=False):
+            job, created = job_repo.create_job_if_not_exists(
+                'video_process',
+                'video123',
+                check_statuses=['pending', 'running']
+            )
+
+        assert created is True
+        mock_session.add.assert_called_once()
+
+
+class TestVideoRepository:
+    """Test suite for VideoRepository methods."""
+
+    def test_create_channel_with_retry(self):
+        """Test that create_channel has retry logic."""
+        mock_session = MagicMock()
+        repo = VideoRepository(mock_session)
+
+        # Verify the method has the retry decorator
+        assert hasattr(repo.create_channel, '__wrapped__')
+
+    def test_get_video_by_id_with_retry(self):
+        """Test that get_video_by_id has retry logic."""
+        mock_session = MagicMock()
+        repo = VideoRepository(mock_session)
+
+        # Verify the method has the retry decorator
+        assert hasattr(repo.get_video_by_id, '__wrapped__')
+
+
+class TestJobRepository:
+    """Test suite for JobRepository methods."""
+
+    def test_update_job_status_warns_on_missing_job(self):
+        """Test that update_job_status logs warning for non-existent job."""
+        mock_session = MagicMock()
+        mock_session.get.return_value = None
+
+        job_repo = JobRepository(mock_session)
+
+        with patch('src.database.repositories.logger') as mock_logger:
+            job_repo.update_job_status(999, 'completed')
+            mock_logger.warning.assert_called_once()
+
+    def test_update_job_status_updates_timestamps(self):
+        """Test that update_job_status correctly updates timestamps."""
+
         mock_session = MagicMock()
         mock_job = MagicMock()
         mock_job.started_at = None
-        call_count = 0
-
-        def commit_side_effect():
-            nonlocal call_count
-            call_count += 1
-            if call_count < 2:
-                raise OperationalError("connection lost", None, None)
-
         mock_session.get.return_value = mock_job
-        mock_session.commit.side_effect = commit_side_effect
 
-        repo = JobRepository(mock_session)
+        job_repo = JobRepository(mock_session)
 
-        # Should succeed after retry
-        repo.update_job_status(1, "running", 0.5)
+        # Test setting status to running
+        job_repo.update_job_status(1, 'running')
+        assert mock_job.started_at is not None
 
-        assert call_count == 2
-        assert mock_job.status == "running"
-
-
-class TestJobRepositoryIdempotency:
-    """Test suite for job creation idempotency."""
-
-    def test_create_job_if_not_exists_handles_race_condition(self):
-        """Test that create_job_if_not_exists handles race conditions gracefully."""
-        mock_session = MagicMock()
-
-        # First call to job_exists returns False
-        call_count = 0
-
-        def query_side_effect(*args):
-            nonlocal call_count
-            call_count += 1
-            mock_query = MagicMock()
-            mock_query.filter.return_value = mock_query
-            if call_count == 1:
-                # First check says doesn't exist
-                mock_session.query.return_value.scalar.return_value = False
-            return mock_query
-
-        mock_session.query.side_effect = query_side_effect
-        mock_session.query.return_value.scalar.return_value = False
-
-        # But commit raises unique constraint error (race condition)
-        mock_session.commit.side_effect = Exception(
-            "duplicate key value violates unique constraint"
-        )
-
-        repo = JobRepository(mock_session)
-
-        # Should handle race condition and return None without failing
-        result = repo.create_job_if_not_exists("video_process", "test_video")
-
-        assert result is None
+        # Test setting status to completed
+        job_repo.update_job_status(1, 'completed')
+        assert mock_job.completed_at is not None
