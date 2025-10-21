@@ -4,7 +4,7 @@ Fresh Start Script for SoundHash
 Clears all data and prepares for a fresh ingestion run.
 """
 
-import argparse
+import logging
 import os
 import shutil
 import sys
@@ -13,10 +13,19 @@ from pathlib import Path
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from config.logging_config import create_section_logger, setup_logging
 from config.settings import Config
 from src.database.connection import db_manager
 from src.database.models import AudioFingerprint, Channel, MatchResult, ProcessingJob, Video
+
+
+def setup_logging():
+    """Setup logging for the fresh start script"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler("fresh_start.log")],
+    )
+    return logging.getLogger(__name__)
 
 
 def clear_temp_files(logger):
@@ -27,9 +36,9 @@ def clear_temp_files(logger):
         file_count = len(list(temp_dir.iterdir()))
         shutil.rmtree(temp_dir)
         temp_dir.mkdir(exist_ok=True)
-        logger.log_success(f"Removed {file_count} temporary files")
+        logger.info(f"✅ Removed {file_count} temporary files")
     else:
-        logger.log_success("Temp directory doesn't exist, creating it")
+        logger.info("✅ Temp directory doesn't exist, creating it")
         temp_dir.mkdir(parents=True, exist_ok=True)
 
 
@@ -50,7 +59,7 @@ def clear_logs(logger):
             cleared_count += 1
             logger.info(f"Removed log file: {log_file}")
 
-    logger.log_success(f"Cleared {cleared_count} log files")
+    logger.info(f"✅ Cleared {cleared_count} log files")
 
 
 def clear_database_data(logger):
@@ -88,7 +97,7 @@ def clear_database_data(logger):
             logger.info(f"Cleared {counts['channels']} channels")
 
             session.commit()
-            logger.log_success("Database cleared successfully")
+            logger.info("✅ Database cleared successfully")
 
             # Show summary
             total_records = sum(counts.values())
@@ -101,7 +110,7 @@ def clear_database_data(logger):
             session.close()
 
     except Exception as e:
-        logger.log_error_box("Error clearing database", str(e))
+        logger.error(f"❌ Error clearing database: {e}")
         raise
 
 
@@ -119,7 +128,7 @@ def clear_python_cache(logger):
                 shutil.rmtree(cache_path)
                 cleared_count += 1
 
-    logger.log_success(f"Cleared {cleared_count} Python cache files")
+    logger.info(f"✅ Cleared {cleared_count} Python cache files")
 
 
 def verify_system_ready(logger):
@@ -134,17 +143,17 @@ def verify_system_ready(logger):
 
         session.execute(text("SELECT 1"))
         session.close()
-        logger.log_success("Database connection working")
+        logger.info("✅ Database connection working")
     except Exception as e:
-        logger.error(f"Database connection failed: {e}")
+        logger.error(f"❌ Database connection failed: {e}")
         return False
 
     # Check temp directory
     temp_dir = Path(Config.TEMP_DIR)
     if temp_dir.exists() and temp_dir.is_dir():
-        logger.log_success("Temp directory ready")
+        logger.info("✅ Temp directory ready")
     else:
-        logger.error(f"Temp directory not accessible: {temp_dir}")
+        logger.error(f"❌ Temp directory not accessible: {temp_dir}")
         return False
 
     # Check yt-dlp
@@ -153,98 +162,80 @@ def verify_system_ready(logger):
 
         result = subprocess.run(["yt-dlp", "--version"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
-            logger.log_success(f"yt-dlp ready (version: {result.stdout.strip()})")
+            logger.info(f"✅ yt-dlp ready (version: {result.stdout.strip()})")
         else:
-            logger.error("yt-dlp not working")
+            logger.error("❌ yt-dlp not working")
             return False
     except Exception as e:
-        logger.error(f"yt-dlp check failed: {e}")
+        logger.error(f"❌ yt-dlp check failed: {e}")
         return False
 
     # Check ffmpeg
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
-            logger.log_success("FFmpeg ready")
+            logger.info("✅ FFmpeg ready")
         else:
-            logger.error("FFmpeg not working")
+            logger.error("❌ FFmpeg not working")
             return False
     except Exception as e:
-        logger.error(f"FFmpeg check failed: {e}")
+        logger.error(f"❌ FFmpeg check failed: {e}")
         return False
 
-    logger.log_success("System is ready for fresh ingestion!")
+    logger.info("🎉 System is ready for fresh ingestion!")
     return True
 
 
 def main():
     """Main fresh start function"""
-    # Parse CLI arguments
-    parser = argparse.ArgumentParser(description="Clear all data and prepare for fresh ingestion")
-    parser.add_argument(
-        "--log-level",
-        type=str,
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Set logging level",
-    )
-    parser.add_argument("--no-colors", action="store_true", help="Disable colored output")
-    args = parser.parse_args()
+    logger = setup_logging()
 
-    # Setup enhanced logging
-    setup_logging(log_level=args.log_level, log_file="fresh_start.log", use_colors=not args.no_colors)
-    logger = create_section_logger(__name__)
-
-    logger.log_section_start("Fresh Start", "Clearing all data for a clean slate")
+    logger.info("🚀 Starting fresh cleanup for SoundHash...")
+    logger.info("=" * 60)
 
     try:
         # Confirm with user
-        logger.log_warning_box(
-            "This will permanently delete all data!\n"
-            "   - All videos, channels, and audio segments\n"
-            "   - All temporary files and logs\n"
-            "   - All processing cache"
-        )
+        print("\n⚠️  WARNING: This will permanently delete all data!")
+        print("   - All videos, channels, and audio segments")
+        print("   - All temporary files and logs")
+        print("   - All processing cache")
 
         response = input("\nAre you sure you want to continue? (type 'yes' to confirm): ")
         if response.lower() != "yes":
-            logger.error("Operation cancelled")
-            logger.log_section_end("Fresh Start", success=False)
+            print("❌ Operation cancelled")
             return
 
-        logger.info("\n🧹 Starting cleanup...")
+        print("\n🧹 Starting cleanup...")
 
         # Step 1: Clear temp files
-        logger.log_step(1, "Clearing temporary files")
+        logger.info("Step 1: Clearing temporary files...")
         clear_temp_files(logger)
 
         # Step 2: Clear logs
-        logger.log_step(2, "Clearing log files")
+        logger.info("Step 2: Clearing log files...")
         clear_logs(logger)
 
         # Step 3: Clear Python cache
-        logger.log_step(3, "Clearing Python cache")
+        logger.info("Step 3: Clearing Python cache...")
         clear_python_cache(logger)
 
         # Step 4: Clear database
-        logger.log_step(4, "Clearing database data")
+        logger.info("Step 4: Clearing database data...")
         clear_database_data(logger)
 
         # Step 5: Verify system
-        logger.log_step(5, "Verifying system readiness")
+        logger.info("Step 5: Verifying system readiness...")
         if not verify_system_ready(logger):
-            logger.error("System verification failed!")
-            logger.log_section_end("Fresh Start", success=False)
+            logger.error("❌ System verification failed!")
             return
 
-        logger.log_success("Fresh start completed successfully!")
+        logger.info("=" * 60)
+        logger.info("✅ Fresh start completed successfully!")
         logger.info("🎯 System is ready for a fresh ingestion run")
         logger.info("Run: python scripts/ingest_channels.py --max-videos 10")
-        logger.log_section_end("Fresh Start", success=True)
 
     except Exception as e:
-        logger.log_error_box("Fresh start failed", str(e))
-        logger.log_section_end("Fresh Start", success=False)
+        logger.error(f"❌ Fresh start failed: {e}")
         sys.exit(1)
 
 
