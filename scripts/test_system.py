@@ -144,7 +144,7 @@ def main():
             logger.log_success(f"PASS: {test_name}")
             passed += 1
         else:
-            logger.error(f"FAIL: {test_name}")
+            logger.log_error_box("Test failed", test_name)
 
     logger.info(f"\nOverall: {passed}/{len(results)} tests passed")
 
