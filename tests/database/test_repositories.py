@@ -1,7 +1,7 @@
 """Tests for database repositories with session management and retries."""
 
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.exc import OperationalError
@@ -134,6 +134,21 @@ class TestSessionContextManagers:
         mock_session.close.assert_called_once()
 
     @patch("src.database.repositories.db_manager")
+    def test_get_session_context_manager_sqlalchemy_error(self, mock_db_manager):
+        """Test get_session context manager rolls back on SQLAlchemy errors."""
+        mock_session = MagicMock()
+        mock_db_manager.get_session.return_value = mock_session
+
+        with pytest.raises(OperationalError):
+            with get_session() as session:
+                assert session == mock_session
+                raise OperationalError("connection lost", None, None)
+
+        mock_session.commit.assert_not_called()
+        mock_session.rollback.assert_called_once()
+        mock_session.close.assert_called_once()
+
+    @patch("src.database.repositories.db_manager")
     def test_get_video_repo_session(self, mock_db_manager):
         """Test get_video_repo_session context manager."""
         mock_session = MagicMock()
@@ -201,7 +216,7 @@ class TestVideoRepositoryRetries:
         repo = VideoRepository(mock_session)
 
         # Should succeed after retry
-        result = repo.get_channel_by_id("test_id")
+        repo.get_channel_by_id("test_id")
 
         assert call_count == 2
 
@@ -230,7 +245,7 @@ class TestJobRepositoryRetries:
         repo = JobRepository(mock_session)
 
         # Should succeed after retry
-        result = repo.job_exists("test_type", "test_id")
+        repo.job_exists("test_type", "test_id")
 
         assert call_count >= 1
 
@@ -302,6 +317,8 @@ class TestJobRepositoryIdempotency:
 
     def test_create_job_if_not_exists_handles_race_condition(self):
         """Test that create_job_if_not_exists handles race conditions gracefully."""
+        from sqlalchemy.exc import IntegrityError
+
         mock_session = MagicMock()
 
         # First call to job_exists returns False
@@ -320,9 +337,9 @@ class TestJobRepositoryIdempotency:
         mock_session.query.side_effect = query_side_effect
         mock_session.query.return_value.scalar.return_value = False
 
-        # But commit raises unique constraint error (race condition)
-        mock_session.commit.side_effect = Exception(
-            "duplicate key value violates unique constraint"
+        # But commit raises IntegrityError (race condition with unique constraint)
+        mock_session.commit.side_effect = IntegrityError(
+            "duplicate key value violates unique constraint", None, None
         )
 
         repo = JobRepository(mock_session)
@@ -331,3 +348,23 @@ class TestJobRepositoryIdempotency:
         result = repo.create_job_if_not_exists("video_process", "test_video")
 
         assert result is None
+
+    def test_create_job_if_not_exists_propagates_non_integrity_errors(self):
+        """Test that create_job_if_not_exists does not catch non-IntegrityError exceptions."""
+        mock_session = MagicMock()
+
+        # Mock job_exists to return False
+        mock_query = MagicMock()
+        mock_query.filter.return_value = mock_query
+        mock_query.filter.return_value.filter.return_value = mock_query
+        mock_session.query.return_value = mock_query
+        mock_session.query.return_value.scalar.return_value = False
+
+        # But commit raises OperationalError (not a race condition)
+        mock_session.commit.side_effect = OperationalError("connection lost", None, None)
+
+        repo = JobRepository(mock_session)
+
+        # Should propagate the OperationalError and not catch it
+        with pytest.raises(OperationalError):
+            repo.create_job_if_not_exists("video_process", "test_video")

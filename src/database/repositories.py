@@ -1,11 +1,12 @@
 import logging
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Generator, TypeVar
+from typing import Any, TypeVar
 
-from sqlalchemy.exc import DBAPIError, OperationalError
+from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .connection import db_manager
@@ -84,9 +85,13 @@ def get_session() -> Generator[Session, None, None]:
     try:
         yield session
         session.commit()
-    except Exception as e:
+    except SQLAlchemyError as e:
         session.rollback()
         logger.error(f"Database session error, rolling back: {e}")
+        raise
+    except Exception:
+        # For non-SQLAlchemy errors, still rollback to ensure clean state
+        session.rollback()
         raise
     finally:
         session.close()
@@ -145,7 +150,7 @@ class VideoRepository:
             self.session.commit()
             logger.debug(f"Created channel: {channel_id}")
             return channel
-        except Exception as e:
+        except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create channel {channel_id}: {e}")
             raise
 
@@ -154,7 +159,7 @@ class VideoRepository:
         """Get channel by YouTube channel ID with retry on transient errors"""
         try:
             return self.session.query(Channel).filter(Channel.channel_id == channel_id).first()
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get channel {channel_id}: {e}")
             raise
 
@@ -182,7 +187,7 @@ class VideoRepository:
             self.session.commit()
             logger.debug(f"Created video: {video_id}")
             return video
-        except Exception as e:
+        except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create video {video_id}: {e}")
             raise
 
@@ -191,7 +196,7 @@ class VideoRepository:
         """Get video by YouTube video ID with retry on transient errors"""
         try:
             return self.session.query(Video).filter(Video.video_id == video_id).first()
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get video {video_id}: {e}")
             raise
 
@@ -200,7 +205,7 @@ class VideoRepository:
         """Get videos that haven't been processed yet with retry on transient errors"""
         try:
             return self.session.query(Video).filter(~Video.processed).limit(limit).all()
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get unprocessed videos: {e}")
             raise
 
@@ -220,7 +225,7 @@ class VideoRepository:
                 logger.debug(f"Marked video {video_id} as processed: {success}")
             else:
                 logger.warning(f"Video {video_id} not found when marking as processed")
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to mark video {video_id} as processed: {e}")
             raise
 
@@ -248,7 +253,7 @@ class VideoRepository:
             self.session.commit()
             logger.debug(f"Created fingerprint for video {video_id}: {fingerprint_hash}")
             return fingerprint
-        except Exception as e:
+        except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create fingerprint for video {video_id}: {e}")
             raise
 
@@ -261,7 +266,7 @@ class VideoRepository:
                 .filter(AudioFingerprint.fingerprint_hash == fingerprint_hash)
                 .all()
             )
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to find matching fingerprints for hash {fingerprint_hash}: {e}")
             raise
 
@@ -289,7 +294,7 @@ class VideoRepository:
             self.session.commit()
             logger.debug(f"Created match result: query={query_fp_id}, matched={matched_fp_id}")
             return match
-        except Exception as e:
+        except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create match result: {e}")
             raise
 
@@ -304,7 +309,7 @@ class VideoRepository:
                 .limit(limit)
                 .all()
             )
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get top matches for fingerprint {query_fp_id}: {e}")
             raise
 
@@ -329,7 +334,7 @@ class JobRepository:
             self.session.commit()
             logger.debug(f"Created job: type={job_type}, target={target_id}")
             return job
-        except Exception as e:
+        except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create job {job_type} for {target_id}: {e}")
             raise
 
@@ -342,7 +347,7 @@ class JobRepository:
                 query = query.filter(ProcessingJob.job_type == job_type)
 
             return query.order_by(ProcessingJob.created_at).limit(limit).all()
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get pending jobs: {e}")
             raise
 
@@ -359,7 +364,7 @@ class JobRepository:
             if statuses:
                 query = query.filter(ProcessingJob.status.in_(statuses))
             return query.order_by(ProcessingJob.created_at.desc()).all()
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to get jobs for target {target_id}: {e}")
             raise
 
@@ -379,7 +384,7 @@ class JobRepository:
             exists = self.session.query(query.exists()).scalar()
             logger.debug(f"Job exists check: type={job_type}, target={target_id}, exists={exists}")
             return exists
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to check if job exists for {target_id}: {e}")
             raise
 
@@ -413,7 +418,7 @@ class JobRepository:
                 logger.debug(f"Updated job {job_id}: status={status}, progress={progress}")
             else:
                 logger.warning(f"Job {job_id} not found when updating status")
-        except Exception as e:
+        except (OperationalError, DBAPIError) as e:
             logger.error(f"Failed to update job {job_id} status: {e}")
             raise
 
@@ -446,13 +451,10 @@ class JobRepository:
             job = self.create_job(job_type, target_id, parameters)
             logger.info(f"Created new job: type={job_type}, target={target_id}, id={job.id}")
             return job
-        except Exception as e:
-            # If creation failed due to race condition, log but don't fail
-            if "unique" in str(e).lower() or "duplicate" in str(e).lower():
-                logger.warning(f"Job creation race condition detected for {target_id}, continuing")
-                return None
-            logger.error(f"Failed to create job if not exists for {target_id}: {e}")
-            raise
+        except IntegrityError as e:
+            # If creation failed due to race condition (unique constraint violation), log but don't fail
+            logger.warning(f"Job creation race condition detected for {target_id}, continuing: {e}")
+            return None
 
 
 def get_video_repository() -> VideoRepository:
