@@ -144,6 +144,21 @@ class TestGetDBSession:
         mock_session.close.assert_called_once()
         mock_session.commit.assert_not_called()
 
+    @patch("src.database.repositories.db_manager")
+    def test_get_session_context_manager_sqlalchemy_error(self, mock_db_manager):
+        """Test get_session context manager rolls back on SQLAlchemy errors."""
+        mock_session = MagicMock()
+        mock_db_manager.get_session.return_value = mock_session
+
+        with pytest.raises(OperationalError):
+            with get_db_session() as session:
+                assert session == mock_session
+                raise OperationalError("connection lost", None, None)
+
+        mock_session.commit.assert_not_called()
+        mock_session.rollback.assert_called_once()
+        mock_session.close.assert_called_once()
+
     @patch('src.database.repositories.db_manager')
     def test_session_always_closed(self, mock_db_manager):
         """Test that session is closed even if commit/rollback fails."""
@@ -267,6 +282,47 @@ class TestJobRepositoryIdempotency:
 
         assert created is True
         mock_session.add.assert_called_once()
+
+    def test_create_job_if_not_exists_handles_race_condition_with_integrity_error(self):
+        """Test that create_job_if_not_exists handles IntegrityError race conditions gracefully."""
+        from sqlalchemy.exc import IntegrityError
+
+        mock_session = MagicMock()
+        mock_session.query.return_value.scalar.return_value = False
+
+        # But commit raises IntegrityError (race condition with unique constraint)
+        mock_session.commit.side_effect = IntegrityError(
+            "duplicate key value violates unique constraint", None, None
+        )
+
+        # Mock get_jobs_by_target to return existing job after rollback
+        existing_job = MagicMock()
+        existing_job.status = 'pending'
+
+        job_repo = JobRepository(mock_session)
+
+        with patch.object(job_repo, 'job_exists', return_value=False):
+            with patch.object(job_repo, 'get_jobs_by_target', return_value=[existing_job]):
+                job, created = job_repo.create_job_if_not_exists("video_process", "test_video")
+
+        assert created is False
+        assert job == existing_job
+        mock_session.rollback.assert_called_once()
+
+    def test_create_job_if_not_exists_propagates_non_integrity_errors(self):
+        """Test that create_job_if_not_exists does not catch non-IntegrityError exceptions."""
+        mock_session = MagicMock()
+        mock_session.query.return_value.scalar.return_value = False
+
+        # But commit raises OperationalError (not a race condition)
+        mock_session.commit.side_effect = OperationalError("connection lost", None, None)
+
+        job_repo = JobRepository(mock_session)
+
+        with patch.object(job_repo, 'job_exists', return_value=False):
+            # Should propagate the OperationalError and not catch it
+            with pytest.raises(OperationalError):
+                job_repo.create_job_if_not_exists("video_process", "test_video")
 
 
 class TestVideoRepository:
