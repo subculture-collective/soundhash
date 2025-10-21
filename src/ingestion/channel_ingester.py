@@ -139,6 +139,10 @@ class ChannelIngester:
         """
         self.logger.info(f"📺 Starting ingestion for channel: {channel_id}")
 
+        # Initialize repository variables to None for proper cleanup
+        video_repo: VideoRepository | None = None
+        job_repo: JobRepository | None = None
+
         try:
             # Warn about unlimited processing
             if max_videos is None:
@@ -291,9 +295,9 @@ class ChannelIngester:
             raise
         finally:
             # Clean up database sessions
-            if "video_repo" in locals():
+            if video_repo is not None:
                 video_repo.session.close()
-            if "job_repo" in locals():
+            if job_repo is not None:
                 job_repo.session.close()
 
     def _should_update_video(self, existing_video: Any, video_info: dict[str, Any]) -> bool:
@@ -351,10 +355,13 @@ class VideoJobProcessor:
 
     async def process_pending_videos(self, batch_size: int = 5) -> None:
         """Process videos that are queued for processing"""
-        job_repo = get_job_repository()
-        video_repo = get_video_repository()
+        # Initialize repository variables to None for proper cleanup
+        job_repo: JobRepository | None = None
+        video_repo: VideoRepository | None = None
 
         try:
+            job_repo = get_job_repository()
+            video_repo = get_video_repository()
             while True:
                 # Get pending jobs
                 jobs = job_repo.get_pending_jobs("video_process", limit=batch_size)
@@ -374,8 +381,10 @@ class VideoJobProcessor:
                             job_repo.update_job_status(job.id, "failed", error_message=str(e))
         finally:
             # Clean up database sessions
-            job_repo.session.close()
-            video_repo.session.close()
+            if job_repo is not None:
+                job_repo.session.close()
+            if video_repo is not None:
+                video_repo.session.close()
 
     async def process_video_job(
         self, job: Any, video_repo: VideoRepository, job_repo: JobRepository
