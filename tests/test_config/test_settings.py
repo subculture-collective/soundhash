@@ -1,6 +1,7 @@
 """Tests for configuration settings."""
 
 import os
+import pytest
 from unittest.mock import patch
 
 from config.settings import Config
@@ -116,3 +117,30 @@ class TestConfig:
             
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
+
+    def test_database_url_validation_with_credentials(self):
+        """Test that get_database_url works when credentials are provided."""
+        with patch.object(Config, "DATABASE_URL", None):
+            with patch.object(Config, "DATABASE_USER", "testuser"):
+                with patch.object(Config, "DATABASE_PASSWORD", "testpass"):
+                    with patch.object(Config, "DATABASE_HOST", "testhost"):
+                        with patch.object(Config, "DATABASE_PORT", 5433):
+                            with patch.object(Config, "DATABASE_NAME", "testdb"):
+                                url = Config.get_database_url()
+                                assert url == "postgresql://testuser:testpass@testhost:5433/testdb"
+
+    def test_database_url_validation_missing_credentials(self):
+        """Test that get_database_url raises error when credentials are missing."""
+        with patch.object(Config, "DATABASE_URL", None):
+            with patch.object(Config, "DATABASE_USER", None):
+                with patch.object(Config, "DATABASE_PASSWORD", None):
+                    with pytest.raises(ValueError) as exc_info:
+                        Config.get_database_url()
+                    assert "Database configuration incomplete" in str(exc_info.value)
+
+    def test_database_url_safe_masks_password(self):
+        """Test that get_database_url_safe masks the password."""
+        with patch.object(Config, "DATABASE_URL", "postgresql://user:secret@host:5432/db"):
+            safe_url = Config.get_database_url_safe()
+            assert "secret" not in safe_url
+            assert "***" in safe_url or "password" not in safe_url.lower()

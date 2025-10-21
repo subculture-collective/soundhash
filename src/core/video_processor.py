@@ -372,7 +372,9 @@ class VideoProcessor:
                     if should_retry:
                         # Longer backoff for rate limits
                         extra_delay = random.uniform(10, 30)
-                        self.logger.info(f"Rate limited - waiting extra {extra_delay:.1f}s before retry...")
+                        self.logger.info(
+                            f"Rate limited - waiting extra {extra_delay:.1f}s before retry..."
+                        )
                         time.sleep(extra_delay)
                         continue
 
@@ -491,10 +493,13 @@ class VideoProcessor:
                 self.logger.error(f"Could not determine duration of {audio_file}")
                 return []
 
-            self.logger.info(f"Segmenting audio file (duration: {duration:.2f}s, segment length: {segment_length}s)")
+            self.logger.info(
+                f"Segmenting audio file (duration: {duration:.2f}s, segment length: {segment_length}s)"
+            )
 
             # Create segments with unique prefix using timestamp
             import time
+
             unique_prefix = f"{Path(audio_file).stem}_{int(time.time() * 1000)}"
 
             start_time: float = 0.0
@@ -506,8 +511,7 @@ class VideoProcessor:
 
                 # Create segment file path with unique prefix
                 segment_file = os.path.join(
-                    self.temp_dir,
-                    f"{unique_prefix}_segment_{segment_id:04d}.wav"
+                    self.temp_dir, f"{unique_prefix}_segment_{segment_id:04d}.wav"
                 )
 
                 # Extract segment using ffmpeg
@@ -530,7 +534,9 @@ class VideoProcessor:
                 start_time = end_time
 
             # Log final summary with handling for off-by-one at tail
-            total_expected = int(duration / segment_length) + (1 if duration % segment_length > 0 else 0)
+            total_expected = int(duration / segment_length) + (
+                1 if duration % segment_length > 0 else 0
+            )
             self.logger.info(
                 f"Created {len(segments)} segment(s) from {audio_file} "
                 f"(expected: {total_expected}, total duration: {duration:.2f}s)"
