@@ -475,3 +475,9 @@ def get_job_repository() -> JobRepository:
     """
     session = db_manager.get_session()
     return JobRepository(session)
+
+
+# Aliases for backwards compatibility with tests
+get_db_session = get_session
+video_repository = get_video_repo_session
+job_repository = get_job_repo_session

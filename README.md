@@ -9,6 +9,7 @@ A sophisticated system for matching audio clips from videos across social media 
 
 - [Quick Start](#quick-start-target-15-minutes) - Get running in <15 minutes
 - [Architecture Overview](#architecture-overview) - System design and data flow
+- [Social Media Bots](#social-media-bots) - Twitter and Reddit bot setup
 - [Troubleshooting](#troubleshooting-common-issues) - Solutions to common problems
 - [Usage](#usage) - Command-line options and examples
 - [Security](#security-and-secrets-management) - Credential management
@@ -73,6 +74,54 @@ SoundHash processes videos through a multi-stage pipeline:
 - **audio_fingerprints**: Spectral fingerprint data for audio segments (vector + hash)
 - **match_results**: Query results and similarity scores
 - **processing_jobs**: Background job queue with status tracking
+
+## Social Media Bots
+
+SoundHash includes bots for Twitter and Reddit that help users identify audio clips from videos.
+
+### Twitter Bot ✅
+
+**Status**: Fully functional
+
+The Twitter bot listens for mentions, processes video URLs, and replies with matching clips from the database.
+
+Features:
+- Automatic mention monitoring
+- Video URL extraction and processing
+- Match result replies with timestamps and links
+- Standalone match summary tweets
+- Rate limiting with retry logic
+- Robust error handling
+
+**Quick Setup**:
+```bash
+# Add credentials to .env
+TWITTER_BEARER_TOKEN=your_token
+TWITTER_CONSUMER_KEY=your_key
+TWITTER_CONSUMER_SECRET=your_secret
+TWITTER_ACCESS_TOKEN=your_access_token
+TWITTER_ACCESS_TOKEN_SECRET=your_access_secret
+
+# Test the bot
+python scripts/test_twitter_bot.py
+
+# Run the bot
+python -m src.bots.twitter_bot
+```
+
+### Reddit Bot 🚧
+
+**Status**: Work in progress (stub implementation)
+
+The Reddit bot will monitor specified subreddits for video clip identification requests.
+
+Planned features:
+- Subreddit monitoring
+- Comment/post processing
+- Match result replies
+- Rate limiting
+
+**Documentation**: See [docs/BOTS.md](docs/BOTS.md) for complete setup instructions and API reference.
 
 ## Quick Start (🎯 Target: <15 minutes)
 

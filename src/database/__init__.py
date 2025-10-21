@@ -6,8 +6,11 @@ from .repositories import (
     JobRepository,
     VideoRepository,
     db_retry,
+    get_db_session,
     get_job_repository,
     get_video_repository,
+    job_repository,
+    video_repository,
 )
 
 __all__ = [
@@ -23,6 +26,10 @@ __all__ = [
     # Repositories
     "JobRepository",
     "VideoRepository",
+    # Context managers
+    "get_db_session",
+    "video_repository",
+    "job_repository",
     # Repository getters
     "get_video_repository",
     "get_job_repository",
