@@ -210,9 +210,7 @@ class VideoRepository:
         self.session.commit()
         return fingerprint
 
-    def find_matching_fingerprints(
-        self, fingerprint_hash: str
-    ) -> list[AudioFingerprint]:
+    def find_matching_fingerprints(self, fingerprint_hash: str) -> list[AudioFingerprint]:
         """Find fingerprints with matching hash"""
         return (
             self.session.query(AudioFingerprint)
