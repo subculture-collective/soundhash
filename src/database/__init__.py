@@ -1,24 +1,38 @@
-"""Database package with repository pattern and session management.
+"""Database package with repositories, models, and connection management."""
 
-This package provides database access through repositories with:
-- Automatic retry on transient database errors
-- Context managers for proper session lifecycle
-- Idempotent job creation
-- Standardized error handling and logging
+from .connection import DatabaseManager, db_manager
+from .models import AudioFingerprint, Channel, MatchResult, ProcessingJob, Video
+from .repositories import (
+    JobRepository,
+    VideoRepository,
+    db_retry,
+    get_db_session,
+    get_job_repository,
+    get_video_repository,
+    job_repository,
+    video_repository,
+)
 
-Usage:
-    # Option 1: Context manager (recommended for new code)
-    from src.database.repositories import get_video_repo_session
-
-    with get_video_repo_session() as repo:
-        channel = repo.get_channel_by_id(channel_id)
-        # Session automatically committed and closed
-
-    # Option 2: Manual session management (for existing code)
-    from src.database.repositories import get_video_repository
-
-    repo = get_video_repository()
-    channel = repo.get_channel_by_id(channel_id)
-    # Note: Each method commits individually; session should be closed when done
-    repo.session.close()
-"""
+__all__ = [
+    # Connection
+    "DatabaseManager",
+    "db_manager",
+    # Models
+    "AudioFingerprint",
+    "Channel",
+    "MatchResult",
+    "ProcessingJob",
+    "Video",
+    # Repositories
+    "JobRepository",
+    "VideoRepository",
+    # Session management
+    "get_db_session",
+    "video_repository",
+    "job_repository",
+    # Backward compatible (deprecated)
+    "get_video_repository",
+    "get_job_repository",
+    # Utilities
+    "db_retry",
+]
