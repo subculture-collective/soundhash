@@ -227,11 +227,13 @@ class TwitterBot:
 
 def main():
     """Main bot loop"""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    from config.logging_config import create_section_logger, setup_logging
+
+    setup_logging(log_level="INFO")
+    logger = create_section_logger(__name__)
 
     bot = TwitterBot()
+    logger.log_section_start("Twitter Bot", "Monitoring mentions and processing video requests")
 
     while True:
         try:
@@ -243,10 +245,11 @@ def main():
             time.sleep(60)
 
         except KeyboardInterrupt:
-            logging.info("Bot stopped by user")
+            logger.info("Bot stopped by user")
+            logger.log_section_end("Twitter Bot", success=True)
             break
         except Exception as e:
-            logging.error(f"Bot error: {str(e)}")
+            logger.log_error_box("Bot error", str(e))
             import time
 
             time.sleep(300)  # Wait 5 minutes on error

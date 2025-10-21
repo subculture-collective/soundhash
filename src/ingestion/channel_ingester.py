@@ -139,6 +139,10 @@ class ChannelIngester:
         """
         self.logger.info(f"📺 Starting ingestion for channel: {channel_id}")
 
+        # Initialize repository variables to None for proper cleanup
+        video_repo: VideoRepository | None = None
+        job_repo: JobRepository | None = None
+
         try:
             # Warn about unlimited processing
             if max_videos is None:
@@ -240,27 +244,25 @@ class ChannelIngester:
                             view_count=video_info.get("view_count"),
                             like_count=video_info.get("like_count"),
                             upload_date=self._parse_upload_date(video_info.get("upload_date")),
-                            url=video_info.get("webpage_url"),
-                            thumbnail_url=video_info.get("thumbnail"),
+                        url=video_info.get("webpage_url"),
+                        thumbnail_url=video_info.get("thumbnail"),
+                    )
+
+                    # Create processing job for this video (idempotent)
+                    job = job_repo.create_job_if_not_exists(
+                        job_type="video_process",
+                        target_id=video_info["id"],
+                        parameters=json.dumps(
+                            {"url": video_info.get("webpage_url"), "channel_id": channel_id}
+                        ),
+                        statuses=["pending", "running"],
+                    )
+                    if not job:
+                        self.logger.debug(
+                            f"Job already exists for video {video_info['id']}, skipping job creation"
                         )
 
-                        # Create processing job for this video (idempotent)
-                        job = job_repo.create_job_if_not_exists(
-                            job_type="video_process",
-                            target_id=video_info["id"],
-                            parameters=json.dumps(
-                                {"url": video_info.get("webpage_url"), "channel_id": channel_id}
-                            ),
-                            statuses=["pending", "running"],
-                        )
-                        if not job:
-                            self.logger.debug(
-                                f"Job already exists for video {video_info['id']}, skipping job creation"
-                            )
-
-                        new_videos += 1
-
-                    # Update progress periodically (every 10 videos)
+                    new_videos += 1                    # Update progress periodically (every 10 videos)
                     if (idx + 1) % 10 == 0:
                         video_progress.update(increment=10)
 
@@ -291,9 +293,9 @@ class ChannelIngester:
             raise
         finally:
             # Clean up database sessions
-            if "video_repo" in locals():
+            if video_repo is not None:
                 video_repo.session.close()
-            if "job_repo" in locals():
+            if job_repo is not None:
                 job_repo.session.close()
 
     def _should_update_video(self, existing_video: Any, video_info: dict[str, Any]) -> bool:
@@ -347,14 +349,17 @@ class VideoJobProcessor:
         # Use the core video processor implementation
         self.video_processor = CoreVideoProcessor()
         self.fingerprinter = AudioFingerprinter()
-        self.logger = logging.getLogger(__name__)
+        self.logger = create_section_logger(__name__)
 
     async def process_pending_videos(self, batch_size: int = 5) -> None:
         """Process videos that are queued for processing"""
-        job_repo = get_job_repository()
-        video_repo = get_video_repository()
+        # Initialize repository variables to None for proper cleanup
+        job_repo: JobRepository | None = None
+        video_repo: VideoRepository | None = None
 
         try:
+            job_repo = get_job_repository()
+            video_repo = get_video_repository()
             while True:
                 # Get pending jobs
                 jobs = job_repo.get_pending_jobs("video_process", limit=batch_size)
@@ -374,9 +379,9 @@ class VideoJobProcessor:
                             job_repo.update_job_status(job.id, "failed", error_message=str(e))
         finally:
             # Clean up database sessions
-            if "job_repo" in locals():
+            if job_repo is not None:
                 job_repo.session.close()
-            if "video_repo" in locals():
+            if video_repo is not None:
                 video_repo.session.close()
 
     async def process_video_job(
@@ -481,7 +486,9 @@ class VideoJobProcessor:
 
 async def main() -> None:
     """Main ingestion process"""
-    logging.basicConfig(level=logging.INFO)
+    from config.logging_config import setup_logging
+
+    setup_logging(log_level="INFO")
 
     ingester = ChannelIngester()
     processor = VideoJobProcessor()

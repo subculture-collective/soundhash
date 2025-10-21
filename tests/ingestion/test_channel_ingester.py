@@ -273,3 +273,35 @@ class TestChannelIngester:
 
             # Verify all channels were attempted
             assert call_count >= 3  # May have retries
+
+    @pytest.mark.asyncio
+    async def test_ingest_channel_cleanup_on_early_exception(self, ingester):
+        """Test that session cleanup is safe even if exception occurs before repo initialization."""
+        # Mock get_channel_videos to raise an exception before repos are created
+        with patch.object(
+            ingester.video_processor, "get_channel_videos", side_effect=Exception("Early failure")
+        ):
+            ingester._db_initialized = True
+            with pytest.raises(Exception, match="Early failure"):
+                await ingester.ingest_channel("test_channel", max_videos=1, dry_run=False)
+
+            # If cleanup is broken, we'd get NameError here
+            # The test passing means cleanup handles the case where repos are not initialized
+
+    @pytest.mark.asyncio
+    async def test_process_pending_videos_cleanup_on_early_exception(self):
+        """Test that session cleanup is safe if exception occurs during repo initialization."""
+        from src.ingestion.channel_ingester import VideoJobProcessor
+
+        processor = VideoJobProcessor()
+
+        # Mock get_job_repository to raise an exception
+        with patch(
+            "src.ingestion.channel_ingester.get_job_repository",
+            side_effect=Exception("Repo init failed"),
+        ):
+            with pytest.raises(Exception, match="Repo init failed"):
+                await processor.process_pending_videos(batch_size=1)
+
+            # If cleanup is broken, we'd get NameError here
+            # The test passing means cleanup handles the case where repos are not initialized
