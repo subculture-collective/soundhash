@@ -60,7 +60,6 @@ def db_retry(
             # If we get here, all retries failed
             if last_exception:
                 raise last_exception
-            raise RuntimeError("Retry logic error: no exception recorded")
 
         return wrapper
 
