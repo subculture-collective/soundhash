@@ -60,6 +60,20 @@ class Config(BaseSettings):
     )
     FINGERPRINT_SAMPLE_RATE: int = 22050
 
+    # Similarity search thresholds and weights
+    # Thresholds for considering a match valid
+    SIMILARITY_CORRELATION_THRESHOLD: float = 0.70
+    SIMILARITY_L2_THRESHOLD: float = 0.70
+    # Combined minimum score
+    SIMILARITY_MIN_SCORE: float = 0.70
+
+    # Weights for combining correlation and L2 similarity (must sum to 1.0)
+    SIMILARITY_CORRELATION_WEIGHT: float = 0.5
+    SIMILARITY_L2_WEIGHT: float = 0.5
+
+    # Minimum duration (in seconds) for valid matches
+    SIMILARITY_MIN_DURATION: float = 5.0
+
     # Ingestion backoff settings
     CHANNEL_RETRY_DELAY: int = Field(default=5, description="Delay in seconds between retries")
     CHANNEL_MAX_RETRIES: int = 3
