@@ -1,25 +1,10 @@
-# Guarded imports with clear guidance and a v1 fallback for `computed_field`
+# Guarded imports with clear guidance for `computed_field`
 try:
-    from pydantic import Field as Field, computed_field as _pydantic_computed_field, __version__ as _pydantic_version
+    from pydantic import Field, computed_field
 except Exception as e:
     raise ImportError(
         "Missing dependency: pydantic. Install with: pip install 'pydantic>=2.7,<3'"
     ) from e
-
-def _resolve_computed_field():
-    try:
-        major = int((_pydantic_version or "0").split(".", 1)[0])
-    except Exception:
-        major = 0
-    if major >= 2:
-        return _pydantic_computed_field
-    # Fallback for pydantic v1: behave like a property so code still runs
-    def _identity(fn):
-        return property(fn)
-    return _identity
-
-computed_field = _resolve_computed_field()
-
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except Exception as e:
