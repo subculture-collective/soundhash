@@ -194,12 +194,20 @@ def create_section_logger(name, description=""):
         self.error("❌ " + "━" * 50)
 
     # Add methods to logger instance
-    logger.log_section_start = lambda title, desc="": log_section_start(logger, title, desc)
-    logger.log_section_end = lambda title, success=True: log_section_end(logger, title, success)
-    logger.log_step = lambda step, desc, details="": log_step(logger, step, desc, details)
-    logger.log_success = lambda msg: log_success(logger, msg)
-    logger.log_warning_box = lambda msg: log_warning_box(logger, msg)
-    logger.log_error_box = lambda msg, details="": log_error_box(logger, msg, details)
+    logger.log_section_start = lambda title, description="": log_section_start(
+        logger, title, description
+    )
+    logger.log_section_end = lambda title, success=True: log_section_end(
+        logger, title, success
+    )
+    logger.log_step = lambda step_num, description, details="": log_step(
+        logger, step_num, description, details
+    )
+    logger.log_success = lambda message: log_success(logger, message)
+    logger.log_warning_box = lambda message: log_warning_box(logger, message)
+    logger.log_error_box = lambda message, details="": log_error_box(
+        logger, message, details
+    )
 
     return logger
 
