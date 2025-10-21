@@ -244,27 +244,25 @@ class ChannelIngester:
                             view_count=video_info.get("view_count"),
                             like_count=video_info.get("like_count"),
                             upload_date=self._parse_upload_date(video_info.get("upload_date")),
-                            url=video_info.get("webpage_url"),
-                            thumbnail_url=video_info.get("thumbnail"),
+                        url=video_info.get("webpage_url"),
+                        thumbnail_url=video_info.get("thumbnail"),
+                    )
+
+                    # Create processing job for this video (idempotent)
+                    job = job_repo.create_job_if_not_exists(
+                        job_type="video_process",
+                        target_id=video_info["id"],
+                        parameters=json.dumps(
+                            {"url": video_info.get("webpage_url"), "channel_id": channel_id}
+                        ),
+                        statuses=["pending", "running"],
+                    )
+                    if not job:
+                        self.logger.debug(
+                            f"Job already exists for video {video_info['id']}, skipping job creation"
                         )
 
-                        # Create processing job for this video (idempotent)
-                        job = job_repo.create_job_if_not_exists(
-                            job_type="video_process",
-                            target_id=video_info["id"],
-                            parameters=json.dumps(
-                                {"url": video_info.get("webpage_url"), "channel_id": channel_id}
-                            ),
-                            statuses=["pending", "running"],
-                        )
-                        if not job:
-                            self.logger.debug(
-                                f"Job already exists for video {video_info['id']}, skipping job creation"
-                            )
-
-                        new_videos += 1
-
-                    # Update progress periodically (every 10 videos)
+                    new_videos += 1                    # Update progress periodically (every 10 videos)
                     if (idx + 1) % 10 == 0:
                         video_progress.update(increment=10)
 
@@ -351,7 +349,7 @@ class VideoJobProcessor:
         # Use the core video processor implementation
         self.video_processor = CoreVideoProcessor()
         self.fingerprinter = AudioFingerprinter()
-        self.logger = logging.getLogger(__name__)
+        self.logger = create_section_logger(__name__)
 
     async def process_pending_videos(self, batch_size: int = 5) -> None:
         """Process videos that are queued for processing"""
@@ -488,7 +486,9 @@ class VideoJobProcessor:
 
 async def main() -> None:
     """Main ingestion process"""
-    logging.basicConfig(level=logging.INFO)
+    from config.logging_config import setup_logging
+
+    setup_logging(log_level="INFO")
 
     ingester = ChannelIngester()
     processor = VideoJobProcessor()

@@ -139,7 +139,7 @@ def generate_test_data(output_dir: str) -> None:
 
 def load_labels(labels_file: str) -> dict[str, Any]:
     """Load ground truth labels from JSON file."""
-    with open(labels_file, "r") as f:
+    with open(labels_file) as f:
         return json.load(f)
 
 
