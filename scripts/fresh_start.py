@@ -199,10 +199,12 @@ def main():
 
     try:
         # Confirm with user
-        logger.log_warning_box("This will permanently delete all data!")
-        logger.warning("   - All videos, channels, and audio segments")
-        logger.warning("   - All temporary files and logs")
-        logger.warning("   - All processing cache")
+        logger.log_warning_box(
+            "This will permanently delete all data!\n"
+            "   - All videos, channels, and audio segments\n"
+            "   - All temporary files and logs\n"
+            "   - All processing cache"
+        )
 
         response = input("\nAre you sure you want to continue? (type 'yes' to confirm): ")
         if response.lower() != "yes":
