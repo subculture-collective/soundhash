@@ -374,8 +374,10 @@ class VideoJobProcessor:
                             job_repo.update_job_status(job.id, "failed", error_message=str(e))
         finally:
             # Clean up database sessions
-            job_repo.session.close()
-            video_repo.session.close()
+            if "job_repo" in locals():
+                job_repo.session.close()
+            if "video_repo" in locals():
+                video_repo.session.close()
 
     async def process_video_job(
         self, job: Any, video_repo: VideoRepository, job_repo: JobRepository
