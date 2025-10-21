@@ -1,10 +1,26 @@
 """Tests for configuration settings."""
 
+import importlib
 import os
-import pytest
 from unittest.mock import patch
 
+import config.settings
 from config.settings import Config
+
+
+def reload_config():
+    """Helper to reload config module and return the reloaded Config class.
+
+    This is useful when testing configuration changes that require reloading
+    the module after patching environment variables.
+
+    Returns:
+        The reloaded Config class from config.settings module.
+    """
+    importlib.reload(config.settings)
+    from config.settings import Config as ReloadedConfig
+
+    return ReloadedConfig
 
 
 class TestConfig:
@@ -66,12 +82,8 @@ class TestConfig:
         # Test with comma-separated proxy list
         test_proxy_list = "http://proxy1.example.com:8080,http://proxy2.example.com:8080,http://proxy3.example.com:8080"
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy_list}, clear=False):
-            # Need to reload the module to pick up the new env var
-            import importlib
-            import config.settings
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
-            
+            ReloadedConfig = reload_config()
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 3
             assert ReloadedConfig.PROXY_LIST[0] == "http://proxy1.example.com:8080"
@@ -82,11 +94,8 @@ class TestConfig:
         """Test that PROXY_LIST correctly handles single proxy (no commas)."""
         test_proxy = "http://single-proxy.example.com:8080"
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy}, clear=False):
-            import importlib
-            import config.settings
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
-            
+            ReloadedConfig = reload_config()
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 1
             assert ReloadedConfig.PROXY_LIST[0] == "http://single-proxy.example.com:8080"
@@ -94,11 +103,8 @@ class TestConfig:
     def test_proxy_list_empty_string(self):
         """Test that PROXY_LIST returns empty list when env var is empty."""
         with patch.dict(os.environ, {"PROXY_LIST": ""}, clear=False):
-            import importlib
-            import config.settings
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
-            
+            ReloadedConfig = reload_config()
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
 
@@ -108,39 +114,84 @@ class TestConfig:
         env_copy = os.environ.copy()
         if "PROXY_LIST" in env_copy:
             del env_copy["PROXY_LIST"]
-        
+
         with patch.dict(os.environ, env_copy, clear=True):
-            import importlib
-            import config.settings
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
-            
+            ReloadedConfig = reload_config()
+
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
 
-    def test_database_url_validation_with_credentials(self):
-        """Test that get_database_url works when credentials are provided."""
-        with patch.object(Config, "DATABASE_URL", None):
-            with patch.object(Config, "DATABASE_USER", "testuser"):
-                with patch.object(Config, "DATABASE_PASSWORD", "testpass"):
-                    with patch.object(Config, "DATABASE_HOST", "testhost"):
-                        with patch.object(Config, "DATABASE_PORT", 5433):
-                            with patch.object(Config, "DATABASE_NAME", "testdb"):
-                                url = Config.get_database_url()
-                                assert url == "postgresql://testuser:testpass@testhost:5433/testdb"
+    def test_similarity_weights_default_sum_to_one(self):
+        """Test that default similarity weights sum to 1.0."""
+        assert hasattr(Config, "SIMILARITY_CORRELATION_WEIGHT")
+        assert hasattr(Config, "SIMILARITY_L2_WEIGHT")
+        weights_sum = Config.SIMILARITY_CORRELATION_WEIGHT + Config.SIMILARITY_L2_WEIGHT
+        assert abs(weights_sum - 1.0) < 1e-9
 
-    def test_database_url_validation_missing_credentials(self):
-        """Test that get_database_url raises error when credentials are missing."""
-        with patch.object(Config, "DATABASE_URL", None):
-            with patch.object(Config, "DATABASE_USER", None):
-                with patch.object(Config, "DATABASE_PASSWORD", None):
-                    with pytest.raises(ValueError) as exc_info:
-                        Config.get_database_url()
-                    assert "Database configuration incomplete" in str(exc_info.value)
+    def test_similarity_weights_validation_passes(self):
+        """Test that valid weights pass validation."""
+        # Test with weights that sum to 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.7",
+                "SIMILARITY_L2_WEIGHT": "0.3",
+            },
+            clear=False,
+        ):
+            ReloadedConfig = reload_config()
 
-    def test_database_url_safe_masks_password(self):
-        """Test that get_database_url_safe masks the password."""
-        with patch.object(Config, "DATABASE_URL", "postgresql://user:secret@host:5432/db"):
-            safe_url = Config.get_database_url_safe()
-            assert "secret" not in safe_url
-            assert "***" in safe_url or "password" not in safe_url.lower()
+            # Should not raise an exception
+            assert ReloadedConfig.SIMILARITY_CORRELATION_WEIGHT == 0.7
+            assert ReloadedConfig.SIMILARITY_L2_WEIGHT == 0.3
+
+    def test_similarity_weights_validation_fails_when_sum_not_one(self):
+        """Test that validation fails when weights don't sum to 1.0."""
+        # Test with weights that sum to more than 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.6",
+                "SIMILARITY_L2_WEIGHT": "0.5",
+            },
+            clear=False,
+        ):
+            import pytest
+
+            with pytest.raises(ValueError, match="must sum to 1.0"):
+                reload_config()
+
+    def test_similarity_weights_validation_fails_when_sum_too_low(self):
+        """Test that validation fails when weights sum to less than 1.0."""
+        # Test with weights that sum to less than 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.3",
+                "SIMILARITY_L2_WEIGHT": "0.3",
+            },
+            clear=False,
+        ):
+            import pytest
+
+            with pytest.raises(ValueError, match="must sum to 1.0"):
+                reload_config()
+
+    def test_similarity_weights_validation_handles_floating_point_precision(self):
+        """Test that validation handles floating point precision correctly."""
+        # Test with weights that have floating point imprecision but are very close to 1.0
+        with patch.dict(
+            os.environ,
+            {
+                "SIMILARITY_CORRELATION_WEIGHT": "0.3333333333",
+                "SIMILARITY_L2_WEIGHT": "0.6666666667",
+            },
+            clear=False,
+        ):
+            ReloadedConfig = reload_config()
+
+            # Should pass validation despite floating point imprecision
+            weights_sum = (
+                ReloadedConfig.SIMILARITY_CORRELATION_WEIGHT + ReloadedConfig.SIMILARITY_L2_WEIGHT
+            )
+            assert abs(weights_sum - 1.0) < 1e-9

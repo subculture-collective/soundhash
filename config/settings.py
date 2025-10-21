@@ -1,178 +1,118 @@
-# Guarded imports with clear guidance for `computed_field`
-try:
-    from pydantic import Field, computed_field
-except Exception as e:
-    raise ImportError(
-        "Missing dependency: pydantic. Install with: pip install 'pydantic>=2.7,<3'"
-    ) from e
-try:
-    from pydantic_settings import BaseSettings, SettingsConfigDict
-except Exception as e:
-    raise ImportError(
-        "Missing dependency: pydantic-settings. Install with: pip install 'pydantic-settings>=2.3,<3'"
-    ) from e
+import os
 
+from dotenv import load_dotenv
 from sqlalchemy.engine.url import make_url
 
+load_dotenv()
 
-class Config(BaseSettings):
-    """
-    Centralized configuration management for SoundHash.
 
-    This class uses pydantic-settings to:
-    - Load settings from environment variables
-    - Provide sensible defaults
-    - Validate configuration at startup
-    - Raise clear errors for missing critical settings
-
-    All modules should import from this class rather than reading os.environ directly.
-    """
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore",
-        # Don't try to parse as JSON - use our custom parsers
-        env_parse_none_str=None,
-    )
-
+class Config:
     # Database
-    DATABASE_URL: str | None = None
-    DATABASE_HOST: str = "localhost"
-    DATABASE_PORT: int = 5432
-    DATABASE_NAME: str = "soundhash"
-    DATABASE_USER: str | None = None
-    DATABASE_PASSWORD: str | None = None
+    DATABASE_URL = os.getenv("DATABASE_URL")
+    DATABASE_HOST = os.getenv("DATABASE_HOST", "localhost")
+    DATABASE_PORT = int(os.getenv("DATABASE_PORT", 5432))
+    DATABASE_NAME = os.getenv("DATABASE_NAME", "soundhash")
+    DATABASE_USER = os.getenv("DATABASE_USER")
+    DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 
     # API Keys
-    YOUTUBE_API_KEY: str | None = None
-    TWITTER_BEARER_TOKEN: str | None = None
-    TWITTER_CONSUMER_KEY: str | None = None
-    TWITTER_CONSUMER_SECRET: str | None = None
-    TWITTER_ACCESS_TOKEN: str | None = None
-    TWITTER_ACCESS_TOKEN_SECRET: str | None = None
+    YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+    TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
+    TWITTER_CONSUMER_KEY = os.getenv("TWITTER_CONSUMER_KEY")
+    TWITTER_CONSUMER_SECRET = os.getenv("TWITTER_CONSUMER_SECRET")
+    TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
+    TWITTER_ACCESS_TOKEN_SECRET = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
-    REDDIT_CLIENT_ID: str | None = None
-    REDDIT_CLIENT_SECRET: str | None = None
-    REDDIT_USER_AGENT: str = "soundhash_bot_v1.0"
-    REDDIT_REFRESH_TOKEN: str | None = None
+    REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
+    REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "soundhash_bot_v1.0")
+    REDDIT_REFRESH_TOKEN = os.getenv("REDDIT_REFRESH_TOKEN")
 
     # OAuth and Authentication
-    CALLBACK_BASE_URL: str = "http://localhost:8000"
-    AUTH_SERVER_HOST: str = "0.0.0.0"
-    AUTH_SERVER_PORT: int = 8000
+    CALLBACK_BASE_URL = os.getenv("CALLBACK_BASE_URL", "http://localhost:8000")
+    AUTH_SERVER_HOST = os.getenv("AUTH_SERVER_HOST", "0.0.0.0")
+    AUTH_SERVER_PORT = int(os.getenv("AUTH_SERVER_PORT", 8000))
 
     # Processing
-    TEMP_DIR: str = "./temp"
-    MAX_CONCURRENT_DOWNLOADS: int = 3
-    MAX_CONCURRENT_CHANNELS: int = 2
-    SEGMENT_LENGTH_SECONDS: int = Field(
-        default=90, description="Longer segments for better accuracy"
-    )
-    FINGERPRINT_SAMPLE_RATE: int = 22050
+    TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
+    MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", 3))
+    MAX_CONCURRENT_CHANNELS = int(os.getenv("MAX_CONCURRENT_CHANNELS", 2))
+    SEGMENT_LENGTH_SECONDS = int(
+        os.getenv("SEGMENT_LENGTH_SECONDS", 90)
+    )  # Longer segments for better accuracy
+    FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
 
     # Similarity search thresholds and weights
     # Thresholds for considering a match valid
-    SIMILARITY_CORRELATION_THRESHOLD: float = 0.70
-    SIMILARITY_L2_THRESHOLD: float = 0.70
+    SIMILARITY_CORRELATION_THRESHOLD = float(os.getenv("SIMILARITY_CORRELATION_THRESHOLD", "0.70"))
+    SIMILARITY_L2_THRESHOLD = float(os.getenv("SIMILARITY_L2_THRESHOLD", "0.70"))
     # Combined minimum score
-    SIMILARITY_MIN_SCORE: float = 0.70
+    SIMILARITY_MIN_SCORE = float(os.getenv("SIMILARITY_MIN_SCORE", "0.70"))
 
     # Weights for combining correlation and L2 similarity (must sum to 1.0)
-    SIMILARITY_CORRELATION_WEIGHT: float = 0.5
-    SIMILARITY_L2_WEIGHT: float = 0.5
+    SIMILARITY_CORRELATION_WEIGHT = float(os.getenv("SIMILARITY_CORRELATION_WEIGHT", "0.5"))
+    SIMILARITY_L2_WEIGHT = float(os.getenv("SIMILARITY_L2_WEIGHT", "0.5"))
 
-    # Minimum duration (in seconds) for valid matches
-    SIMILARITY_MIN_DURATION: float = 5.0
-
-    # Ingestion backoff settings
-    CHANNEL_RETRY_DELAY: int = Field(default=5, description="Delay in seconds between retries")
-    CHANNEL_MAX_RETRIES: int = 3
-
-    # File management
-    KEEP_ORIGINAL_AUDIO: bool = True
-    CLEANUP_SEGMENTS_AFTER_PROCESSING: bool = True
-
-    # Download configuration (for yt-dlp)
-    USE_PROXY: bool = False
-    PROXY_URL: str | None = Field(default=None, description="Format: http://proxy.example.com:8080")
-    PROXY_LIST_STR: str = Field(default="", validation_alias="PROXY_LIST")
-
-    # YouTube cookies & extractor behavior
-    YT_COOKIES_FILE: str | None = Field(
-        default=None, description="Path to a Netscape cookies.txt exported file"
-    )
-    YT_COOKIES_FROM_BROWSER: str | None = Field(
-        default=None, description="e.g., 'chrome', 'chromium', 'firefox', 'brave', 'edge'"
-    )
-    YT_BROWSER_PROFILE: str | None = Field(
-        default=None, description="e.g., 'Default', 'Profile 1', or a Firefox profile name"
-    )
-    YT_PLAYER_CLIENT: str | None = Field(
-        default=None, description="e.g., 'android', 'web_safari', 'tv'"
-    )
-
-    # Target channels
-    TARGET_CHANNELS_STR: str = Field(default="", validation_alias="TARGET_CHANNELS")
-
-    # Bot settings
-    BOT_NAME: str = "@soundhash_bot"
-    BOT_KEYWORDS_STR: str = Field(
-        default="find clip,source video,original,what song", validation_alias="BOT_KEYWORDS"
-    )
-
-    @computed_field
-    @property
-    def PROXY_LIST(self) -> list[str]:
-        """Parse comma-separated proxy list from environment variable."""
-        if not self.PROXY_LIST_STR or not self.PROXY_LIST_STR.strip():
-            return []
-        return [proxy.strip() for proxy in self.PROXY_LIST_STR.split(",") if proxy.strip()]
-
-    @computed_field
-    @property
-    def TARGET_CHANNELS(self) -> list[str]:
-        """Parse comma-separated channel list from environment variable."""
-        if not self.TARGET_CHANNELS_STR or not self.TARGET_CHANNELS_STR.strip():
-            return []
-        return [
-            channel.strip() for channel in self.TARGET_CHANNELS_STR.split(",") if channel.strip()
-        ]
-
-    @computed_field
-    @property
-    def BOT_KEYWORDS(self) -> list[str]:
-        """Parse comma-separated keywords from environment variable."""
-        if not self.BOT_KEYWORDS_STR or not self.BOT_KEYWORDS_STR.strip():
-            return ["find clip", "source video", "original", "what song"]
-        return [keyword.strip() for keyword in self.BOT_KEYWORDS_STR.split(",") if keyword.strip()]
-
-    def get_database_url(self) -> str:
-        """
-        Get the database connection URL.
-
-        Raises:
-            ValueError: If database configuration is incomplete.
-        """
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
-
-        # Validate we have required credentials
-        if not self.DATABASE_USER or not self.DATABASE_PASSWORD:
+    # Validate that weights sum to 1.0
+    @classmethod
+    def _validate_similarity_weights(cls):
+        """Validate that similarity weights sum to 1.0."""
+        weights_sum = cls.SIMILARITY_CORRELATION_WEIGHT + cls.SIMILARITY_L2_WEIGHT
+        if not abs(weights_sum - 1.0) < 1e-9:
             raise ValueError(
-                "Database configuration incomplete. Either set DATABASE_URL or "
-                "provide DATABASE_USER and DATABASE_PASSWORD (with optional "
-                "DATABASE_HOST, DATABASE_PORT, DATABASE_NAME)."
+                f"SIMILARITY_CORRELATION_WEIGHT and SIMILARITY_L2_WEIGHT must sum to 1.0, "
+                f"got {cls.SIMILARITY_CORRELATION_WEIGHT} + {cls.SIMILARITY_L2_WEIGHT} = {weights_sum}"
             )
 
-        return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+    # Minimum duration (in seconds) for valid matches
+    SIMILARITY_MIN_DURATION = float(os.getenv("SIMILARITY_MIN_DURATION", "5.0"))
 
-    def get_database_url_safe(self) -> str:
+    # Ingestion backoff settings
+    CHANNEL_RETRY_DELAY = int(os.getenv("CHANNEL_RETRY_DELAY", 5))  # seconds
+    CHANNEL_MAX_RETRIES = int(os.getenv("CHANNEL_MAX_RETRIES", 3))
+
+    # File management
+    KEEP_ORIGINAL_AUDIO = os.getenv("KEEP_ORIGINAL_AUDIO", "true").lower() == "true"
+    CLEANUP_SEGMENTS_AFTER_PROCESSING = (
+        os.getenv("CLEANUP_SEGMENTS_AFTER_PROCESSING", "true").lower() == "true"
+    )
+
+    # Download configuration (for yt-dlp)
+    USE_PROXY = os.getenv("USE_PROXY", "false").lower() == "true"
+    PROXY_URL = os.getenv("PROXY_URL")  # Format: http://proxy.example.com:8080
+    PROXY_LIST = os.getenv("PROXY_LIST", "").split(",") if os.getenv("PROXY_LIST") else []
+    # YouTube cookies & extractor behavior
+    YT_COOKIES_FILE = os.getenv("YT_COOKIES_FILE")  # Path to a Netscape cookies.txt exported file
+    YT_COOKIES_FROM_BROWSER = os.getenv(
+        "YT_COOKIES_FROM_BROWSER"
+    )  # e.g., 'chrome', 'chromium', 'firefox', 'brave', 'edge'
+    YT_BROWSER_PROFILE = os.getenv(
+        "YT_BROWSER_PROFILE"
+    )  # e.g., 'Default', 'Profile 1', or a Firefox profile name
+    YT_PLAYER_CLIENT = os.getenv("YT_PLAYER_CLIENT")  # e.g., 'android', 'web_safari', 'tv'
+
+    # Target channels
+    TARGET_CHANNELS = os.getenv("TARGET_CHANNELS", "").split(",")
+
+    # Bot settings
+    BOT_NAME = os.getenv("BOT_NAME", "@soundhash_bot")
+    BOT_KEYWORDS = os.getenv("BOT_KEYWORDS", "find clip,source video,original,what song").split(",")
+
+    @classmethod
+    def get_database_url(cls):
+        if cls.DATABASE_URL:
+            return cls.DATABASE_URL
+        return (
+            f"postgresql://{cls.DATABASE_USER}:{cls.DATABASE_PASSWORD}"
+            f"@{cls.DATABASE_HOST}:{cls.DATABASE_PORT}/{cls.DATABASE_NAME}"
+        )
+
+    @classmethod
+    def get_database_url_safe(cls):
         """Get database URL with password masked for safe logging."""
-        url = self.get_database_url()
+        url = cls.get_database_url()
         return make_url(url).render_as_string(hide_password=True)
 
 
-# Create a singleton instance that loads settings once
-Config = Config()
+# Validate configuration on module import
+Config._validate_similarity_weights()
