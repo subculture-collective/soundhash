@@ -20,16 +20,10 @@ You may need to manually add issues via the web interface or use the gh CLI:
 
 import os
 import sys
-from pathlib import Path
-
-# Add the project root to the path so we can import config
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def main():
     """Main function to add issues to project board."""
-    # GITHUB_TOKEN is not part of the main Config class as it's only used by this script
-    # and is a CI/CD-specific credential
     github_token = os.getenv("GITHUB_TOKEN")
 
     if not github_token:
