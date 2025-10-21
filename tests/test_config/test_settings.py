@@ -1,9 +1,26 @@
 """Tests for configuration settings."""
 
+import importlib
 import os
 from unittest.mock import patch
 
+import config.settings
 from config.settings import Config
+
+
+def reload_config():
+    """Helper to reload config module and return the reloaded Config class.
+
+    This is useful when testing configuration changes that require reloading
+    the module after patching environment variables.
+
+    Returns:
+        The reloaded Config class from config.settings module.
+    """
+    importlib.reload(config.settings)
+    from config.settings import Config as ReloadedConfig
+
+    return ReloadedConfig
 
 
 class TestConfig:
@@ -65,13 +82,7 @@ class TestConfig:
         # Test with comma-separated proxy list
         test_proxy_list = "http://proxy1.example.com:8080,http://proxy2.example.com:8080,http://proxy3.example.com:8080"
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy_list}, clear=False):
-            # Need to reload the module to pick up the new env var
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 3
@@ -83,12 +94,7 @@ class TestConfig:
         """Test that PROXY_LIST correctly handles single proxy (no commas)."""
         test_proxy = "http://single-proxy.example.com:8080"
         with patch.dict(os.environ, {"PROXY_LIST": test_proxy}, clear=False):
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 1
@@ -97,12 +103,7 @@ class TestConfig:
     def test_proxy_list_empty_string(self):
         """Test that PROXY_LIST returns empty list when env var is empty."""
         with patch.dict(os.environ, {"PROXY_LIST": ""}, clear=False):
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
@@ -115,12 +116,7 @@ class TestConfig:
             del env_copy["PROXY_LIST"]
 
         with patch.dict(os.environ, env_copy, clear=True):
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             assert isinstance(ReloadedConfig.PROXY_LIST, list)
             assert len(ReloadedConfig.PROXY_LIST) == 0
@@ -143,12 +139,7 @@ class TestConfig:
             },
             clear=False,
         ):
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             # Should not raise an exception
             assert ReloadedConfig.SIMILARITY_CORRELATION_WEIGHT == 0.7
@@ -165,14 +156,10 @@ class TestConfig:
             },
             clear=False,
         ):
-            import importlib
-
             import pytest
 
-            import config.settings
-
             with pytest.raises(ValueError, match="must sum to 1.0"):
-                importlib.reload(config.settings)
+                reload_config()
 
     def test_similarity_weights_validation_fails_when_sum_too_low(self):
         """Test that validation fails when weights sum to less than 1.0."""
@@ -185,14 +172,10 @@ class TestConfig:
             },
             clear=False,
         ):
-            import importlib
-
             import pytest
 
-            import config.settings
-
             with pytest.raises(ValueError, match="must sum to 1.0"):
-                importlib.reload(config.settings)
+                reload_config()
 
     def test_similarity_weights_validation_handles_floating_point_precision(self):
         """Test that validation handles floating point precision correctly."""
@@ -205,12 +188,7 @@ class TestConfig:
             },
             clear=False,
         ):
-            import importlib
-
-            import config.settings
-
-            importlib.reload(config.settings)
-            from config.settings import Config as ReloadedConfig
+            ReloadedConfig = reload_config()
 
             # Should pass validation despite floating point imprecision
             weights_sum = (
