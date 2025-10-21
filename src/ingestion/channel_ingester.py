@@ -341,7 +341,7 @@ class VideoJobProcessor:
         # Use the core video processor implementation
         self.video_processor = CoreVideoProcessor()
         self.fingerprinter = AudioFingerprinter()
-        self.logger = logging.getLogger(__name__)
+        self.logger = create_section_logger(__name__)
 
     async def process_pending_videos(self, batch_size: int = 5) -> None:
         """Process videos that are queued for processing"""
@@ -468,7 +468,9 @@ class VideoJobProcessor:
 
 async def main() -> None:
     """Main ingestion process"""
-    logging.basicConfig(level=logging.INFO)
+    from config.logging_config import setup_logging
+
+    setup_logging(log_level="INFO")
 
     ingester = ChannelIngester()
     processor = VideoJobProcessor()
