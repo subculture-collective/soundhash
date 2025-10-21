@@ -296,11 +296,9 @@ class TestChannelIngester:
         processor = VideoJobProcessor()
 
         # Mock get_job_repository to raise an exception
-        with (
-            patch(
-                "src.ingestion.channel_ingester.get_job_repository",
-                side_effect=Exception("Repo init failed"),
-            ),
+        with patch(
+            "src.ingestion.channel_ingester.get_job_repository",
+            side_effect=Exception("Repo init failed"),
         ):
             with pytest.raises(Exception, match="Repo init failed"):
                 await processor.process_pending_videos(batch_size=1)
