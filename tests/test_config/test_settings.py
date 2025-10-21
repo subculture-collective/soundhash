@@ -1,6 +1,7 @@
 """Tests for configuration settings."""
 
 import os
+import pytest
 from unittest.mock import patch
 
 from config.settings import Config
@@ -130,7 +131,6 @@ class TestConfig:
 
     def test_database_url_validation_missing_credentials(self):
         """Test that get_database_url raises error when credentials are missing."""
-        import pytest
         with patch.object(Config, "DATABASE_URL", None):
             with patch.object(Config, "DATABASE_USER", None):
                 with patch.object(Config, "DATABASE_PASSWORD", None):
