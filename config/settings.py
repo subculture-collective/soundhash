@@ -27,6 +27,7 @@ class Config:
     REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
     REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "soundhash_bot_v1.0")
     REDDIT_REFRESH_TOKEN = os.getenv("REDDIT_REFRESH_TOKEN")
+    REDDIT_SUBREDDITS = os.getenv("REDDIT_SUBREDDITS", "").split(",") if os.getenv("REDDIT_SUBREDDITS") else []
 
     # OAuth and Authentication
     CALLBACK_BASE_URL = os.getenv("CALLBACK_BASE_URL", "http://localhost:8000")

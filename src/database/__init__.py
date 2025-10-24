@@ -26,11 +26,11 @@ __all__ = [
     # Repositories
     "JobRepository",
     "VideoRepository",
-    # Session management
+    # Context managers
     "get_db_session",
     "video_repository",
     "job_repository",
-    # Backward compatible (deprecated)
+    # Repository getters
     "get_video_repository",
     "get_job_repository",
     # Utilities
