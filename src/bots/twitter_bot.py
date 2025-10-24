@@ -215,7 +215,7 @@ class TwitterBot:
     def send_reply(self, mention, text: str, max_retries: int = 3):
         """Send a reply to a mention with retry logic"""
         try:
-            self._send_reply_impl(mention, text, max_retries)
+            self._send_reply_impl(mention, text)
             self.logger.info(f"Replied to mention {mention.id}")
             return True
         except (TooManyRequests, TwitterServerError) as e:
@@ -226,7 +226,7 @@ class TwitterBot:
             return False
 
     @twitter_retry()
-    def _send_reply_impl(self, mention, text: str, max_retries: int = 3):
+    def _send_reply_impl(self, mention, text: str):
         """Internal implementation of send_reply with retry decorator"""
         # Ensure reply fits in tweet length
         if len(text) > 280:
@@ -271,7 +271,7 @@ class TwitterBot:
             summary += f"...and {len(matches) - 3} more!"
 
         try:
-            response = self._post_match_summary_impl(summary, max_retries)
+            response = self._post_match_summary_impl(summary)
             self.logger.info(f"Posted match summary tweet: {response.data.get('id') if response.data else 'unknown'}")
             return True
         except (TooManyRequests, TwitterServerError) as e:
@@ -282,7 +282,7 @@ class TwitterBot:
             return False
 
     @twitter_retry()
-    def _post_match_summary_impl(self, summary: str, max_retries: int = 3):
+    def _post_match_summary_impl(self, summary: str):
         """Internal implementation of post_match_summary with retry decorator"""
         # Ensure tweet fits in character limit
         if len(summary) > 280:

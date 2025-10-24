@@ -3,12 +3,8 @@
 import functools
 import logging
 import time
-from typing import ParamSpec, TypeVar
 
 from tweepy.errors import TooManyRequests, TwitterServerError
-
-P = ParamSpec("P")
-R = TypeVar("R")
 
 
 def twitter_retry(max_retries: int = 3, initial_delay: int = 5):
