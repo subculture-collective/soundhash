@@ -111,7 +111,7 @@ def get_video_repo_session() -> Generator["VideoRepository", None, None]:
     Yields:
         VideoRepository instance with managed session
     """
-    with get_session() as session:
+    with get_db_session() as session:
         yield VideoRepository(session)
 
 
@@ -129,7 +129,7 @@ def get_job_repo_session() -> Generator["JobRepository", None, None]:
     Yields:
         JobRepository instance with managed session
     """
-    with get_session() as session:
+    with get_db_session() as session:
         yield JobRepository(session)
 
 
