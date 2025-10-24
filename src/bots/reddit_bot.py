@@ -344,8 +344,8 @@ def main():
     
     logger = logging.getLogger(__name__)
     
-    # TODO: Load from configuration
-    monitored_subreddits = []  # e.g., ['musicid', 'tipofmytongue']
+    # Load monitored subreddits from configuration
+    monitored_subreddits = getattr(Config, "REDDIT_SUBREDDITS", []) or []
     
     if not monitored_subreddits:
         logger.error("No subreddits configured for monitoring. Set REDDIT_SUBREDDITS environment variable.")
