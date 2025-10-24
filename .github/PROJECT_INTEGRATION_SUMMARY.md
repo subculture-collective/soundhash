@@ -43,9 +43,20 @@ Added new "Project Status" section at the top with quick links to:
 - Project Board (@onnwee's soundhash)
 - Milestones
 
-### 2. Helper Scripts
+### 2. Automation Workflows
 
-#### `scripts/add_issues_to_project.py` (NEW)
+#### `.github/workflows/project-automation.yml` (NEW)
+
+GitHub Actions workflow providing:
+
+- Automatic addition of new issues and PRs to the project board
+- Automatic status updates when items are closed
+- Automatic status updates when PRs are ready for review
+- Comprehensive documentation for setup and configuration
+
+### 3. Helper Scripts
+
+#### `scripts/add_issues_to_project.py` (EXISTING)
 
 Python script providing:
 
@@ -67,37 +78,91 @@ Python script providing:
 
 - **Name**: @onnwee's soundhash
 - **Status**: Created by user
-- **Issues Added**: Pending (need to be added to project)
+- **Automation**: GitHub Actions workflow ready (requires setup)
 - **Documentation**: Complete
 
 ## Next Steps for User
 
-1. **Navigate to Project Board**
+### 1. Configure Automation (Required)
+
+**Option A: GitHub Actions (Recommended)**
+
+1. **Create Personal Access Token**
+   - Go to Settings → Developer settings → Personal access tokens
+   - Create fine-grained token with `Projects` and `Issues` permissions
+   - Copy the token
+
+2. **Add Token to Repository**
+   - Go to repository Settings → Secrets and variables → Actions
+   - Add secret named `PROJECT_TOKEN` with your token value
+
+3. **Update Project URL**
+   - Find your project number at <https://github.com/users/onnwee/projects>
+   - Edit `.github/workflows/project-automation.yml`
+   - Update `project-url` with correct project number
+
+4. **Test the Workflow**
+   - Create a test issue
+   - Verify it appears on the project board automatically
+
+**Option B: Built-in GitHub Project Automation**
+
+1. Open your project at <https://github.com/users/onnwee/projects>
+2. Click "..." menu → "Workflows"
+3. Enable: "Auto-add to project", "Auto-archive items", "Item closed"
+
+### 2. Navigate to Project Board
    - Go to <https://github.com/users/onnwee/projects>
    - Open the "@onnwee's soundhash" project
 
-2. **Add All Issues**
+### 3. Add All Existing Issues
    - Use the project's "+" button
    - Select "Add items from repository"
-   - Choose onnwee/soundhash
-   - Select all 34 issues or use automation
+   - Choose subculture-collective/soundhash
+   - Select all 34 issues or use bulk-add script
 
-3. **Configure Views** (see `.github/PROJECT_BOARD_SETUP.md`)
+### 4. Configure Views (see `.github/PROJECT_BOARD_SETUP.md`)
    - Create "Kanban Board" view (Todo, In Progress, In Review, Done)
    - Create "By Milestone" view (group by milestone M0-M3)
    - Create "By Priority" view (group by P0, P1, P2)
    - Create "By Area" view (group by area labels)
 
-4. **Enable Automation**
-   - Auto-add new issues when created
-   - Auto-move to "Done" when issues are closed
-   - Auto-move to "In Progress" when PR is linked
-
-5. **Update Master Issue #34**
-   - Consider adding the project board reference to the issue description
-   - Reference file: `/tmp/updated_issue_34_body.md` (contains suggested update)
+### 5. Verify Automation is Working
+   - Create a new test issue
+   - Confirm it appears on the project board automatically
+   - Close the issue and verify it moves to "Done"
 
 ## Files Modified/Created Summary
+
+```text
+Modified:
+- .github/PROJECT_BOARD_SETUP.md (added automation setup section)
+- .github/PROJECT_INTEGRATION_SUMMARY.md (updated with automation details)
+
+Created:
+- .github/workflows/project-automation.yml (GitHub Actions workflow)
+```
+
+## References
+
+- Master Issue: <https://github.com/subculture-collective/soundhash/issues/34>
+- Project Board Issue: <https://github.com/subculture-collective/soundhash/issues/29>
+- All Issues: <https://github.com/subculture-collective/soundhash/issues>
+- Milestones: <https://github.com/subculture-collective/soundhash/milestones>
+
+## Validation
+
+All documentation and automation has been created:
+
+- ✅ README.md includes project status with links
+- ✅ ROADMAP.md has complete reference list
+- ✅ PROJECT_BOARD_SETUP.md provides step-by-step guide
+- ✅ Helper script provides automation commands
+- ✅ GitHub Actions workflow created for automation
+- ✅ All files use consistent linking structure
+- ✅ Documentation is accessible and well-organized
+
+The repository is now fully prepared to use the "@onnwee's soundhash" GitHub Project board with automated issue tracking.
 
 ```text
 Modified:

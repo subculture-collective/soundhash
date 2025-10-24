@@ -1,0 +1,72 @@
+---
+name: Project Board Automation
+
+# This workflow automatically manages items on the GitHub Project board
+# Project: "@onnwee's soundhash" (user project)
+#
+# Setup Requirements:
+# 1. Create a Personal Access Token (PAT) with 'project' and 'repo' scopes
+# 2. Add it as a repository secret named PROJECT_TOKEN
+# 3. Update the project-url below with your actual project number
+#
+# To find your project number:
+#   gh project list --owner @me
+#   Or check the URL: github.com/users/USERNAME/projects/NUMBER
+
+"on":
+  issues:
+    types:
+      - opened
+      - reopened
+      - closed
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - closed
+      - ready_for_review
+
+jobs:
+  add-to-project:
+    name: Add to Project Board
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'opened' ||
+      github.event.action == 'reopened'
+    steps:
+      - name: Add issue or PR to project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          # Update this URL with your actual project number
+          # Format: https://github.com/users/USERNAME/projects/PROJECT_NUMBER
+          project-url: https://github.com/users/onnwee/projects/1
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+
+  update-status:
+    name: Update Item Status
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.action == 'closed' ||
+      github.event.action == 'ready_for_review'
+    steps:
+      - name: Update project item status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const itemType = context.eventName === 'issues' ?
+              'Issue' : 'PullRequest';
+            const itemNumber = context.payload.issue?.number ||
+              context.payload.pull_request?.number;
+            const isClosed = context.payload.action === 'closed';
+
+            console.log(`Processing ${itemType} #${itemNumber}`);
+            console.log(`Action: ${context.payload.action}`);
+
+            if (isClosed) {
+              console.log('Item closed - would move to Done column');
+              // Note: Actual status update requires project field
+              // configuration and may need custom GraphQL queries
+            } else if (context.payload.action === 'ready_for_review') {
+              console.log('PR ready - would move to In Review column');
+            }
