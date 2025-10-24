@@ -33,6 +33,9 @@ jobs:
   add-to-project:
     name: Add to Project Board
     runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
     steps:
       - name: Add issue or PR to project
         uses: actions/add-to-project@v1.0.2
