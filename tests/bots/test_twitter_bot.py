@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, Mock, patch
-
+from urllib.parse import urlparse
 from src.bots.twitter_bot import TwitterBot
 
 
@@ -29,13 +29,13 @@ class TestTwitterBot:
         text = "Check out this video https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         urls = bot.extract_video_urls(text)
         assert len(urls) == 1
-        assert "youtube.com" in urls[0]
+        assert urlparse(urls[0]).netloc in ["youtube.com", "www.youtube.com"]
         
         # Test short YouTube URLs
         text = "Check out https://youtu.be/dQw4w9WgXcQ"
         urls = bot.extract_video_urls(text)
         assert len(urls) == 1
-        assert "youtu.be" in urls[0]
+        assert urlparse(urls[0]).netloc == "youtu.be"
         
         # Test multiple URLs
         text = "Compare https://www.youtube.com/watch?v=abc123 and https://youtu.be/xyz789"
