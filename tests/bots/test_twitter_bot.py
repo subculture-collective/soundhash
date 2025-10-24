@@ -195,17 +195,8 @@ class TestTwitterBot:
             },
         ]
         
-        # Use the internal reply_with_matches logic
-        reply_text = f"🎵 Found {len(matches)} match(es):\n\n"
-        
-        for i, match in enumerate(matches[:3], 1):
-            title = match["title"][:50] + "..." if len(match["title"]) > 50 else match["title"]
-            start_time = int(match["start_time"])
-            end_time = int(match["end_time"])
-            
-            reply_text += f"{i}. {title}\n"
-            reply_text += f"   ⏰ {start_time}s - {end_time}s\n"
-            reply_text += f"   🔗 {match['url']}\n\n"
+        # Use the bot's formatting method instead of duplicating logic
+        reply_text = bot.format_reply_text(matches)
         
         # Verify formatting
         assert "🎵" in reply_text
