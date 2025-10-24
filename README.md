@@ -553,31 +553,52 @@ The system now provides specific remediation advice for common errors:
 
 ### 🔐 YouTube API Authentication Issues
 
-**Symptoms**: "Invalid credentials", "Quota exceeded", "Unauthorized"
+**Symptoms**: "Invalid credentials", "Quota exceeded", "Unauthorized", "Token expired"
 
 **Solutions**:
 
 1. **Follow OAuth setup guide**: 
-   - Create OAuth credentials in Google Cloud Console (type: Desktop App)
+   - Create OAuth credentials in Google Cloud Console (type: **Desktop Application**)
+   - Add redirect URIs: `http://localhost:8080/`, `http://localhost:8000/`, `http://localhost/`
    - Download `credentials.json` and place it in the project root
    - Run `python scripts/setup_youtube_api.py` to generate `token.json`
-   - For detailed steps, see [Google's official guide](https://developers.google.com/youtube/v3/guides/auth/client-side-web-apps)
+   - For detailed steps, see [YOUTUBE_OAUTH_SETUP.md](YOUTUBE_OAUTH_SETUP.md)
 
-2. **Regenerate token** if expired:
+2. **Token refresh (automatic)**:
+   - The system automatically refreshes expired tokens using the refresh token
+   - This happens transparently on each API call
+   - No user action needed for normal token expiration
+
+3. **Regenerate token** if corrupted or refresh fails:
    ```bash
    rm token.json
    python scripts/setup_youtube_api.py
    ```
 
-3. **Check credentials.json** is valid JSON from Google Cloud Console
+4. **Check credentials.json** is valid JSON from Google Cloud Console
+   - Must be OAuth 2.0 Client ID for **Desktop Application**
+   - Must include redirect URIs configured
 
-4. **Verify API is enabled** in Google Cloud Console:
+5. **Verify API is enabled** in Google Cloud Console:
    - YouTube Data API v3 must be enabled for your project
+   - Check at: APIs & Services → Library → YouTube Data API v3
 
-5. **Check quota limits**:
+6. **Check quota limits**:
    - Default: 10,000 units/day
    - 1 video = ~7 units, 1 channel = ~3 units
    - Monitor at: https://console.cloud.google.com/apis/dashboard
+
+7. **OAuth Consent Screen Configuration**:
+   - Add your Google account as a test user (if app is in testing mode)
+   - Or publish the app (requires verification for production)
+   - Ensure scope `https://www.googleapis.com/auth/youtube.readonly` is configured
+
+**Understanding Token Files**:
+
+- `credentials.json`: OAuth 2.0 client credentials from Google Cloud Console (static)
+- `token.json`: Access and refresh tokens (generated after OAuth flow, auto-refreshed)
+- Both files are automatically excluded from git via `.gitignore`
+- Keep both files secure and never commit them to version control
 
 ### 🐛 General Debugging Tips
 

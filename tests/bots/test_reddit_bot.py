@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, Mock, patch
-
+import urllib.parse
 from src.bots.reddit_bot import RedditBot
 
 
@@ -39,19 +39,22 @@ class TestRedditBot:
         text = "Check out this video https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         urls = bot.extract_video_urls(text)
         assert len(urls) == 1
-        assert "youtube.com" in urls[0]
+        host = urllib.parse.urlparse(urls[0]).hostname
+        assert host and ("youtube.com" == host or host.endswith(".youtube.com"))
         
         # Test Reddit video URLs
         text = "Here's the video https://v.redd.it/abc123xyz"
         urls = bot.extract_video_urls(text)
         assert len(urls) == 1
-        assert "redd.it" in urls[0]
+        host = urllib.parse.urlparse(urls[0]).hostname
+        assert host and ("redd.it" == host or host.endswith(".redd.it"))
         
         # Test Instagram reels
         text = "Check this reel https://www.instagram.com/reel/abc123/"
         urls = bot.extract_video_urls(text)
         assert len(urls) == 1
-        assert "instagram.com" in urls[0]
+        host = urllib.parse.urlparse(urls[0]).hostname
+        assert host and ("instagram.com" == host or host.endswith(".instagram.com"))
         
         # Test multiple URLs
         text = "Compare https://www.youtube.com/watch?v=abc123 and https://youtu.be/xyz789"
