@@ -1,12 +1,11 @@
 import logging
 import re
-import time
-from typing import Optional
 
 import tweepy
 from tweepy.errors import TooManyRequests, TwitterServerError
 
 from config.settings import Config
+from src.bots.utils import twitter_retry
 from src.core.audio_fingerprinting import AudioFingerprinter
 from src.core.video_processor import VideoProcessor
 from src.database.repositories import get_video_repository
@@ -215,137 +214,81 @@ class TwitterBot:
 
     def send_reply(self, mention, text: str, max_retries: int = 3):
         """Send a reply to a mention with retry logic"""
-        retry_count = 0
-        retry_delay = 5  # Initial retry delay in seconds
-        
-        while retry_count < max_retries:
-            try:
-                # Ensure reply fits in tweet length
-                if len(text) > 280:
-                    text = text[:277] + "..."
+        try:
+            self._send_reply_impl(mention, text, max_retries)
+            self.logger.info(f"Replied to mention {mention.id}")
+            return True
+        except (TooManyRequests, TwitterServerError) as e:
+            self.logger.error(f"Failed to send reply to {mention.id} after retries: {str(e)}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error sending reply to {mention.id}: {str(e)}")
+            return False
 
-                self.api.create_tweet(text=text, in_reply_to_tweet_id=mention.id)
+    @twitter_retry()
+    def _send_reply_impl(self, mention, text: str, max_retries: int = 3):
+        """Internal implementation of send_reply with retry decorator"""
+        # Ensure reply fits in tweet length
+        if len(text) > 280:
+            text = text[:277] + "..."
 
-                self.logger.info(f"Replied to mention {mention.id}")
-                return True
+        self.api.create_tweet(text=text, in_reply_to_tweet_id=mention.id)
 
-            except TooManyRequests as e:
-                # Handle rate limiting
-                retry_count += 1
-                if retry_count >= max_retries:
-                    self.logger.error(f"Rate limit exceeded after {max_retries} retries for {mention.id}")
-                    return False
-                
-                # Extract reset time from rate limit error if available
-                reset_time = getattr(e, 'reset_time', None)
-                if reset_time:
-                    wait_time = max(reset_time - time.time(), 0) + 1
-                    self.logger.warning(f"Rate limited. Waiting {wait_time:.0f}s before retry {retry_count}/{max_retries}")
-                    time.sleep(wait_time)
-                else:
-                    # Use exponential backoff if reset time not available
-                    wait_time = retry_delay * (2 ** (retry_count - 1))
-                    self.logger.warning(f"Rate limited. Waiting {wait_time}s before retry {retry_count}/{max_retries}")
-                    time.sleep(wait_time)
-                    
-            except TwitterServerError as e:
-                # Handle server errors with retry
-                retry_count += 1
-                if retry_count >= max_retries:
-                    self.logger.error(f"Twitter server error after {max_retries} retries for {mention.id}: {str(e)}")
-                    return False
-                
-                wait_time = retry_delay * (2 ** (retry_count - 1))
-                self.logger.warning(f"Twitter server error. Retrying in {wait_time}s ({retry_count}/{max_retries})")
-                time.sleep(wait_time)
-                
-            except Exception as e:
-                self.logger.error(f"Error sending reply to {mention.id}: {str(e)}")
-                return False
-        
-        return False
-
-    def post_match_summary(self, matches: list[dict], query_url: Optional[str] = None, max_retries: int = 3) -> bool:
+    def post_match_summary(self, matches: list[dict], query_url: str | None = None, max_retries: int = 3) -> bool:
         """
         Post a standalone tweet with match summary and links.
-        
+
         Args:
             matches: List of match dictionaries with video info
             query_url: Optional URL of the query clip
             max_retries: Maximum number of retry attempts
-            
+
         Returns:
             bool: True if successful, False otherwise
         """
         if not matches:
             self.logger.warning("No matches to post")
             return False
-        
+
         # Build summary text
         summary = "🎵 Audio Match Results\n\n"
-        
+
         if query_url:
             summary += f"Query: {query_url}\n\n"
-        
+
         summary += f"Found {len(matches)} match(es):\n\n"
-        
+
         for i, match in enumerate(matches[:3], 1):  # Top 3 matches
             title = match["title"][:40] + "..." if len(match["title"]) > 40 else match["title"]
             start_time = int(match["start_time"])
             end_time = int(match["end_time"])
-            
+
             summary += f"{i}. {title}\n"
             summary += f"   ⏰ {start_time}s-{end_time}s\n"
             summary += f"   🔗 {match['url']}\n\n"
-        
+
         if len(matches) > 3:
             summary += f"...and {len(matches) - 3} more!"
-        
-        # Post tweet with retry logic
-        retry_count = 0
-        retry_delay = 5
-        
-        while retry_count < max_retries:
-            try:
-                # Ensure tweet fits in character limit
-                if len(summary) > 280:
-                    summary = summary[:277] + "..."
-                
-                response = self.api.create_tweet(text=summary)
-                self.logger.info(f"Posted match summary tweet: {response.data.get('id') if response.data else 'unknown'}")
-                return True
-                
-            except TooManyRequests as e:
-                retry_count += 1
-                if retry_count >= max_retries:
-                    self.logger.error(f"Rate limit exceeded after {max_retries} retries")
-                    return False
-                
-                reset_time = getattr(e, 'reset_time', None)
-                if reset_time:
-                    wait_time = max(reset_time - time.time(), 0) + 1
-                    self.logger.warning(f"Rate limited. Waiting {wait_time:.0f}s before retry {retry_count}/{max_retries}")
-                    time.sleep(wait_time)
-                else:
-                    wait_time = retry_delay * (2 ** (retry_count - 1))
-                    self.logger.warning(f"Rate limited. Waiting {wait_time}s before retry {retry_count}/{max_retries}")
-                    time.sleep(wait_time)
-                    
-            except TwitterServerError as e:
-                retry_count += 1
-                if retry_count >= max_retries:
-                    self.logger.error(f"Twitter server error after {max_retries} retries: {str(e)}")
-                    return False
-                
-                wait_time = retry_delay * (2 ** (retry_count - 1))
-                self.logger.warning(f"Twitter server error. Retrying in {wait_time}s ({retry_count}/{max_retries})")
-                time.sleep(wait_time)
-                
-            except Exception as e:
-                self.logger.error(f"Error posting match summary: {str(e)}")
-                return False
-        
-        return False
+
+        try:
+            response = self._post_match_summary_impl(summary, max_retries)
+            self.logger.info(f"Posted match summary tweet: {response.data.get('id') if response.data else 'unknown'}")
+            return True
+        except (TooManyRequests, TwitterServerError) as e:
+            self.logger.error(f"Failed to post match summary after retries: {str(e)}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error posting match summary: {str(e)}")
+            return False
+
+    @twitter_retry()
+    def _post_match_summary_impl(self, summary: str, max_retries: int = 3):
+        """Internal implementation of post_match_summary with retry decorator"""
+        # Ensure tweet fits in character limit
+        if len(summary) > 280:
+            summary = summary[:277] + "..."
+
+        return self.api.create_tweet(text=summary)
 
 
 def main():
