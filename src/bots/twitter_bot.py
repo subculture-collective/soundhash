@@ -212,7 +212,7 @@ class TwitterBot:
         )
         self.send_reply(mention, reply_text)
 
-    def send_reply(self, mention, text: str, max_retries: int = 3):
+    def send_reply(self, mention, text: str):
         """Send a reply to a mention with retry logic"""
         try:
             self._send_reply_impl(mention, text)
@@ -234,14 +234,13 @@ class TwitterBot:
 
         self.api.create_tweet(text=text, in_reply_to_tweet_id=mention.id)
 
-    def post_match_summary(self, matches: list[dict], query_url: str | None = None, max_retries: int = 3) -> bool:
+    def post_match_summary(self, matches: list[dict], query_url: str | None = None) -> bool:
         """
         Post a standalone tweet with match summary and links.
 
         Args:
             matches: List of match dictionaries with video info
             query_url: Optional URL of the query clip
-            max_retries: Maximum number of retry attempts
 
         Returns:
             bool: True if successful, False otherwise
