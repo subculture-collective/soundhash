@@ -50,9 +50,9 @@ Added new "Project Status" section at the top with quick links to:
 GitHub Actions workflow providing:
 
 - Automatic addition of new issues and PRs to the project board
-- Automatic status updates when items are closed
-- Automatic status updates when PRs are ready for review
 - Comprehensive documentation for setup and configuration
+
+**Note**: Status updates (moving items between columns) are best handled by GitHub's built-in project workflows for simplicity and reliability.
 
 ### 3. Helper Scripts
 
@@ -105,11 +105,15 @@ Python script providing:
    - Create a test issue
    - Verify it appears on the project board automatically
 
-**Option B: Built-in GitHub Project Automation**
+**Option B: Built-in GitHub Project Automation (Alternative)**
+
+Use this instead of GitHub Actions if you prefer an all-in-one solution:
 
 1. Open your project at <https://github.com/users/onnwee/projects>
 2. Click "..." menu → "Workflows"
-3. Enable: "Auto-add to project", "Auto-archive items", "Item closed"
+3. Enable: "Auto-add to project", "Item closed", "Pull request merged"
+
+**Recommended Approach**: Use GitHub Actions (Option A) for adding items + Built-in workflows for status updates.
 
 ### 2. Navigate to Project Board
    - Go to <https://github.com/users/onnwee/projects>
@@ -127,10 +131,15 @@ Python script providing:
    - Create "By Priority" view (group by P0, P1, P2)
    - Create "By Area" view (group by area labels)
 
-### 5. Verify Automation is Working
+### 5. Enable Status Update Workflows (Recommended)
+   - Go to project → "..." menu → "Workflows"
+   - Enable "Item closed" and "Pull request merged" workflows
+   - This handles automatic status updates when items change state
+
+### 6. Verify Automation is Working
    - Create a new test issue
    - Confirm it appears on the project board automatically
-   - Close the issue and verify it moves to "Done"
+   - Close the issue and verify it moves to "Done" (if built-in workflow enabled)
 
 ## Files Modified/Created Summary
 

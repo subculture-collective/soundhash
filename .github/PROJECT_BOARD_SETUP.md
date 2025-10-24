@@ -45,9 +45,9 @@ The repository includes GitHub Actions workflows to automate project board manag
 
 #### Automated Features (via `.github/workflows/project-automation.yml`)
 
-1. **Auto-add items**: When an issue or PR is created, automatically add it to the project
-2. **Auto-archive**: When an issue or PR is closed, move it to "Done"
-3. **Auto-progress**: When a PR is marked ready for review, move to "In Review"
+1. **Auto-add items**: When an issue or PR is created or reopened, automatically add it to the project
+
+**Note**: For automatic status updates (moving items to "Done", "In Review", etc.), use GitHub's built-in project automation workflows rather than custom GitHub Actions. This is more reliable and doesn't require complex GraphQL queries.
 
 #### Setup Requirements
 
@@ -80,25 +80,27 @@ To enable automation, configure the following:
 
 4. **Test the Automation**
    - Create a test issue to verify it's automatically added to the project
-   - Close the issue to verify it moves to "Done" column
 
-#### Manual Automation (Alternative)
+#### Manual Automation (Recommended for Status Updates)
 
-If you prefer GitHub's built-in project automation instead of GitHub Actions:
+For automatic status updates when items are closed or PRs are merged, use GitHub's built-in project automation:
 
 1. Open your project at <https://github.com/users/onnwee/projects>
 2. Click "..." menu → "Workflows"
-3. Enable built-in workflows:
-   - "Auto-add to project" - adds new items automatically
-   - "Auto-archive items" - archives closed items
+3. Enable these built-in workflows:
+   - "Auto-add to project" - adds new items automatically (alternative to GitHub Actions)
    - "Item closed" - moves closed items to Done
-   - "Pull request merged" - moves items when PRs merge
+   - "Pull request merged" - updates status when PRs merge
+
+**Recommendation**: Use GitHub Actions for adding items (more reliable) and built-in workflows for status updates (simpler to configure).
 
 #### Automation Status
 
 - ✅ GitHub Actions workflow created (`.github/workflows/project-automation.yml`)
+- ✅ Auto-add functionality implemented
 - ⚠️ Requires `PROJECT_TOKEN` secret configuration
 - ⚠️ Requires project URL verification
+- ℹ️ Status updates: Use GitHub's built-in project workflows (simpler and more reliable)
 
 ### Master Roadmap Issue
 

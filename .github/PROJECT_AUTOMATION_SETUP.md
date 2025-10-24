@@ -6,8 +6,10 @@ This guide will help you set up automated project board management for the Sound
 
 The repository includes GitHub Actions automation to:
 - ✅ Automatically add new issues and PRs to the project board
-- ✅ Automatically update item status when issues/PRs are closed
-- ✅ Automatically mark PRs as "In Review" when ready
+
+For automatic status updates (moving items between columns when closed, merged, etc.):
+- ✅ Use GitHub's built-in project workflows (recommended - simpler and more reliable)
+- See "Alternative: Built-in GitHub Automation" section below
 
 ## Prerequisites
 
@@ -75,22 +77,37 @@ To configure in GitHub Projects:
 
 1. Create a test issue in the repository
 2. Check that it appears on the project board within a few seconds
-3. Close the issue
-4. Verify it moves to "Done" column (may require manual move initially)
 
-## Alternative: Built-in GitHub Automation
+### Step 7: Enable Status Update Automation (Recommended)
 
-If you prefer to use GitHub's built-in project automation instead of GitHub Actions:
+For automatic status updates when items are closed or PRs are merged:
 
 1. Open your project at https://github.com/users/onnwee/projects
 2. Click the "..." menu (top right)
 3. Select "Workflows"
-4. Enable these workflows:
+4. Enable these built-in workflows:
+   - ✅ "Item closed" - moves items to Done when closed
+   - ✅ "Pull request merged" - updates status when PRs merge
+
+**Why use built-in workflows for status updates?**
+- Simpler to configure (no GraphQL queries needed)
+- More reliable (maintained by GitHub)
+- No additional token permissions required
+- Works immediately without code changes
+
+## Alternative: Built-in GitHub Automation for Everything
+
+If you prefer to use GitHub's built-in project automation for both adding and updating items:
+
+1. Open your project at https://github.com/users/onnwee/projects
+2. Click the "..." menu (top right)
+3. Select "Workflows"
+4. Enable all relevant workflows:
    - ✅ "Auto-add to project" - automatically adds new items
    - ✅ "Item closed" - moves items to Done when closed
    - ✅ "Pull request merged" - updates status when PRs merge
 
-**Note**: Built-in automation may have limitations compared to custom GitHub Actions.
+**Note**: Built-in workflows may have limitations compared to custom GitHub Actions, but are simpler for basic use cases.
 
 ## Bulk-Adding Existing Issues
 
