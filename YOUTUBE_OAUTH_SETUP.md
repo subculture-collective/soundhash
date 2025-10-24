@@ -59,10 +59,30 @@ python scripts/setup_youtube_api.py
 
 This will:
 
-- Check for credentials.json
-- Run OAuth flow (opens browser for consent)
-- Test API connectivity
-- Save refresh token for future use
+- Check for credentials.json in the project root
+- Run OAuth flow (opens browser for consent) if no valid token exists
+- Test API connectivity with your YouTube account
+- Retrieve channel information for a test channel
+- Save refresh token to `token.json` for future use
+
+**What to expect during first run:**
+
+1. Script checks for `credentials.json` ✅
+2. Opens browser to Google OAuth consent page 🌐
+3. You log in with your Google account
+4. You grant permissions to the app (YouTube Data API readonly access)
+5. Browser shows success message ("The authentication flow has completed")
+6. Script tests API connection ✅
+7. Script retrieves sample channel data to verify functionality
+8. Token saved to `token.json` ✅
+9. Script completes successfully 🎉
+
+**Subsequent runs:**
+
+- Script loads existing token from `token.json`
+- Automatically refreshes if expired
+- Tests API connectivity
+- No browser interaction needed
 
 ## Authentication Flow
 
@@ -77,9 +97,35 @@ This will:
 
 ### Subsequent Runs
 
-1. System uses saved refresh token
+1. System uses saved refresh token from `token.json`
 2. Automatically refreshes expired access tokens
 3. No user interaction needed
+4. Token is automatically saved after refresh
+
+### Token Handling Details
+
+The system implements robust token management:
+
+- **Token Persistence**: OAuth tokens are saved to `token.json` in the project root
+- **Automatic Refresh**: Expired tokens are automatically refreshed using the refresh token
+- **Seamless Restarts**: The application works across restarts without re-authentication
+- **Error Recovery**: If token refresh fails, the system initiates a new OAuth flow
+
+#### Token File Structure
+
+The `token.json` file contains:
+```json
+{
+  "token": "access_token_here",
+  "refresh_token": "refresh_token_here",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "client_id": "your_client_id.apps.googleusercontent.com",
+  "client_secret": "your_client_secret",
+  "scopes": ["https://www.googleapis.com/auth/youtube.readonly"]
+}
+```
+
+**Important**: Keep `token.json` secure and never commit it to version control (already in `.gitignore`).
 
 ## API Quotas and Limits
 

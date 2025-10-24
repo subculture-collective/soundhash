@@ -18,6 +18,11 @@ ffmpeg-python==0.2.0
 tweepy==4.16.0
 praw==7.8.1
 
+# Google APIs
+google-api-python-client==2.154.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+
 # Web server for OAuth callbacks
 fastapi==0.119.0
 uvicorn==0.38.0
