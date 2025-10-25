@@ -160,7 +160,7 @@ black src scripts config
 
 The CI status is displayed in the README:
 
-[![CI](https://github.com/onnwee/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/onnwee/soundhash/actions/workflows/ci.yml)
+[![CI](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml)
 
 ## Roadmap to Strict Quality Gates
 
@@ -209,6 +209,6 @@ Consider adding:
 ## Support
 
 For questions or issues with CI:
-1. Check the [Actions tab](https://github.com/onnwee/soundhash/actions) for run details
+1. Check the [Actions tab](https://github.com/subculture-collective/soundhash/actions) for run details
 2. Review the [Contributing Guide](CONTRIBUTING.md)
 3. Open an issue with the `ci` label

@@ -120,7 +120,7 @@ All pull requests are automatically tested using GitHub Actions. The CI pipeline
 
 The current CI status is shown by the badge in the README:
 
-[![CI](https://github.com/onnwee/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/onnwee/soundhash/actions/workflows/ci.yml)
+[![CI](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml)
 
 ## Pull Request Process
 
