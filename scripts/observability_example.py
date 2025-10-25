@@ -43,12 +43,13 @@ def example_metrics_usage():
 
     # Simulate processing
     print("  - Processing 5 videos...")
+    DURATION_VARIANCE = 0.5  # Seconds to add per iteration for simulation
     for i in range(5):
         start = time.time()
         metrics.videos_processed.inc()
         metrics.audio_segments_created.inc(8)
         metrics.fingerprints_extracted.inc(8)
-        duration = time.time() - start + (i * 0.5)  # Simulate varying durations
+        duration = time.time() - start + (i * DURATION_VARIANCE)  # Simulate varying durations
         metrics.processing_duration.observe(duration)
         time.sleep(0.1)
 
@@ -178,10 +179,10 @@ def main():
     print("Summary")
     print("=" * 70)
     print(
-        """
+        f"""
 Key takeaways:
 1. Enable metrics with METRICS_ENABLED=true in .env
-2. Metrics are exposed at http://localhost:9090/metrics by default
+2. Metrics are exposed at http://localhost:{Config.METRICS_PORT}/metrics by default
 3. Health checks verify database, job queue, and repository status
 4. Instrument your code with metrics.*.inc() and metrics.*.observe()
 5. Run periodic health checks to monitor long-running jobs
