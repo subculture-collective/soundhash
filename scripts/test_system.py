@@ -55,7 +55,7 @@ def test_video_processing() -> Dict[str, Any]:
         info = processor.download_video_info(test_url)
 
         if info:
-            print(f"✅ Video info extracted: {info['title'][:50]}...")
+            print(f"✅ Video info extracted: {info.get('title', 'Unknown')[:50]}...")
             print(f"   Duration: {info.get('duration', 'Unknown')} seconds")
             return {"status": "pass", "video_info": info}
         else:
