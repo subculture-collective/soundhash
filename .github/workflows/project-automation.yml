@@ -1,0 +1,46 @@
+---
+name: Project Board Automation
+
+# This workflow automatically manages items on the GitHub Project board
+# Project: "@onnwee's soundhash" (user project)
+#
+# Setup Requirements:
+# 1. Create a Personal Access Token (PAT) with 'project' and 'repo' scopes
+# 2. Add it as a repository secret named PROJECT_TOKEN
+# 3. Update the project-url below with your actual project number
+#
+# To find your project number:
+#   gh project list --owner @me
+#   Or check the URL: github.com/users/USERNAME/projects/NUMBER
+#
+# Note on Status Updates:
+# This workflow handles adding items to the project. For automatic status
+# updates (moving items between columns), use GitHub's built-in project
+# automation workflows:
+#   Project Settings → Workflows → Enable "Item closed", "Pull request merged"
+
+"on":
+  issues:
+    types:
+      - opened
+      - reopened
+  pull_request:
+    types:
+      - opened
+      - reopened
+
+jobs:
+  add-to-project:
+    name: Add to Project Board
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Add issue or PR to project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          # Update this URL with your actual project number
+          # Format: https://github.com/users/USERNAME/projects/PROJECT_NUMBER
+          project-url: https://github.com/users/onnwee/projects/1
+          github-token: ${{ secrets.PROJECT_TOKEN }}

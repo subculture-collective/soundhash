@@ -41,11 +41,66 @@ The project should include the following views:
 
 ### Automation Rules
 
-Configure the following automation:
+The repository includes GitHub Actions workflows to automate project board management:
 
-1. **Auto-add items**: When an issue is created, automatically add it to the project
-2. **Auto-archive**: When an issue is closed, move it to "Done"
-3. **Auto-progress**: When a PR is linked, move issue to "In Progress"
+#### Automated Features (via `.github/workflows/project-automation.yml`)
+
+1. **Auto-add items**: When an issue or PR is created or reopened, automatically add it to the project
+
+**Note**: For automatic status updates (moving items to "Done", "In Review", etc.), use GitHub's built-in project automation workflows rather than custom GitHub Actions. This is more reliable and doesn't require complex GraphQL queries.
+
+#### Setup Requirements
+
+To enable automation, configure the following:
+
+1. **Create Personal Access Token (PAT)**
+   - Go to GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
+   - Create token with:
+     - Resource owner: Your user account
+     - Repository access: Only select repositories → soundhash
+     - Permissions: 
+       - Repository permissions: Issues (Read and write), Pull requests (Read and write)
+       - Organization permissions: Projects (Read and write)
+   - Copy the token
+
+2. **Add Token to Repository**
+   - Go to repository Settings → Secrets and variables → Actions
+   - Click "New repository secret"
+   - Name: `PROJECT_TOKEN`
+   - Value: Paste your PAT
+   - Click "Add secret"
+
+3. **Update Project URL in Workflow**
+   - Find your project number:
+     - Visit <https://github.com/users/onnwee/projects>
+     - Click on "@onnwee's soundhash"
+     - Note the number in the URL (e.g., `/projects/5` means project number is 5)
+   - Edit `.github/workflows/project-automation.yml`
+   - Update the `project-url` line with your actual project number
+
+4. **Test the Automation**
+   - Create a test issue to verify it's automatically added to the project
+
+#### Manual Automation (Recommended for Status Updates)
+
+For automatic status updates when items are closed or PRs are merged, use GitHub's built-in project automation:
+
+1. Open your project at <https://github.com/users/onnwee/projects>
+2. Click "..." menu → "Workflows"
+3. Enable these built-in workflows:
+   - "Auto-add to project" - adds new items automatically (alternative to GitHub Actions)
+   - "Item closed" - moves closed items to Done
+   - "Pull request merged" - updates status when PRs merge
+
+**Recommendation**: Use GitHub Actions for adding items (more reliable) and built-in workflows for status updates (simpler to configure).
+
+#### Automation Status
+
+- ✅ GitHub Actions workflow created (`.github/workflows/project-automation.yml`)
+- ✅ Auto-add functionality implemented
+- ⚠️ Requires `PROJECT_TOKEN` secret configuration
+- ⚠️ Requires project URL verification
+- ℹ️ Status updates: Use GitHub's built-in project workflows (simpler and more reliable)
 
 ### Master Roadmap Issue
 
