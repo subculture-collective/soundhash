@@ -76,6 +76,7 @@ lint:
 
 # Run type checker (mypy)
 # Note: Type checking may report errors that don't fail the build (matches CI behavior)
+# The -@ prefix combines error suppression (-) with quiet mode (@)
 # This allows gradual type annotation improvement without blocking development
 type:
 	@echo "🔍 Running mypy type checker..."
@@ -84,7 +85,7 @@ type:
 # Run tests locally
 test:
 	@echo "🧪 Running tests..."
-	@$(PYTEST) -q tests/
+	@$(PYTEST) -q
 
 # Check code formatting
 format:
