@@ -34,6 +34,9 @@ python-dateutil==2.9.0.post0
 tqdm==4.67.1
 colorlog==6.10.1
 
+# Observability
+prometheus-client==0.21.1
+
 # Development
 pytest==8.4.2
 black==25.9.0
