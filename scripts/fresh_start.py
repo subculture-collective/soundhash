@@ -1,7 +1,37 @@
 #!/usr/bin/env python3
 """
 Fresh Start Script for SoundHash
-Clears all data and prepares for a fresh ingestion run.
+
+This script performs a complete cleanup of all SoundHash data and prepares
+the system for a fresh ingestion run.
+
+⚠️  WARNING: DESTRUCTIVE OPERATION ⚠️
+This script will PERMANENTLY DELETE:
+- All database records (channels, videos, fingerprints, jobs, matches)
+- All temporary audio files and segments
+- All log files
+- All Python cache files
+
+SAFETY CHECKS:
+- Requires explicit confirmation (type 'yes')
+- Only affects the configured database and local temp/log directories
+- Does NOT delete credentials, configuration files, or source code
+- Database schema remains intact (only data is deleted)
+
+RECOMMENDED USE CASES:
+- Starting over with fresh channel ingestion
+- Clearing test data after development
+- Resolving database inconsistencies
+- Freeing up disk space
+
+Before running, ensure:
+1. You have a database backup if needed (though test data can be regenerated)
+2. No critical ingestion jobs are currently running
+3. You're in the correct environment (check .env file)
+
+Usage:
+    python scripts/fresh_start.py        # Interactive with confirmation
+    ./fresh_start.sh                     # Same, but via bash wrapper
 """
 
 import logging
