@@ -75,14 +75,16 @@ lint:
 	@$(RUFF) check $(LINT_DIRS)
 
 # Run type checker (mypy)
+# Note: Type checking may report errors that don't fail the build (matches CI behavior)
+# This allows gradual type annotation improvement without blocking development
 type:
 	@echo "🔍 Running mypy type checker..."
-	@$(MYPY) src scripts || true
+	-@$(MYPY) src scripts
 
 # Run tests locally
 test:
 	@echo "🧪 Running tests..."
-	@$(PYTEST) -q
+	@$(PYTEST) -q tests/
 
 # Check code formatting
 format:
