@@ -432,12 +432,12 @@ alembic upgrade head
 - **Architecture**: See `ARCHITECTURE.md`
 - **YouTube OAuth Setup**: See `YOUTUBE_OAUTH_SETUP.md`
 - **Authentication**: See `AUTH_SETUP.md`
-- **Roadmap**: See `ROADMAP.md` or [Issue #34](https://github.com/onnwee/soundhash/issues/34)
+- **Roadmap**: See `ROADMAP.md` or [Issue #34](https://github.com/subculture-collective/soundhash/issues/34)
 
 ## Support
 
 For issues and questions:
 
-- Check existing [GitHub Issues](https://github.com/onnwee/soundhash/issues)
-- Review the [project roadmap](https://github.com/onnwee/soundhash/issues/34)
+- Check existing [GitHub Issues](https://github.com/subculture-collective/soundhash/issues)
+- Review the [project roadmap](https://github.com/subculture-collective/soundhash/issues/34)
 - See troubleshooting section above

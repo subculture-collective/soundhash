@@ -1,7 +1,7 @@
 # SoundHash - Video Clip Matching System
 
-[![CI](https://github.com/onnwee/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/onnwee/soundhash/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/onnwee/soundhash/branch/main/graph/badge.svg)](https://codecov.io/gh/onnwee/soundhash)
+[![CI](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml/badge.svg)](https://github.com/subculture-collective/soundhash/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/subculture-collective/soundhash/branch/main/graph/badge.svg)](https://codecov.io/gh/subculture-collective/soundhash)
 
 A sophisticated system for matching audio clips from videos across social media platforms using audio fingerprinting and PostgreSQL.
 
@@ -16,7 +16,7 @@ A sophisticated system for matching audio clips from videos across social media 
 
 ## Project Status
 
-📋 **Roadmap**: [Issue #34](https://github.com/onnwee/soundhash/issues/34) | 🗂️ **Project Board**: [@onnwee's soundhash](https://github.com/users/onnwee/projects) | 🏁 **Milestones**: [View all](https://github.com/onnwee/soundhash/milestones)
+📋 **Roadmap**: [Issue #34](https://github.com/subculture-collective/soundhash/issues/34) | 🗂️ **Project Board**: [@onnwee's soundhash](https://github.com/users/onnwee/projects) | 🏁 **Milestones**: [View all](https://github.com/subculture-collective/soundhash/milestones)
 
 ## Features
 
