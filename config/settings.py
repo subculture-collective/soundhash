@@ -27,7 +27,9 @@ class Config:
     REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
     REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT", "soundhash_bot_v1.0")
     REDDIT_REFRESH_TOKEN = os.getenv("REDDIT_REFRESH_TOKEN")
-    REDDIT_SUBREDDITS = os.getenv("REDDIT_SUBREDDITS", "").split(",") if os.getenv("REDDIT_SUBREDDITS") else []
+    REDDIT_SUBREDDITS = (
+        os.getenv("REDDIT_SUBREDDITS", "").split(",") if os.getenv("REDDIT_SUBREDDITS") else []
+    )
 
     # OAuth and Authentication
     CALLBACK_BASE_URL = os.getenv("CALLBACK_BASE_URL", "http://localhost:8000")
@@ -98,6 +100,11 @@ class Config:
     # Bot settings
     BOT_NAME = os.getenv("BOT_NAME", "@soundhash_bot")
     BOT_KEYWORDS = os.getenv("BOT_KEYWORDS", "find clip,source video,original,what song").split(",")
+
+    # Observability settings
+    METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() == "true"
+    METRICS_PORT = int(os.getenv("METRICS_PORT", 9090))
+    HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", 300))  # seconds
 
     @classmethod
     def get_database_url(cls):

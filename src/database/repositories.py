@@ -456,6 +456,24 @@ class JobRepository:
             logger.warning(f"Job creation race condition detected for {target_id}, continuing: {e}")
             return None
 
+    @db_retry()
+    def count_jobs_by_status(self, status: str) -> int:
+        """Count jobs with a specific status with retry on transient errors.
+
+        Args:
+            status: Job status to count (e.g., 'pending', 'running', 'completed', 'failed')
+
+        Returns:
+            Number of jobs with the given status
+        """
+        try:
+            count = self.session.query(ProcessingJob).filter(ProcessingJob.status == status).count()
+            logger.debug(f"Counted {count} jobs with status={status}")
+            return count
+        except (OperationalError, DBAPIError) as e:
+            logger.error(f"Failed to count jobs with status {status}: {e}")
+            raise
+
 
 def get_video_repository() -> VideoRepository:
     """Get a video repository instance.
