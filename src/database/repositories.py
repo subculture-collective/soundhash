@@ -258,6 +258,62 @@ class VideoRepository:
             raise
 
     @db_retry()
+    def create_fingerprints_batch(
+        self, fingerprints_data: list[dict[str, Any]]
+    ) -> list[AudioFingerprint]:
+        """
+        Create multiple audio fingerprints in a single transaction.
+        
+        Args:
+            fingerprints_data: List of dictionaries containing fingerprint data.
+                Each dict should have keys: video_id, start_time, end_time,
+                fingerprint_hash, fingerprint_data, and optional kwargs.
+        
+        Returns:
+            List of created AudioFingerprint objects
+        
+        Example:
+            fingerprints_data = [
+                {
+                    'video_id': 1,
+                    'start_time': 0.0,
+                    'end_time': 10.0,
+                    'fingerprint_hash': 'abc123',
+                    'fingerprint_data': b'...',
+                    'confidence_score': 0.95,
+                    'peak_count': 42
+                },
+                ...
+            ]
+        """
+        try:
+            if not fingerprints_data:
+                return []
+            
+            fingerprints = []
+            for fp_data in fingerprints_data:
+                fingerprint = AudioFingerprint(
+                    video_id=fp_data["video_id"],
+                    start_time=fp_data["start_time"],  # type: ignore[arg-type]
+                    end_time=fp_data["end_time"],  # type: ignore[arg-type]
+                    fingerprint_hash=fp_data["fingerprint_hash"],
+                    fingerprint_data=fp_data["fingerprint_data"],
+                    confidence_score=fp_data.get("confidence_score"),
+                    peak_count=fp_data.get("peak_count"),
+                    sample_rate=fp_data.get("sample_rate"),
+                    segment_length=fp_data.get("segment_length"),
+                )
+                fingerprints.append(fingerprint)
+            
+            self.session.bulk_save_objects(fingerprints, return_defaults=True)
+            self.session.commit()
+            logger.debug(f"Batch created {len(fingerprints)} fingerprints")
+            return fingerprints
+        except (IntegrityError, OperationalError, DBAPIError) as e:
+            logger.error(f"Failed to batch create fingerprints: {e}")
+            raise
+
+    @db_retry()
     def find_matching_fingerprints(self, fingerprint_hash: str) -> list[AudioFingerprint]:
         """Find fingerprints with matching hash with retry on transient errors"""
         try:
@@ -296,6 +352,57 @@ class VideoRepository:
             return match
         except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to create match result: {e}")
+            raise
+
+    @db_retry()
+    def create_match_results_batch(self, matches_data: list[dict[str, Any]]) -> list[MatchResult]:
+        """
+        Create multiple match results in a single transaction.
+        
+        Args:
+            matches_data: List of dictionaries containing match data.
+                Each dict should have keys: query_fingerprint_id, matched_fingerprint_id,
+                similarity_score, and optional kwargs (query_source, query_url, query_user,
+                match_confidence).
+        
+        Returns:
+            List of created MatchResult objects
+        
+        Example:
+            matches_data = [
+                {
+                    'query_fingerprint_id': 1,
+                    'matched_fingerprint_id': 42,
+                    'similarity_score': 0.95,
+                    'match_confidence': 0.90,
+                    'query_source': 'twitter'
+                },
+                ...
+            ]
+        """
+        try:
+            if not matches_data:
+                return []
+            
+            matches = []
+            for match_data in matches_data:
+                match = MatchResult(
+                    query_fingerprint_id=match_data["query_fingerprint_id"],
+                    matched_fingerprint_id=match_data["matched_fingerprint_id"],
+                    similarity_score=match_data["similarity_score"],  # type: ignore[arg-type]
+                    match_confidence=match_data.get("match_confidence"),
+                    query_source=match_data.get("query_source"),
+                    query_url=match_data.get("query_url"),
+                    query_user=match_data.get("query_user"),
+                )
+                matches.append(match)
+            
+            self.session.bulk_save_objects(matches, return_defaults=True)
+            self.session.commit()
+            logger.debug(f"Batch created {len(matches)} match results")
+            return matches
+        except (IntegrityError, OperationalError, DBAPIError) as e:
+            logger.error(f"Failed to batch create match results: {e}")
             raise
 
     @db_retry()
