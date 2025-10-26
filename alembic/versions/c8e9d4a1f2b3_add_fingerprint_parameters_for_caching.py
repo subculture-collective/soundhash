@@ -21,21 +21,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema - add fingerprint extraction parameters for cache invalidation."""
-    # Add n_fft column with default value 2048
+    # Add n_fft column with NOT NULL and default value 2048
+    # PostgreSQL 11+ optimizes adding NOT NULL columns with DEFAULT as a metadata-only
+    # operation, making this instant even on large tables (no table scan/rewrite needed).
+    # This eliminates the need for UPDATE statements.
     op.add_column(
         "audio_fingerprints",
-        sa.Column("n_fft", sa.Integer(), nullable=True, server_default="2048")
+        sa.Column("n_fft", sa.Integer(), nullable=False, server_default="2048")
     )
     
-    # Add hop_length column with default value 512
+    # Add hop_length column with NOT NULL and default value 512
     op.add_column(
         "audio_fingerprints",
-        sa.Column("hop_length", sa.Integer(), nullable=True, server_default="512")
+        sa.Column("hop_length", sa.Integer(), nullable=False, server_default="512")
     )
-    
-    # Update existing rows to have the default values (in case server_default doesn't apply)
-    op.execute("UPDATE audio_fingerprints SET n_fft = 2048 WHERE n_fft IS NULL")
-    op.execute("UPDATE audio_fingerprints SET hop_length = 512 WHERE hop_length IS NULL")
 
 
 def downgrade() -> None:
