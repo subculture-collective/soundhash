@@ -105,7 +105,7 @@ class CleanupService:
             self.logger.warning(f"Temp directory does not exist: {temp_dir}")
             return stats
 
-        cutoff_date = datetime.now() - timedelta(days=self.policy.temp_files_days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=self.policy.temp_files_days)
         self.logger.info(
             f"Cleaning temp files older than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')} "
             f"({self.policy.temp_files_days} days)"
@@ -120,14 +120,14 @@ class CleanupService:
                 stats.files_scanned += 1
 
                 try:
-                    file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC)
                     if file_mtime < cutoff_date:
                         file_size = file_path.stat().st_size
                         if self.dry_run:
                             self.logger.debug(
                                 f"[DRY RUN] Would delete: {file_path} "
                                 f"(size: {stats.format_bytes(file_size)}, "
-                                f"age: {(datetime.now() - file_mtime).days} days)"
+                                f"age: {(datetime.now(UTC) - file_mtime).days} days)"
                             )
                         else:
                             file_path.unlink()
@@ -169,7 +169,7 @@ class CleanupService:
             self.logger.info(f"Log directory does not exist: {log_dir}")
             return stats
 
-        cutoff_date = datetime.now() - timedelta(days=self.policy.log_files_days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=self.policy.log_files_days)
         self.logger.info(
             f"Cleaning log files older than {cutoff_date.strftime('%Y-%m-%d %H:%M:%S')} "
             f"({self.policy.log_files_days} days)"
@@ -186,14 +186,14 @@ class CleanupService:
                     stats.files_scanned += 1
 
                     try:
-                        file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime)
+                        file_mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=UTC)
                         if file_mtime < cutoff_date:
                             file_size = file_path.stat().st_size
                             if self.dry_run:
                                 self.logger.debug(
                                     f"[DRY RUN] Would delete: {file_path} "
                                     f"(size: {stats.format_bytes(file_size)}, "
-                                    f"age: {(datetime.now() - file_mtime).days} days)"
+                                    f"age: {(datetime.now(UTC) - file_mtime).days} days)"
                                 )
                             else:
                                 file_path.unlink()
