@@ -47,6 +47,10 @@ class VideoProcessor:
         # Create temp directory if it doesn't exist
         os.makedirs(self.temp_dir, exist_ok=True)
 
+        # Create cache directory if caching is enabled
+        if Config.ENABLE_YT_DLP_CACHE:
+            os.makedirs(Config.YT_DLP_CACHE_DIR, exist_ok=True)
+
         # Setup yt-dlp configuration for audio download fallback
         self.ydl_opts: dict[str, Any] = {
             "format": "bestaudio/best",
@@ -85,6 +89,10 @@ class VideoProcessor:
                 "--extractor-retries",
                 "2",
             ]
+
+            # Add cache directory if caching is enabled
+            if Config.ENABLE_YT_DLP_CACHE:
+                cmd.extend(["--cache-dir", Config.YT_DLP_CACHE_DIR])
 
             # Add proxy if configured
             if Config.USE_PROXY and (Config.PROXY_URL or Config.PROXY_LIST):
@@ -222,6 +230,10 @@ class VideoProcessor:
                     "--retry-sleep",
                     "exp=1:5",  # Exponential backoff for retries
                 ]
+
+                # Add cache directory if caching is enabled
+                if Config.ENABLE_YT_DLP_CACHE:
+                    cmd.extend(["--cache-dir", Config.YT_DLP_CACHE_DIR])
 
                 # Add proxy if configured
                 if Config.USE_PROXY and (Config.PROXY_URL or Config.PROXY_LIST):
