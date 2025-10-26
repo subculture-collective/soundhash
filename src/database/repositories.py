@@ -302,6 +302,8 @@ class VideoRepository:
                     peak_count=fp_data.get("peak_count"),
                     sample_rate=fp_data.get("sample_rate"),
                     segment_length=fp_data.get("segment_length"),
+                    n_fft=fp_data.get("n_fft", 2048),
+                    hop_length=fp_data.get("hop_length", 512),
                 )
                 fingerprints.append(fingerprint)
 
@@ -311,6 +313,44 @@ class VideoRepository:
             return fingerprints
         except (IntegrityError, OperationalError, DBAPIError) as e:
             logger.error(f"Failed to batch create fingerprints: {e}")
+            raise
+
+    @db_retry()
+    def check_fingerprints_exist(
+        self,
+        video_id: int,
+        sample_rate: int,
+        n_fft: int,
+        hop_length: int,
+    ) -> bool:
+        """
+        Check if fingerprints already exist for a video with matching extraction parameters.
+        
+        This enables fingerprint reuse when parameters haven't changed, avoiding redundant work.
+        
+        Args:
+            video_id: ID of the video to check
+            sample_rate: Sample rate used for audio processing
+            n_fft: FFT window size
+            hop_length: Hop length for STFT
+            
+        Returns:
+            True if fingerprints exist with matching parameters, False otherwise
+        """
+        try:
+            count = (
+                self.session.query(AudioFingerprint)
+                .filter(
+                    AudioFingerprint.video_id == video_id,
+                    AudioFingerprint.sample_rate == sample_rate,
+                    AudioFingerprint.n_fft == n_fft,
+                    AudioFingerprint.hop_length == hop_length,
+                )
+                .count()
+            )
+            return count > 0
+        except (OperationalError, DBAPIError) as e:
+            logger.error(f"Failed to check fingerprint existence for video {video_id}: {e}")
             raise
 
     @db_retry()

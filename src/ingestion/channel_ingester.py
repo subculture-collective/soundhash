@@ -409,6 +409,29 @@ class VideoJobProcessor:
             if not video:
                 raise ValueError(f"Video record not found: {video_id}")
 
+            # Check if fingerprints already exist with current parameters
+            fingerprints_exist = video_repo.check_fingerprints_exist(
+                video_id=int(video.id),  # type: ignore[arg-type]
+                sample_rate=self.fingerprinter.sample_rate,
+                n_fft=self.fingerprinter.n_fft,
+                hop_length=self.fingerprinter.hop_length,
+            )
+
+            if fingerprints_exist:
+                self.logger.info(
+                    f"Fingerprints already exist for video {video_id} with matching parameters "
+                    f"(sample_rate={self.fingerprinter.sample_rate}, n_fft={self.fingerprinter.n_fft}, "
+                    f"hop_length={self.fingerprinter.hop_length}). Skipping re-fingerprinting."
+                )
+                # Mark video as processed and complete the job
+                if video.id:
+                    video_repo.mark_video_processed(video.id, success=True)
+                if job.id:
+                    job_repo.update_job_status(
+                        job.id, "completed", 1.0, "Reused existing fingerprints (cache hit)"
+                    )
+                return
+
             # Mark video as processing started
             video.processing_started = datetime.utcnow()
             video_repo.session.commit()
@@ -457,6 +480,8 @@ class VideoJobProcessor:
                         "peak_count": fingerprint_data["peak_count"],
                         "segment_length": end_time - start_time,
                         "sample_rate": fingerprint_data["sample_rate"],
+                        "n_fft": self.fingerprinter.n_fft,
+                        "hop_length": self.fingerprinter.hop_length,
                     })
 
                     # Update progress

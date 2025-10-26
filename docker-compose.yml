@@ -49,6 +49,7 @@ services:
       # Persistent data directories
       - ./logs:/app/logs
       - ./temp:/app/temp
+      - ./cache:/app/cache
       # Optional: mount for credentials (if needed)
       - ./credentials.json:/app/credentials.json:ro
       - ./token.json:/app/token.json:ro
