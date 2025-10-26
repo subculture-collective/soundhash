@@ -162,6 +162,7 @@ Index("idx_fingerprints_time", AudioFingerprint.start_time, AudioFingerprint.end
 Index("idx_match_results_similarity", MatchResult.similarity_score)
 Index("idx_processing_jobs_status", ProcessingJob.status)
 Index("idx_processing_jobs_type", ProcessingJob.job_type)
+<<<<<<< Updated upstream
 
 # Composite indexes for common query patterns
 Index("idx_fingerprints_video_time", AudioFingerprint.video_id, AudioFingerprint.start_time)
@@ -177,3 +178,5 @@ Index(
     ProcessingJob.job_type,
     ProcessingJob.status,
 )
+=======
+>>>>>>> Stashed changes

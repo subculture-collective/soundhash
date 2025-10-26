@@ -30,6 +30,7 @@ class AudioFingerprinter:
     def __init__(
         self, sample_rate: int | None = None, n_fft: int = 2048, hop_length: int = 512
     ) -> None:
+<<<<<<< Updated upstream
         # Use config default if not specified (explicitly check for None, not falsy)
         if sample_rate is None:
             self.sample_rate = Config.FINGERPRINT_SAMPLE_RATE
@@ -39,6 +40,9 @@ class AudioFingerprinter:
         # Validate parameters
         self._validate_parameters(self.sample_rate, n_fft, hop_length)
 
+=======
+        self.sample_rate = sample_rate or Config.FINGERPRINT_SAMPLE_RATE
+>>>>>>> Stashed changes
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.freq_bins = n_fft // 2 + 1
@@ -285,6 +289,7 @@ class AudioFingerprinter:
     ) -> float | dict[str, float]:
         """
         Compare two fingerprints and return similarity score (0-1).
+<<<<<<< Updated upstream
 
         The similarity metric combines two complementary approaches:
         1. Correlation coefficient: Measures linear relationship (shape similarity)
@@ -329,6 +334,15 @@ class AudioFingerprinter:
             if return_components:
                 return {"correlation": 0.0, "l2_similarity": 0.0, "combined_score": 0.0}
             return 0.0
+=======
+        Uses multiple comparison methods for robustness.
+        """
+        if not fp1.get("compact_fingerprint") or not fp2.get("compact_fingerprint"):
+            return 0.0
+
+        compact1 = fp1["compact_fingerprint"]
+        compact2 = fp2["compact_fingerprint"]
+>>>>>>> Stashed changes
 
         # Ensure same length
         min_len = min(len(compact1), len(compact2))

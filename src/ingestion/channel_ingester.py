@@ -28,6 +28,7 @@ try:
 except ImportError:
     YOUTUBE_API_AVAILABLE = False
 
+<<<<<<< Updated upstream
 # Import metrics if enabled
 if Config.METRICS_ENABLED:
     from src.observability.metrics import metrics
@@ -40,6 +41,8 @@ if Config.ALERTING_ENABLED:
 else:
     alert_manager = None  # type: ignore[assignment]
 
+=======
+>>>>>>> Stashed changes
 
 class ChannelIngester:
     """
@@ -77,7 +80,11 @@ class ChannelIngester:
         max_videos: int | None = None,
         dry_run: bool = False,
     ) -> None:
+<<<<<<< Updated upstream
         """Ingest videos from all configured channels or provided override list with bounded concurrency"""
+=======
+        """Ingest videos from all configured channels or provided override list"""
+>>>>>>> Stashed changes
         channels = channels_override or self.target_channels
         self.logger.info(f"🎯 Starting ingestion for {len(channels)} channels")
         self.logger.info(f"⚙️  Max concurrent channels: {Config.MAX_CONCURRENT_CHANNELS}")
@@ -99,6 +106,7 @@ class ChannelIngester:
 
             async with semaphore:
                 progress.update(increment=0, item_name=f"Channel {channel_id}")
+<<<<<<< Updated upstream
                 success = await self._ingest_channel_with_retry(
                     channel_id.strip(), max_videos=max_videos, dry_run=dry_run
                 )
@@ -106,6 +114,11 @@ class ChannelIngester:
                     results["success"] += 1
                 else:
                     results["failed"] += 1
+=======
+                await self.ingest_channel(
+                    channel_id.strip(), max_videos=max_videos, dry_run=dry_run
+                )
+>>>>>>> Stashed changes
                 progress.update(increment=1)
 
         # Process all channels concurrently with bounded concurrency
@@ -115,6 +128,7 @@ class ChannelIngester:
 
         progress.complete()
 
+<<<<<<< Updated upstream
         # Log summary
         self.logger.info(
             f"📊 Ingestion summary: {results['success']} succeeded, {results['failed']} failed, {results['skipped']} skipped"
@@ -148,6 +162,8 @@ class ChannelIngester:
                     return False
         return False
 
+=======
+>>>>>>> Stashed changes
     async def ingest_channel(
         self, channel_id: str, max_videos: int | None = None, dry_run: bool = False
     ) -> None:
@@ -226,6 +242,7 @@ class ChannelIngester:
                     existing_video = video_repo.get_video_by_id(video_info["id"])
 
                     if existing_video:
+<<<<<<< Updated upstream
                         # Check if job already exists before deciding on update
                         job_already_exists = job_repo.job_exists(
                             "video_process", video_info["id"], statuses=["pending", "running"]
@@ -269,6 +286,38 @@ class ChannelIngester:
                             metrics.videos_ingested.inc()
 
                         # Create processing job for this video (idempotent check)
+=======
+                        # Update existing video if needed
+                        if self._should_update_video(existing_video, video_info):
+                            self._update_video_record(existing_video, video_info, video_repo)
+                            updated_videos += 1
+                    else:
+                        # Create new video record
+                        if dry_run:
+                            self.logger.info(
+                                f"[DRY-RUN] Would create video and job for {video_info['id']}"
+                            )
+                            continue
+
+                        video_repo.create_video(
+                            video_id=video_info["id"],
+                            channel_id=int(channel.id),  # type: ignore[arg-type]
+                            title=video_info.get("title"),
+                            description=video_info.get("description"),
+                            duration=(
+                                float(video_info["duration"])
+                                if video_info.get("duration")
+                                else None
+                            ),
+                            view_count=video_info.get("view_count"),
+                            like_count=video_info.get("like_count"),
+                            upload_date=self._parse_upload_date(video_info.get("upload_date")),
+                            url=video_info.get("webpage_url"),
+                            thumbnail_url=video_info.get("thumbnail"),
+                        )
+
+                        # Create processing job for this video (idempotent)
+>>>>>>> Stashed changes
                         if not job_repo.job_exists(
                             "video_process", video_info["id"], statuses=["pending", "running"]
                         ):
@@ -294,7 +343,10 @@ class ChannelIngester:
                     self.logger.error(
                         f"Error processing video {video_info.get('id', 'unknown')}: {str(e)}"
                     )
+<<<<<<< Updated upstream
                     failed_videos += 1
+=======
+>>>>>>> Stashed changes
                     continue
 
             # Complete remaining progress
@@ -308,8 +360,12 @@ class ChannelIngester:
             video_repo.session.commit()
 
             self.logger.info(
+<<<<<<< Updated upstream
                 f"✅ Channel {channel_id} complete: "
                 f"{new_videos} new, {updated_videos} updated, {duplicate_videos} duplicates, {failed_videos} failed"
+=======
+                f"Channel {channel_id} ingestion complete: {new_videos} new videos, {updated_videos} updated"
+>>>>>>> Stashed changes
             )
 
         except Exception as e:
@@ -393,6 +449,7 @@ class VideoJobProcessor:
                         metrics.processing_errors.labels(error_type=type(e).__name__).inc()
                     if job.id:
                         job_repo.update_job_status(job.id, "failed", error_message=str(e))
+<<<<<<< Updated upstream
                         # Record job failure for alerting
                         if alert_manager:
                             alert_manager.record_job_failure(
@@ -400,12 +457,17 @@ class VideoJobProcessor:
                                 job_id=job.id,
                                 error_message=str(e)[:500]
                             )
+=======
+>>>>>>> Stashed changes
 
     async def process_video_job(
         self, job: Any, video_repo: VideoRepository, job_repo: JobRepository
     ) -> None:
         """Process a single video processing job"""
+<<<<<<< Updated upstream
         start_time = time.time()
+=======
+>>>>>>> Stashed changes
         job_repo.update_job_status(job.id, "running", 0.0, "Starting video processing")
 
         try:
@@ -457,9 +519,15 @@ class VideoJobProcessor:
             if not segments:
                 raise ValueError("Failed to process video or no segments created")
 
+<<<<<<< Updated upstream
             # Track segments created
             if metrics:
                 metrics.audio_segments_created.inc(len(segments))
+=======
+            job_repo.update_job_status(
+                job.id, "running", 0.5, f"Extracting fingerprints from {len(segments)} segments"
+            )
+>>>>>>> Stashed changes
 
             job_repo.update_job_status(
                 job.id, "running", 0.5, f"Extracting fingerprints from {len(segments)} segments"
@@ -483,6 +551,7 @@ class VideoJobProcessor:
                     # Prepare fingerprint data for batch insert
                     serialized_data = self.fingerprinter.serialize_fingerprint(fingerprint_data)
 
+<<<<<<< Updated upstream
                     fingerprints_data.append({
                         "video_id": int(video.id),  # type: ignore[arg-type]
                         "start_time": start_time,
@@ -496,6 +565,27 @@ class VideoJobProcessor:
                         "n_fft": self.fingerprinter.n_fft,
                         "hop_length": self.fingerprinter.hop_length,
                     })
+=======
+                    video_repo.create_fingerprint(
+                        video_id=int(video.id),  # type: ignore[arg-type]
+                        start_time=start_time,
+                        end_time=end_time,
+                        fingerprint_hash=fingerprint_data["fingerprint_hash"],
+                        fingerprint_data=serialized_data,
+                        confidence_score=fingerprint_data["confidence_score"],
+                        peak_count=fingerprint_data["peak_count"],
+                        segment_length=end_time - start_time,
+                        sample_rate=fingerprint_data["sample_rate"],
+                    )
+
+                    fingerprints_created += 1
+
+                    # Clean up segment file
+                    import os
+
+                    if os.path.exists(segment_file):
+                        os.remove(segment_file)
+>>>>>>> Stashed changes
 
                     # Update progress
                     progress_value = 0.5 + (0.4 * (i + 1) / len(segments))
@@ -538,11 +628,14 @@ class VideoJobProcessor:
                     job.id, "completed", 1.0, f"Created {fingerprints_created} fingerprints"
                 )
 
+<<<<<<< Updated upstream
             # Track processing duration and success
             if metrics:
                 metrics.processing_duration.observe(time.time() - start_time)
                 metrics.videos_processed.inc()
 
+=======
+>>>>>>> Stashed changes
             self.logger.info(
                 f"Successfully processed video {video_id}: {fingerprints_created} fingerprints"
             )
