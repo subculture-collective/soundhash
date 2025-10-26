@@ -45,6 +45,10 @@ class Config:
     )  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
 
+    # Caching
+    YT_DLP_CACHE_DIR = os.getenv("YT_DLP_CACHE_DIR", "./cache/yt-dlp")
+    ENABLE_YT_DLP_CACHE = os.getenv("ENABLE_YT_DLP_CACHE", "true").lower() == "true"
+
     # Similarity search thresholds and weights
     # Thresholds for considering a match valid
     SIMILARITY_CORRELATION_THRESHOLD = float(os.getenv("SIMILARITY_CORRELATION_THRESHOLD", "0.70"))

@@ -83,6 +83,10 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     # Audio characteristics
     sample_rate = Column(Integer, default=22050)
     segment_length = Column(Float)  # Length of this segment
+    
+    # Fingerprint extraction parameters (for cache invalidation)
+    n_fft = Column(Integer, default=2048)  # FFT window size used for extraction
+    hop_length = Column(Integer, default=512)  # Hop length used for extraction
 
     # Quality metrics
     confidence_score = Column(Float)  # Confidence in fingerprint quality
