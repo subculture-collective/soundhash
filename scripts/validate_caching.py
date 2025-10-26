@@ -108,17 +108,22 @@ def validate_migration():
     print("✓ Checking database migration...")
     
     migrations_dir = project_root / "alembic" / "versions"
-    migration_files = list(migrations_dir.glob("*_add_fingerprint_parameters_for_caching.py"))
+    migration_files = list(migrations_dir.glob("*.py"))
     
-    assert len(migration_files) == 1, "Should have migration for fingerprint parameters"
+    # Look for migration that adds n_fft and hop_length columns
+    found_migration = False
+    for migration_file in migration_files:
+        if migration_file.name.startswith("__"):
+            continue
+        migration_content = migration_file.read_text()
+        if "n_fft" in migration_content and "hop_length" in migration_content and "audio_fingerprints" in migration_content:
+            found_migration = True
+            print(f"  ✓ Found migration file: {migration_file.name}")
+            assert "add_column" in migration_content.lower() or "Column" in migration_content, "Migration should add columns"
+            print("  ✓ Migration adds required columns")
+            break
     
-    migration_content = migration_files[0].read_text()
-    assert "n_fft" in migration_content, "Migration should add n_fft column"
-    assert "hop_length" in migration_content, "Migration should add hop_length column"
-    
-    print("  ✓ Migration file exists")
-    print("  ✓ Migration adds n_fft column")
-    print("  ✓ Migration adds hop_length column")
+    assert found_migration, "Should have migration that adds n_fft and hop_length to audio_fingerprints"
 
 
 def validate_documentation():

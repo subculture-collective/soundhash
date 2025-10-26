@@ -7,7 +7,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from config.settings import Config
+from src.core.audio_fingerprinting import AudioFingerprinter
 from src.core.video_processor import VideoProcessor
+from src.database.repositories import VideoRepository
 
 
 class TestYtDlpCaching:
@@ -99,9 +101,6 @@ class TestFingerprintCaching:
 
     def test_check_fingerprints_exist_returns_false_for_new_video(self):
         """Test that check_fingerprints_exist returns False for videos without fingerprints."""
-        from unittest.mock import MagicMock
-        from src.database.repositories import VideoRepository
-        
         # Create a mock session
         mock_session = MagicMock()
         mock_query = MagicMock()
@@ -123,9 +122,6 @@ class TestFingerprintCaching:
 
     def test_check_fingerprints_exist_returns_true_for_existing(self):
         """Test that check_fingerprints_exist returns True when fingerprints exist with matching params."""
-        from unittest.mock import MagicMock
-        from src.database.repositories import VideoRepository
-        
         # Create a mock session
         mock_session = MagicMock()
         mock_query = MagicMock()
@@ -147,9 +143,6 @@ class TestFingerprintCaching:
 
     def test_check_fingerprints_exist_returns_false_for_different_params(self):
         """Test that check_fingerprints_exist returns False when params don't match."""
-        from unittest.mock import MagicMock
-        from src.database.repositories import VideoRepository
-        
         # Create a mock session
         mock_session = MagicMock()
         mock_query = MagicMock()
@@ -171,8 +164,6 @@ class TestFingerprintCaching:
 
     def test_fingerprint_data_includes_extraction_params(self):
         """Test that fingerprint data includes n_fft and hop_length parameters."""
-        from src.core.audio_fingerprinting import AudioFingerprinter
-        
         fingerprinter = AudioFingerprinter(sample_rate=22050, n_fft=2048, hop_length=512)
         
         # Verify the parameters are stored
