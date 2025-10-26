@@ -287,6 +287,7 @@ Docker Compose mounts several directories for data persistence and development:
 
 - **`./logs`** → `/app/logs` - Application logs persist on host
 - **`./temp`** → `/app/temp` - Temporary audio files persist on host
+- **`./cache`** → `/app/cache` - yt-dlp HTTP cache for faster re-downloads
 - **`./src`** → `/app/src` - Source code (read-only, for hot-reload in dev)
 - **`./scripts`** → `/app/scripts` - Scripts (read-only)
 - **`postgres_data`** - Named volume for PostgreSQL data (managed by Docker)
@@ -295,6 +296,26 @@ Docker Compose mounts several directories for data persistence and development:
 - `./credentials.json` → `/app/credentials.json` - YouTube OAuth credentials
 - `./token.json` → `/app/token.json` - OAuth refresh token
 - `./cookies.txt` → `/app/cookies.txt` - Browser cookies for yt-dlp
+
+**Caching Configuration**:
+SoundHash uses caching to reduce redundant work and bandwidth usage:
+
+1. **yt-dlp HTTP Cache**: Speeds up re-downloading the same videos
+   - Location: `./cache/yt-dlp` (configurable via `YT_DLP_CACHE_DIR`)
+   - Enable/disable: `ENABLE_YT_DLP_CACHE=true/false` (default: true)
+   
+2. **Fingerprint Reuse**: Skips re-fingerprinting when parameters haven't changed
+   - Automatically checks if fingerprints exist with matching `sample_rate`, `n_fft`, and `hop_length`
+   - Invalidates cache if any fingerprinting parameters change in config
+   
+To clear caches:
+```bash
+# Clear yt-dlp cache
+rm -rf ./cache/yt-dlp
+
+# Force re-fingerprinting (requires database changes)
+# Update fingerprinting parameters in .env (e.g., change FINGERPRINT_SAMPLE_RATE)
+```
 
 #### Common Docker Operations
 
