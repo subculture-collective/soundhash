@@ -154,3 +154,11 @@ Index("idx_fingerprints_time", AudioFingerprint.start_time, AudioFingerprint.end
 Index("idx_match_results_similarity", MatchResult.similarity_score)
 Index("idx_processing_jobs_status", ProcessingJob.status)
 Index("idx_processing_jobs_type", ProcessingJob.job_type)
+
+# Composite indexes for common query patterns
+Index("idx_fingerprints_video_time", AudioFingerprint.video_id, AudioFingerprint.start_time)
+Index("idx_fingerprints_hash_video", AudioFingerprint.fingerprint_hash, AudioFingerprint.video_id)
+Index("idx_match_results_query_fp", MatchResult.query_fingerprint_id, MatchResult.similarity_score)
+Index("idx_match_results_matched_fp", MatchResult.matched_fingerprint_id, MatchResult.similarity_score)
+Index("idx_processing_jobs_type_status", ProcessingJob.job_type, ProcessingJob.status)
+Index("idx_processing_jobs_target", ProcessingJob.target_id, ProcessingJob.job_type, ProcessingJob.status)

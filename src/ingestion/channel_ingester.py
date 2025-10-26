@@ -149,7 +149,6 @@ class ChannelIngester:
         Ingest videos from a specific channel.
         Creates channel and video records, then queues processing jobs.
         """
-        start_time = time.time()
         self.logger.info(f"📺 Starting ingestion for channel: {channel_id}")
 
         try:
@@ -430,8 +429,9 @@ class VideoJobProcessor:
                 job.id, "running", 0.5, f"Extracting fingerprints from {len(segments)} segments"
             )
 
-            # Process each segment
-            fingerprints_created = 0
+            # Process each segment and collect fingerprint data for batch insert
+            fingerprints_data = []
+            failed_segments = 0
 
             for i, (segment_file, start_time, end_time) in enumerate(segments):
                 try:
@@ -444,22 +444,20 @@ class VideoJobProcessor:
                         metrics.fingerprint_duration.observe(time.time() - fingerprint_start)
                         metrics.fingerprints_extracted.inc()
 
-                    # Store fingerprint in database
+                    # Prepare fingerprint data for batch insert
                     serialized_data = self.fingerprinter.serialize_fingerprint(fingerprint_data)
 
-                    video_repo.create_fingerprint(
-                        video_id=int(video.id),  # type: ignore[arg-type]
-                        start_time=start_time,
-                        end_time=end_time,
-                        fingerprint_hash=fingerprint_data["fingerprint_hash"],
-                        fingerprint_data=serialized_data,
-                        confidence_score=fingerprint_data["confidence_score"],
-                        peak_count=fingerprint_data["peak_count"],
-                        segment_length=end_time - start_time,
-                        sample_rate=fingerprint_data["sample_rate"],
-                    )
-
-                    fingerprints_created += 1
+                    fingerprints_data.append({
+                        "video_id": int(video.id),  # type: ignore[arg-type]
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "fingerprint_hash": fingerprint_data["fingerprint_hash"],
+                        "fingerprint_data": serialized_data,
+                        "confidence_score": fingerprint_data["confidence_score"],
+                        "peak_count": fingerprint_data["peak_count"],
+                        "segment_length": end_time - start_time,
+                        "sample_rate": fingerprint_data["sample_rate"],
+                    })
 
                     # Update progress
                     progress_value = 0.5 + (0.4 * (i + 1) / len(segments))
@@ -472,7 +470,22 @@ class VideoJobProcessor:
 
                 except Exception as e:
                     self.logger.error(f"Error processing segment {start_time}-{end_time}: {str(e)}")
+                    failed_segments += 1
                     continue
+
+            # Batch insert all fingerprints in a single transaction
+            if fingerprints_data:
+                try:
+                    video_repo.create_fingerprints_batch(fingerprints_data)
+                    fingerprints_created = len(fingerprints_data)
+                    self.logger.info(
+                        f"Batch inserted {fingerprints_created} fingerprints for video {video_id}"
+                    )
+                except Exception as e:
+                    self.logger.error(f"Failed to batch insert fingerprints: {e}")
+                    raise
+            else:
+                fingerprints_created = 0
 
             # Clean up segments based on configuration
             if Config.CLEANUP_SEGMENTS_AFTER_PROCESSING:
