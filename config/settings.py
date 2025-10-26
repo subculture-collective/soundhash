@@ -106,6 +106,13 @@ class Config:
     METRICS_PORT = int(os.getenv("METRICS_PORT", 9090))
     HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", 300))  # seconds
 
+    # Data retention and cleanup settings
+    RETENTION_TEMP_FILES_DAYS = int(os.getenv("RETENTION_TEMP_FILES_DAYS", 7))  # Keep temp files for 7 days
+    RETENTION_LOG_FILES_DAYS = int(os.getenv("RETENTION_LOG_FILES_DAYS", 30))  # Keep log files for 30 days
+    RETENTION_COMPLETED_JOBS_DAYS = int(os.getenv("RETENTION_COMPLETED_JOBS_DAYS", 30))  # Keep completed jobs for 30 days
+    RETENTION_FAILED_JOBS_DAYS = int(os.getenv("RETENTION_FAILED_JOBS_DAYS", 90))  # Keep failed jobs longer for debugging
+    LOG_DIR = os.getenv("LOG_DIR", "./logs")  # Directory for log files
+
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:
