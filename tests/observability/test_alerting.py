@@ -1,6 +1,5 @@
 """Tests for the alerting system."""
 
-import time
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -20,7 +19,7 @@ class TestFailureEvent:
             failure_type="rate_limit",
             details="HTTP 429 for test URL"
         )
-        
+
         assert event.timestamp == timestamp
         assert event.failure_type == "rate_limit"
         assert event.details == "HTTP 429 for test URL"
@@ -39,7 +38,7 @@ class TestAlertManager:
             mock_config.ALERT_RATE_LIMIT_THRESHOLD = 3
             mock_config.ALERT_JOB_FAILURE_THRESHOLD = 5
             mock_config.ALERT_TIME_WINDOW_MINUTES = 10
-            
+
             manager = AlertManager()
             return manager
 
@@ -53,7 +52,7 @@ class TestAlertManager:
             mock_config.ALERT_RATE_LIMIT_THRESHOLD = 3
             mock_config.ALERT_JOB_FAILURE_THRESHOLD = 5
             mock_config.ALERT_TIME_WINDOW_MINUTES = 10
-            
+
             manager = AlertManager()
             return manager
 
@@ -76,16 +75,16 @@ class TestAlertManager:
         # Add some old events
         old_time = datetime.now() - timedelta(minutes=20)
         recent_time = datetime.now()
-        
+
         alert_manager.rate_limit_failures.append(
             FailureEvent(old_time, "rate_limit", "old event")
         )
         alert_manager.rate_limit_failures.append(
             FailureEvent(recent_time, "rate_limit", "recent event")
         )
-        
+
         alert_manager._clean_old_events(alert_manager.rate_limit_failures)
-        
+
         # Only recent event should remain
         assert len(alert_manager.rate_limit_failures) == 1
         assert alert_manager.rate_limit_failures[0].details == "recent event"
@@ -110,9 +109,9 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         result = alert_manager._send_slack_alert("Test Alert", "Test details")
-        
+
         assert result is True
         assert mock_post.called
         call_args = mock_post.call_args
@@ -123,9 +122,9 @@ class TestAlertManager:
     def test_send_slack_alert_failure(self, mock_post, alert_manager):
         """Test Slack alert failure handling."""
         mock_post.side_effect = Exception("Network error")
-        
+
         result = alert_manager._send_slack_alert("Test Alert", "Test details")
-        
+
         assert result is False
 
     @patch('src.observability.alerting.requests.post')
@@ -134,9 +133,9 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         result = alert_manager._send_discord_alert("Test Alert", "Test details")
-        
+
         assert result is True
         assert mock_post.called
 
@@ -144,9 +143,9 @@ class TestAlertManager:
     def test_send_discord_alert_failure(self, mock_post, alert_manager):
         """Test Discord alert failure handling."""
         mock_post.side_effect = Exception("Network error")
-        
+
         result = alert_manager._send_discord_alert("Test Alert", "Test details")
-        
+
         assert result is False
 
     def test_record_rate_limit_failure_disabled(self, disabled_alert_manager):
@@ -154,7 +153,7 @@ class TestAlertManager:
         disabled_alert_manager.record_rate_limit_failure(
             "429", "https://test.com", "Too many requests"
         )
-        
+
         assert len(disabled_alert_manager.rate_limit_failures) == 0
 
     def test_record_rate_limit_failure_below_threshold(self, alert_manager):
@@ -165,7 +164,7 @@ class TestAlertManager:
         alert_manager.record_rate_limit_failure(
             "403", "https://test.com/2", "Forbidden"
         )
-        
+
         assert len(alert_manager.rate_limit_failures) == 2
         assert alert_manager.last_rate_limit_alert is None
 
@@ -175,13 +174,13 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         # Record failures up to threshold
         for i in range(alert_manager.rate_limit_threshold):
             alert_manager.record_rate_limit_failure(
                 "429", f"https://test.com/{i}", "Too many requests"
             )
-        
+
         # Alert should have been sent
         assert alert_manager.last_rate_limit_alert is not None
         assert mock_post.called
@@ -192,21 +191,21 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         # Trigger first alert
         for i in range(alert_manager.rate_limit_threshold):
             alert_manager.record_rate_limit_failure(
                 "429", f"https://test.com/{i}", "Too many requests"
             )
-        
+
         first_call_count = mock_post.call_count
-        
+
         # Try to trigger second alert immediately (should be blocked by cooldown)
         for i in range(alert_manager.rate_limit_threshold):
             alert_manager.record_rate_limit_failure(
                 "429", f"https://test.com/second_{i}", "Too many requests"
             )
-        
+
         # Should not have sent another alert
         assert mock_post.call_count == first_call_count
 
@@ -215,7 +214,7 @@ class TestAlertManager:
         disabled_alert_manager.record_job_failure(
             "video_process", 123, "Test error"
         )
-        
+
         assert len(disabled_alert_manager.job_failures) == 0
 
     def test_record_job_failure_below_threshold(self, alert_manager):
@@ -226,7 +225,7 @@ class TestAlertManager:
         alert_manager.record_job_failure(
             "video_process", 124, "Test error 2"
         )
-        
+
         assert len(alert_manager.job_failures) == 2
         assert alert_manager.last_job_failure_alert is None
 
@@ -236,13 +235,13 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         # Record failures up to threshold
         for i in range(alert_manager.job_failure_threshold):
             alert_manager.record_job_failure(
                 "video_process", 100 + i, f"Test error {i}"
             )
-        
+
         # Alert should have been sent
         assert alert_manager.last_job_failure_alert is not None
         assert mock_post.called
@@ -252,9 +251,9 @@ class TestAlertManager:
         # Add some failures
         alert_manager.record_rate_limit_failure("429", "https://test.com", "Test")
         alert_manager.record_job_failure("video_process", 123, "Test error")
-        
+
         status = alert_manager.get_status()
-        
+
         assert status["enabled"] is True
         assert status["rate_limit_failures"] == 1
         assert status["rate_limit_threshold"] == 3
@@ -270,15 +269,15 @@ class TestAlertManager:
         # Record a failure
         alert_manager.record_rate_limit_failure("429", "https://test.com", "Test")
         assert len(alert_manager.rate_limit_failures) == 1
-        
+
         # Manually set timestamp to old time
         alert_manager.rate_limit_failures[0].timestamp = (
             datetime.now() - timedelta(minutes=20)
         )
-        
+
         # Get status (triggers cleanup)
         status = alert_manager.get_status()
-        
+
         # Old failure should be cleaned up
         assert status["rate_limit_failures"] == 0
 
@@ -288,18 +287,18 @@ class TestAlertManager:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
-        
+
         # Trigger rate limit alert
         for i in range(alert_manager.rate_limit_threshold):
             alert_manager.record_rate_limit_failure(
                 "429", f"https://test.com/{i}", "Too many requests"
             )
-        
+
         # Check that alert was sent with remediation
         assert mock_post.called
         call_args = mock_post.call_args
         payload = call_args[1]["json"]
-        
+
         # Check for remediation keywords in payload
         payload_str = str(payload).lower()
         assert "recommended" in payload_str or "remediation" in payload_str
