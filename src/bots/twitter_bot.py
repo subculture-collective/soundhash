@@ -271,7 +271,9 @@ class TwitterBot:
 
         try:
             response = self._post_match_summary_impl(summary)
-            self.logger.info(f"Posted match summary tweet: {response.data.get('id') if response.data else 'unknown'}")
+            self.logger.info(
+                f"Posted match summary tweet: {response.data.get('id') if response.data else 'unknown'}"
+            )
             return True
         except (TooManyRequests, TwitterServerError) as e:
             self.logger.error(f"Failed to post match summary after retries: {str(e)}")

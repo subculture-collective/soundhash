@@ -8,13 +8,13 @@ It's useful for testing your webhook configuration without running the full inge
 Usage:
     # Test rate limit alerts
     python scripts/test_alerting.py --test rate-limits
-    
+
     # Test job failure alerts
     python scripts/test_alerting.py --test job-failures
-    
+
     # Test both
     python scripts/test_alerting.py --test all
-    
+
     # Check alert status
     python scripts/test_alerting.py --status
 
@@ -49,9 +49,11 @@ def test_rate_limit_alerts(count: int = 5):
         time.sleep(0.5)  # Small delay between failures
 
     status = alert_manager.get_status()
-    logger.info(f"Current status: {status['rate_limit_failures']}/{status['rate_limit_threshold']} rate limit failures")
+    logger.info(
+        f"Current status: {status['rate_limit_failures']}/{status['rate_limit_threshold']} rate limit failures"
+    )
 
-    if status['rate_limit_failures'] >= status['rate_limit_threshold']:
+    if status["rate_limit_failures"] >= status["rate_limit_threshold"]:
         logger.log_success("✓ Rate limit threshold exceeded - alert should have been sent!")
     else:
         logger.log_warning_box(
@@ -77,9 +79,11 @@ def test_job_failure_alerts(count: int = 10):
         time.sleep(0.5)  # Small delay between failures
 
     status = alert_manager.get_status()
-    logger.info(f"Current status: {status['job_failures']}/{status['job_failure_threshold']} job failures")
+    logger.info(
+        f"Current status: {status['job_failures']}/{status['job_failure_threshold']} job failures"
+    )
 
-    if status['job_failures'] >= status['job_failure_threshold']:
+    if status["job_failures"] >= status["job_failure_threshold"]:
         logger.log_success("✓ Job failure threshold exceeded - alert should have been sent!")
     else:
         logger.log_warning_box(
@@ -98,19 +102,25 @@ def show_status():
     status = alert_manager.get_status()
 
     logger.info(f"Alerting Enabled: {status['enabled']}")
-    logger.info(f"Webhooks Configured: Slack={status['webhooks_configured']['slack']}, "
-               f"Discord={status['webhooks_configured']['discord']}")
+    logger.info(
+        f"Webhooks Configured: Slack={status['webhooks_configured']['slack']}, "
+        f"Discord={status['webhooks_configured']['discord']}"
+    )
     logger.info("")
-    logger.info(f"Rate Limit Failures: {status['rate_limit_failures']}/{status['rate_limit_threshold']} "
-               f"(within {status['time_window_minutes']} minutes)")
-    logger.info(f"Job Failures: {status['job_failures']}/{status['job_failure_threshold']} "
-               f"(within {status['time_window_minutes']} minutes)")
+    logger.info(
+        f"Rate Limit Failures: {status['rate_limit_failures']}/{status['rate_limit_threshold']} "
+        f"(within {status['time_window_minutes']} minutes)"
+    )
+    logger.info(
+        f"Job Failures: {status['job_failures']}/{status['job_failure_threshold']} "
+        f"(within {status['time_window_minutes']} minutes)"
+    )
 
-    if not status['enabled']:
-        logger.log_warning_box(
-            "Alerting is DISABLED. Set ALERTING_ENABLED=true in .env to enable."
-        )
-    elif not status['webhooks_configured']['slack'] and not status['webhooks_configured']['discord']:
+    if not status["enabled"]:
+        logger.log_warning_box("Alerting is DISABLED. Set ALERTING_ENABLED=true in .env to enable.")
+    elif (
+        not status["webhooks_configured"]["slack"] and not status["webhooks_configured"]["discord"]
+    ):
         logger.log_warning_box(
             "No webhooks configured. Set SLACK_WEBHOOK_URL or DISCORD_WEBHOOK_URL in .env."
         )
@@ -124,22 +134,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="Test SoundHash alerting system",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
     parser.add_argument(
-        "--test",
-        choices=["rate-limits", "job-failures", "all"],
-        help="Type of alert to test"
+        "--test", choices=["rate-limits", "job-failures", "all"], help="Type of alert to test"
     )
+    parser.add_argument("--status", action="store_true", help="Show alert manager status")
     parser.add_argument(
-        "--status",
-        action="store_true",
-        help="Show alert manager status"
-    )
-    parser.add_argument(
-        "--count",
-        type=int,
-        help="Number of failures to simulate (default: threshold + 1)"
+        "--count", type=int, help="Number of failures to simulate (default: threshold + 1)"
     )
 
     args = parser.parse_args()
@@ -158,7 +160,7 @@ def main():
         status = alert_manager.get_status()
 
         if args.test in ["rate-limits", "all"]:
-            count = args.count or status['rate_limit_threshold'] + 1
+            count = args.count or status["rate_limit_threshold"] + 1
             test_rate_limit_alerts(count)
 
             if args.test == "all":
@@ -166,7 +168,7 @@ def main():
                 time.sleep(2)  # Brief pause between tests
 
         if args.test in ["job-failures", "all"]:
-            count = args.count or status['job_failure_threshold'] + 1
+            count = args.count or status["job_failure_threshold"] + 1
             test_job_failure_alerts(count)
 
     else:

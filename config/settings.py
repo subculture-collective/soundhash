@@ -111,28 +111,46 @@ class Config:
     HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", 300))  # seconds
 
     # Data retention and cleanup settings
-    RETENTION_TEMP_FILES_DAYS = int(os.getenv("RETENTION_TEMP_FILES_DAYS", 7))  # Keep temp files for 7 days
-    RETENTION_LOG_FILES_DAYS = int(os.getenv("RETENTION_LOG_FILES_DAYS", 30))  # Keep log files for 30 days
-    RETENTION_COMPLETED_JOBS_DAYS = int(os.getenv("RETENTION_COMPLETED_JOBS_DAYS", 30))  # Keep completed jobs for 30 days
-    RETENTION_FAILED_JOBS_DAYS = int(os.getenv("RETENTION_FAILED_JOBS_DAYS", 90))  # Keep failed jobs longer for debugging
+    RETENTION_TEMP_FILES_DAYS = int(
+        os.getenv("RETENTION_TEMP_FILES_DAYS", 7)
+    )  # Keep temp files for 7 days
+    RETENTION_LOG_FILES_DAYS = int(
+        os.getenv("RETENTION_LOG_FILES_DAYS", 30)
+    )  # Keep log files for 30 days
+    RETENTION_COMPLETED_JOBS_DAYS = int(
+        os.getenv("RETENTION_COMPLETED_JOBS_DAYS", 30)
+    )  # Keep completed jobs for 30 days
+    RETENTION_FAILED_JOBS_DAYS = int(
+        os.getenv("RETENTION_FAILED_JOBS_DAYS", 90)
+    )  # Keep failed jobs longer for debugging
     LOG_DIR = os.getenv("LOG_DIR", "./logs")  # Directory for log files
 
     # Alerting settings
     ALERTING_ENABLED = os.getenv("ALERTING_ENABLED", "false").lower() == "true"
     SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")  # Slack incoming webhook URL
     DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")  # Discord webhook URL
-    
+
     # Failure thresholds for alerts
-    ALERT_RATE_LIMIT_THRESHOLD = int(os.getenv("ALERT_RATE_LIMIT_THRESHOLD", 5))  # 429/403 errors in time window
-    ALERT_JOB_FAILURE_THRESHOLD = int(os.getenv("ALERT_JOB_FAILURE_THRESHOLD", 10))  # Failed jobs in time window
-    ALERT_TIME_WINDOW_MINUTES = int(os.getenv("ALERT_TIME_WINDOW_MINUTES", 15))  # Time window for counting failures
+    ALERT_RATE_LIMIT_THRESHOLD = int(
+        os.getenv("ALERT_RATE_LIMIT_THRESHOLD", 5)
+    )  # 429/403 errors in time window
+    ALERT_JOB_FAILURE_THRESHOLD = int(
+        os.getenv("ALERT_JOB_FAILURE_THRESHOLD", 10)
+    )  # Failed jobs in time window
+    ALERT_TIME_WINDOW_MINUTES = int(
+        os.getenv("ALERT_TIME_WINDOW_MINUTES", 15)
+    )  # Time window for counting failures
 
     # Backup settings
     BACKUP_DIR = os.getenv("BACKUP_DIR", "./backups")  # Local directory for database backups
     BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))  # Keep backups for 30 days
-    BACKUP_S3_ENABLED = os.getenv("BACKUP_S3_ENABLED", "false").lower() == "true"  # Enable S3 backup storage
+    BACKUP_S3_ENABLED = (
+        os.getenv("BACKUP_S3_ENABLED", "false").lower() == "true"
+    )  # Enable S3 backup storage
     BACKUP_S3_BUCKET = os.getenv("BACKUP_S3_BUCKET")  # S3 bucket name for backups
-    BACKUP_S3_PREFIX = os.getenv("BACKUP_S3_PREFIX", "soundhash-backups/")  # S3 key prefix for backups
+    BACKUP_S3_PREFIX = os.getenv(
+        "BACKUP_S3_PREFIX", "soundhash-backups/"
+    )  # S3 key prefix for backups
 
     @classmethod
     def get_database_url(cls):

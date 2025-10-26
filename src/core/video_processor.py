@@ -33,12 +33,8 @@ class VideoProcessor:
     """
 
     def __init__(
-        self,
-<<<<<<< Updated upstream
-        temp_dir: str | None = None,
-=======
-        temp_dir: str = "./temp",
->>>>>>> Stashed changes
+    self,
+    temp_dir: str | None = None,
         segment_length: int | None = None,
         youtube_service: Any | None = None,
     ) -> None:
@@ -552,11 +548,7 @@ class VideoProcessor:
                     segment_id += 1
                 else:
                     self.logger.warning(
-<<<<<<< Updated upstream
                         f"Failed to extract segment {start_time:.2f}s - {end_time:.2f}s from {audio_file}"
-=======
-                        f"Failed to extract segment {start_time}-{end_time} from {audio_file}"
->>>>>>> Stashed changes
                     )
 
                 start_time = end_time

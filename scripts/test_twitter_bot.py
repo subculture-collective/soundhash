@@ -23,15 +23,17 @@ from src.bots.twitter_bot import TwitterBot
 def test_twitter_auth():
     """Test Twitter API authentication."""
     print("Testing Twitter API authentication...")
-    
+
     # Check if credentials are configured
-    if not all([
-        Config.TWITTER_BEARER_TOKEN,
-        Config.TWITTER_CONSUMER_KEY,
-        Config.TWITTER_CONSUMER_SECRET,
-        Config.TWITTER_ACCESS_TOKEN,
-        Config.TWITTER_ACCESS_TOKEN_SECRET,
-    ]):
+    if not all(
+        [
+            Config.TWITTER_BEARER_TOKEN,
+            Config.TWITTER_CONSUMER_KEY,
+            Config.TWITTER_CONSUMER_SECRET,
+            Config.TWITTER_ACCESS_TOKEN,
+            Config.TWITTER_ACCESS_TOKEN_SECRET,
+        ]
+    ):
         print("❌ Twitter API credentials not fully configured")
         print("\nPlease set the following environment variables:")
         print("  - TWITTER_BEARER_TOKEN")
@@ -40,7 +42,7 @@ def test_twitter_auth():
         print("  - TWITTER_ACCESS_TOKEN")
         print("  - TWITTER_ACCESS_TOKEN_SECRET")
         return False
-    
+
     try:
         bot = TwitterBot()
         print("✅ Twitter API client initialized successfully")
@@ -53,10 +55,10 @@ def test_twitter_auth():
 def test_post_message(dry_run=True):
     """Test posting a message to Twitter."""
     print("\nTesting message posting...")
-    
+
     if dry_run:
         print("ℹ️  Running in dry-run mode (won't actually post)")
-        
+
         # Create sample match data
         sample_matches = [
             {
@@ -76,41 +78,41 @@ def test_post_message(dry_run=True):
                 "confidence": 0.87,
             },
         ]
-        
+
         # Format message as bot would
         summary = "🎵 Audio Match Results\n\n"
         summary += f"Found {len(sample_matches)} match(es):\n\n"
-        
+
         for i, match in enumerate(sample_matches, 1):
             title = match["title"][:40] + "..." if len(match["title"]) > 40 else match["title"]
             start_time = int(match["start_time"])
             end_time = int(match["end_time"])
-            
+
             summary += f"{i}. {title}\n"
             summary += f"   ⏰ {start_time}s-{end_time}s\n"
             summary += f"   🔗 {match['url']}\n\n"
-        
+
         print("\n📝 Sample tweet that would be posted:")
         print("=" * 60)
         print(summary)
         print("=" * 60)
         print(f"Length: {len(summary)} characters (limit: 280)")
-        
+
         if len(summary) > 280:
             print("⚠️  Warning: Tweet exceeds character limit and would be truncated")
             print("\n📝 Truncated version:")
             print("=" * 60)
             print(summary[:277] + "...")
             print("=" * 60)
-        
+
         print("✅ Message formatting test passed")
         return True
     else:
         print("ℹ️  Attempting to post a real test message...")
-        
+
         try:
             bot = TwitterBot()
-            
+
             # Create simple test matches
             test_matches = [
                 {
@@ -122,16 +124,16 @@ def test_post_message(dry_run=True):
                     "confidence": 0.99,
                 }
             ]
-            
+
             success = bot.post_match_summary(test_matches, query_url="https://example.com/query")
-            
+
             if success:
                 print("✅ Successfully posted test message to Twitter!")
                 return True
             else:
                 print("❌ Failed to post message (check logs for details)")
                 return False
-                
+
         except Exception as e:
             print(f"❌ Error posting message: {e}")
             return False
@@ -140,34 +142,33 @@ def test_post_message(dry_run=True):
 def main():
     """Run all tests."""
     logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    
+
     print("=" * 60)
     print("Twitter Bot Test Suite")
     print("=" * 60)
-    
+
     # Test 1: Authentication
     auth_ok = test_twitter_auth()
-    
+
     if not auth_ok:
         print("\n❌ Authentication failed. Cannot proceed with other tests.")
         sys.exit(1)
-    
+
     # Test 2: Message formatting (dry run)
     format_ok = test_post_message(dry_run=True)
-    
+
     # Test 3: Actual posting (if user confirms)
     print("\n" + "=" * 60)
     response = input("Do you want to post a real test message to Twitter? (y/N): ")
-    
-    if response.lower() == 'y':
+
+    if response.lower() == "y":
         post_ok = test_post_message(dry_run=False)
     else:
         print("ℹ️  Skipping real post test")
         post_ok = True
-    
+
     # Summary
     print("\n" + "=" * 60)
     print("Test Results:")
@@ -175,7 +176,7 @@ def main():
     print(f"  Message Format: {'✅' if format_ok else '❌'}")
     print(f"  Post Message:   {'✅' if post_ok else '⏭️  Skipped'}")
     print("=" * 60)
-    
+
     if auth_ok and format_ok and post_ok:
         print("\n✅ All tests passed!")
         sys.exit(0)

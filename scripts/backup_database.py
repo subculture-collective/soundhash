@@ -20,6 +20,7 @@ from config.settings import Config
 
 class BackupError(Exception):
     """Custom exception for backup errors."""
+
     pass
 
 
@@ -89,8 +90,9 @@ class DatabaseBackup:
         cmd = [
             "pg_dump",
             "-Fc",  # Custom format (compressed)
-            "-v",   # Verbose
-            "-f", str(backup_path),
+            "-v",  # Verbose
+            "-f",
+            str(backup_path),
         ]
 
         # Add connection parameters
@@ -187,7 +189,9 @@ class DatabaseBackup:
 
             # Upload with progress
             file_size = backup_path.stat().st_size
-            self.logger.info(f"Uploading {file_size / 1024 / 1024:.2f} MB to s3://{self.s3_bucket}/{s3_key}")
+            self.logger.info(
+                f"Uploading {file_size / 1024 / 1024:.2f} MB to s3://{self.s3_bucket}/{s3_key}"
+            )
 
             s3_client.upload_file(
                 str(backup_path),

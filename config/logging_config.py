@@ -197,17 +197,13 @@ def create_section_logger(name, description=""):
     logger.log_section_start = lambda title, description="": log_section_start(
         logger, title, description
     )
-    logger.log_section_end = lambda title, success=True: log_section_end(
-        logger, title, success
-    )
+    logger.log_section_end = lambda title, success=True: log_section_end(logger, title, success)
     logger.log_step = lambda step_num, description, details="": log_step(
         logger, step_num, description, details
     )
     logger.log_success = lambda message: log_success(logger, message)
     logger.log_warning_box = lambda message: log_warning_box(logger, message)
-    logger.log_error_box = lambda message, details="": log_error_box(
-        logger, message, details
-    )
+    logger.log_error_box = lambda message, details="": log_error_box(logger, message, details)
 
     return logger
 
