@@ -638,7 +638,10 @@ psql soundhash_test -c "SELECT COUNT(*) FROM videos;"
 psql soundhash_test -c "SELECT COUNT(*) FROM audio_fingerprints;"
 
 # 5. Clean up test database
+# If you have PostgreSQL client tools installed locally:
 dropdb soundhash_test
+# Or, if your database is running in Docker Compose:
+docker compose exec postgres dropdb -U soundhash soundhash_test
 ```
 
 **Backup best practices**:
