@@ -19,6 +19,12 @@ try:
 except ImportError:
     YOUTUBE_API_AVAILABLE = False
 
+# Import alert manager if alerting is enabled
+if Config.ALERTING_ENABLED:
+    from src.observability.alerting import alert_manager
+else:
+    alert_manager = None  # type: ignore[assignment]
+
 
 class VideoProcessor:
     """
@@ -368,6 +374,9 @@ class VideoProcessor:
                         "3) Try different player client (YT_PLAYER_CLIENT=android); "
                         "4) Verify video is accessible in your browser."
                     )
+                    # Record alert for 403 errors
+                    if alert_manager:
+                        alert_manager.record_rate_limit_failure("403", url, err_text[:200])
                     if should_retry:
                         self.logger.info("Retrying with exponential backoff...")
                         continue
@@ -381,6 +390,9 @@ class VideoProcessor:
                         "3) Configure proxy rotation (PROXY_LIST=proxy1,proxy2,...); "
                         "4) Wait before retrying (system will auto-retry with backoff)."
                     )
+                    # Record alert for 429 errors
+                    if alert_manager:
+                        alert_manager.record_rate_limit_failure("429", url, err_text[:200])
                     if should_retry:
                         # Longer backoff for rate limits
                         extra_delay = random.uniform(10, 30)
