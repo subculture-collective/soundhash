@@ -622,7 +622,10 @@ BACKUP_S3_PREFIX=soundhash-backups/
 **Verify backup integrity** by restoring to a fresh database:
 ```bash
 # 1. Create a test database
+# If you have PostgreSQL client tools installed locally:
 createdb soundhash_test
+# Or, if you are using Docker Compose for PostgreSQL:
+docker compose exec postgres createdb -U soundhash soundhash_test
 
 # 2. Create a backup from production
 python scripts/backup_database.py --name test_restore
