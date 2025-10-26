@@ -83,7 +83,7 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     # Audio characteristics
     sample_rate = Column(Integer, default=22050)
     segment_length = Column(Float)  # Length of this segment
-    
+
     # Fingerprint extraction parameters (for cache invalidation)
     n_fft = Column(Integer, nullable=False, default=2048)  # FFT window size used for extraction
     hop_length = Column(Integer, nullable=False, default=512)  # Hop length used for extraction
@@ -163,6 +163,13 @@ Index("idx_processing_jobs_type", ProcessingJob.job_type)
 Index("idx_fingerprints_video_time", AudioFingerprint.video_id, AudioFingerprint.start_time)
 Index("idx_fingerprints_hash_video", AudioFingerprint.fingerprint_hash, AudioFingerprint.video_id)
 Index("idx_match_results_query_fp", MatchResult.query_fingerprint_id, MatchResult.similarity_score)
-Index("idx_match_results_matched_fp", MatchResult.matched_fingerprint_id, MatchResult.similarity_score)
+Index(
+    "idx_match_results_matched_fp", MatchResult.matched_fingerprint_id, MatchResult.similarity_score
+)
 Index("idx_processing_jobs_type_status", ProcessingJob.job_type, ProcessingJob.status)
-Index("idx_processing_jobs_target", ProcessingJob.target_id, ProcessingJob.job_type, ProcessingJob.status)
+Index(
+    "idx_processing_jobs_target",
+    ProcessingJob.target_id,
+    ProcessingJob.job_type,
+    ProcessingJob.status,
+)

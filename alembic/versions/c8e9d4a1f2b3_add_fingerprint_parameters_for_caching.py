@@ -6,17 +6,17 @@ Create Date: 2025-10-26 14:24:00.000000
 
 """
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "c8e9d4a1f2b3"
-down_revision: Union[str, Sequence[str], None] = "b9532a7d8c7a"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = "b9532a7d8c7a"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -27,13 +27,13 @@ def upgrade() -> None:
     # This eliminates the need for UPDATE statements.
     op.add_column(
         "audio_fingerprints",
-        sa.Column("n_fft", sa.Integer(), nullable=False, server_default="2048")
+        sa.Column("n_fft", sa.Integer(), nullable=False, server_default="2048"),
     )
-    
+
     # Add hop_length column with NOT NULL and default value 512
     op.add_column(
         "audio_fingerprints",
-        sa.Column("hop_length", sa.Integer(), nullable=False, server_default="512")
+        sa.Column("hop_length", sa.Integer(), nullable=False, server_default="512"),
     )
 
 
