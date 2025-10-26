@@ -234,9 +234,99 @@ git commit -m "Add tags field to Video model"
 git push
 ```
 
+## Migration Validation
+
+### Robust Validation Using AST Parsing
+
+SoundHash provides a robust migration validator that parses Python AST instead of using naive string searching. This avoids false positives from comments or unrelated context.
+
+**Using the MigrationValidator:**
+
+```python
+from pathlib import Path
+from src.database.migration_validator import MigrationValidator
+
+# Load a migration file
+migration_file = Path("alembic/versions/abc123_my_migration.py")
+validator = MigrationValidator(migration_file)
+
+# Check for specific operations
+if validator.has_operation("create_index", function="upgrade"):
+    print("Migration creates an index")
+
+# Get all create_index operations
+indexes = validator.get_operations("create_index", function="upgrade")
+for idx in indexes:
+    print(f"Creates index: {idx['args']}")
+
+# Check if migration modifies a specific table
+if validator.has_table_modification("audio_fingerprints"):
+    print("Migration modifies audio_fingerprints table")
+
+# Get all tables modified by this migration
+tables = validator.get_modified_tables()
+print(f"Modified tables: {tables}")
+
+# Validate specific index creation
+if validator.validates_index_creation(index_name="idx_my_index"):
+    print("Migration creates idx_my_index")
+```
+
+**Why AST Parsing Instead of String Search:**
+
+❌ **Naive approach (produces false positives):**
+```python
+# Bad: Matches comments and strings
+migration_content = Path("migration.py").read_text()
+if "create_index" in migration_content:  # Matches comments!
+    print("Has index")
+```
+
+✅ **Robust approach (parses actual code):**
+```python
+# Good: Only matches actual operations
+validator = MigrationValidator("migration.py")
+if validator.has_operation("create_index"):
+    print("Has index")
+```
+
+**Example: Validating a Migration Has Required Operations**
+
+```python
+from pathlib import Path
+from src.database.migration_validator import MigrationValidator
+
+def validate_composite_index_migration():
+    """Validate that composite index migration has all required indexes."""
+    migration = Path("alembic/versions/b9532a7d8c7a_add_composite_indexes_for_performance.py")
+    validator = MigrationValidator(migration)
+    
+    required_indexes = [
+        "idx_fingerprints_video_time",
+        "idx_fingerprints_hash_video",
+        "idx_match_results_query_fp",
+        "idx_match_results_matched_fp",
+        "idx_processing_jobs_type_status",
+        "idx_processing_jobs_target",
+    ]
+    
+    for index_name in required_indexes:
+        assert validator.validates_index_creation(index_name=index_name), \
+            f"Migration should create {index_name}"
+    
+    print("✓ All required indexes present in migration")
+
+validate_composite_index_migration()
+```
+
+### Testing Migration Validators
+
+See `tests/database/test_migration_validator.py` for comprehensive examples of using the validator in tests.
+
 ## More Information
 
 - [Alembic Tutorial](https://alembic.sqlalchemy.org/en/latest/tutorial.html)
 - [Alembic Auto-generate](https://alembic.sqlalchemy.org/en/latest/autogenerate.html)
 - [Project INSTALL.md](INSTALL.md) - Installation and setup
 - [alembic/README](alembic/README) - Detailed migration reference
+- [MigrationValidator API](../src/database/migration_validator.py) - Robust migration validation utilities
