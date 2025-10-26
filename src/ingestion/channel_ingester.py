@@ -149,7 +149,6 @@ class ChannelIngester:
         Ingest videos from a specific channel.
         Creates channel and video records, then queues processing jobs.
         """
-        start_time = time.time()
         self.logger.info(f"📺 Starting ingestion for channel: {channel_id}")
 
         try:
@@ -447,7 +446,7 @@ class VideoJobProcessor:
 
                     # Prepare fingerprint data for batch insert
                     serialized_data = self.fingerprinter.serialize_fingerprint(fingerprint_data)
-                    
+
                     fingerprints_data.append({
                         "video_id": int(video.id),  # type: ignore[arg-type]
                         "start_time": start_time,

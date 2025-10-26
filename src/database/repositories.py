@@ -263,15 +263,15 @@ class VideoRepository:
     ) -> list[AudioFingerprint]:
         """
         Create multiple audio fingerprints in a single transaction.
-        
+
         Args:
             fingerprints_data: List of dictionaries containing fingerprint data.
                 Each dict should have keys: video_id, start_time, end_time,
                 fingerprint_hash, fingerprint_data, and optional kwargs.
-        
+
         Returns:
             List of created AudioFingerprint objects
-        
+
         Example:
             fingerprints_data = [
                 {
@@ -289,7 +289,7 @@ class VideoRepository:
         try:
             if not fingerprints_data:
                 return []
-            
+
             fingerprints = []
             for fp_data in fingerprints_data:
                 fingerprint = AudioFingerprint(
@@ -304,7 +304,7 @@ class VideoRepository:
                     segment_length=fp_data.get("segment_length"),
                 )
                 fingerprints.append(fingerprint)
-            
+
             self.session.bulk_save_objects(fingerprints, return_defaults=True)
             self.session.commit()
             logger.debug(f"Batch created {len(fingerprints)} fingerprints")
@@ -358,16 +358,16 @@ class VideoRepository:
     def create_match_results_batch(self, matches_data: list[dict[str, Any]]) -> list[MatchResult]:
         """
         Create multiple match results in a single transaction.
-        
+
         Args:
             matches_data: List of dictionaries containing match data.
                 Each dict should have keys: query_fingerprint_id, matched_fingerprint_id,
                 similarity_score, and optional kwargs (query_source, query_url, query_user,
                 match_confidence).
-        
+
         Returns:
             List of created MatchResult objects
-        
+
         Example:
             matches_data = [
                 {
@@ -383,7 +383,7 @@ class VideoRepository:
         try:
             if not matches_data:
                 return []
-            
+
             matches = []
             for match_data in matches_data:
                 match = MatchResult(
@@ -396,7 +396,7 @@ class VideoRepository:
                     query_user=match_data.get("query_user"),
                 )
                 matches.append(match)
-            
+
             self.session.bulk_save_objects(matches, return_defaults=True)
             self.session.commit()
             logger.debug(f"Batch created {len(matches)} match results")
