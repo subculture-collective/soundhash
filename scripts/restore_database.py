@@ -28,7 +28,7 @@ class DatabaseRestore:
     def __init__(
         self,
         backup_dir: str | None = None,
-        s3_enabled: bool = False,
+        s3_enabled: bool | None = None,
         s3_bucket: str | None = None,
         s3_prefix: str | None = None,
     ):

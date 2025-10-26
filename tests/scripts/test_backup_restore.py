@@ -191,6 +191,48 @@ class TestDatabaseBackup:
         assert bytes_freed > 0
         assert old_backup.exists()
 
+    def test_s3_enabled_fallback_to_config(self, temp_dir):
+        """Test that s3_enabled falls back to config when not specified."""
+        with patch.object(backup_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = True  # Config says True
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is not specified, should use config value
+            backup = DatabaseBackup(backup_dir=temp_dir)
+
+            assert backup.s3_enabled is True  # Should use config value
+
+    def test_s3_enabled_explicit_false_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=False overrides config."""
+        with patch.object(backup_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = True  # Config says True
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is explicitly False, should override config
+            backup = DatabaseBackup(backup_dir=temp_dir, s3_enabled=False)
+
+            assert backup.s3_enabled is False  # Should override config
+
+    def test_s3_enabled_explicit_true_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=True overrides config."""
+        with patch.object(backup_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = False  # Config says False
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is explicitly True, should override config
+            backup = DatabaseBackup(backup_dir=temp_dir, s3_enabled=True)
+
+            assert backup.s3_enabled is True  # Should override config
+
 
 class TestDatabaseRestore:
     """Test suite for DatabaseRestore class."""
@@ -289,3 +331,42 @@ class TestDatabaseRestore:
             restore.restore_backup(invalid_file)
 
         assert "Invalid backup file format" in str(exc_info.value)
+
+    def test_s3_enabled_fallback_to_config(self, temp_dir):
+        """Test that s3_enabled falls back to config when not specified."""
+        with patch.object(restore_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = True  # Config says True
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is not specified, should use config value
+            restore = DatabaseRestore(backup_dir=temp_dir)
+
+            assert restore.s3_enabled is True  # Should use config value
+
+    def test_s3_enabled_explicit_false_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=False overrides config."""
+        with patch.object(restore_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = True  # Config says True
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is explicitly False, should override config
+            restore = DatabaseRestore(backup_dir=temp_dir, s3_enabled=False)
+
+            assert restore.s3_enabled is False  # Should override config
+
+    def test_s3_enabled_explicit_true_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=True overrides config."""
+        with patch.object(restore_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = False  # Config says False
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+
+            # When s3_enabled is explicitly True, should override config
+            restore = DatabaseRestore(backup_dir=temp_dir, s3_enabled=True)
+
+            assert restore.s3_enabled is True  # Should override config
