@@ -127,6 +127,13 @@ class Config:
     ALERT_JOB_FAILURE_THRESHOLD = int(os.getenv("ALERT_JOB_FAILURE_THRESHOLD", 10))  # Failed jobs in time window
     ALERT_TIME_WINDOW_MINUTES = int(os.getenv("ALERT_TIME_WINDOW_MINUTES", 15))  # Time window for counting failures
 
+    # Backup settings
+    BACKUP_DIR = os.getenv("BACKUP_DIR", "./backups")  # Local directory for database backups
+    BACKUP_RETENTION_DAYS = int(os.getenv("BACKUP_RETENTION_DAYS", 30))  # Keep backups for 30 days
+    BACKUP_S3_ENABLED = os.getenv("BACKUP_S3_ENABLED", "false").lower() == "true"  # Enable S3 backup storage
+    BACKUP_S3_BUCKET = os.getenv("BACKUP_S3_BUCKET")  # S3 bucket name for backups
+    BACKUP_S3_PREFIX = os.getenv("BACKUP_S3_PREFIX", "soundhash-backups/")  # S3 key prefix for backups
+
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:
