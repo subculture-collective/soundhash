@@ -117,6 +117,16 @@ class Config:
     RETENTION_FAILED_JOBS_DAYS = int(os.getenv("RETENTION_FAILED_JOBS_DAYS", 90))  # Keep failed jobs longer for debugging
     LOG_DIR = os.getenv("LOG_DIR", "./logs")  # Directory for log files
 
+    # Alerting settings
+    ALERTING_ENABLED = os.getenv("ALERTING_ENABLED", "false").lower() == "true"
+    SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")  # Slack incoming webhook URL
+    DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")  # Discord webhook URL
+    
+    # Failure thresholds for alerts
+    ALERT_RATE_LIMIT_THRESHOLD = int(os.getenv("ALERT_RATE_LIMIT_THRESHOLD", 5))  # 429/403 errors in time window
+    ALERT_JOB_FAILURE_THRESHOLD = int(os.getenv("ALERT_JOB_FAILURE_THRESHOLD", 10))  # Failed jobs in time window
+    ALERT_TIME_WINDOW_MINUTES = int(os.getenv("ALERT_TIME_WINDOW_MINUTES", 15))  # Time window for counting failures
+
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:

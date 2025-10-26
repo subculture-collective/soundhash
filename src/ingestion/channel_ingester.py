@@ -34,6 +34,12 @@ if Config.METRICS_ENABLED:
 else:
     metrics = None  # type: ignore[assignment]
 
+# Import alert manager if alerting is enabled
+if Config.ALERTING_ENABLED:
+    from src.observability.alerting import alert_manager
+else:
+    alert_manager = None  # type: ignore[assignment]
+
 
 class ChannelIngester:
     """
@@ -387,6 +393,13 @@ class VideoJobProcessor:
                         metrics.processing_errors.labels(error_type=type(e).__name__).inc()
                     if job.id:
                         job_repo.update_job_status(job.id, "failed", error_message=str(e))
+                        # Record job failure for alerting
+                        if alert_manager:
+                            alert_manager.record_job_failure(
+                                job_type="video_process",
+                                job_id=job.id,
+                                error_message=str(e)[:500]
+                            )
 
     async def process_video_job(
         self, job: Any, video_repo: VideoRepository, job_repo: JobRepository
