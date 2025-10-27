@@ -785,21 +785,6 @@ class VideoRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    """
-    The section below was automatically neutralized due to unresolved merge artifacts.
-    """
-
-    @db_retry()
-    def create_channel(
-        self, channel_id: str, channel_name: str | None = None, description: str | None = None
-    ) -> Channel:
-        """Create a new channel record with retry on transient errors"""
-        try:
-            channel = Channel(
-                channel_id=channel_id, channel_name=channel_name, description=description
-            )
-            self.session.add(channel)
-
     def create_channel(
         self, channel_id: str, channel_name: str | None = None, description: str | None = None
     ) -> Channel:
@@ -855,59 +840,7 @@ class VideoRepository:
                 video.processing_error = error_message
 
             self.session.commit()
-            logger.debug(f"Created channel: {channel_id}")
-            return channel
-        except (IntegrityError, OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to create channel {channel_id}: {e}")
-            raise
 
-<<<<<<< Updated upstream
-    @db_retry()
-    def get_channel_by_id(self, channel_id: str) -> Channel | None:
-        """Get channel by YouTube channel ID with retry on transient errors"""
-        try:
-            return self.session.query(Channel).filter(Channel.channel_id == channel_id).first()
-        except (OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to get channel {channel_id}: {e}")
-            raise
-
-    @db_retry()
-    def create_video(
-        self,
-        video_id: str,
-        channel_id: int,
-        title: str | None = None,
-        duration: float | None = None,
-        url: str | None = None,
-        **kwargs: Any,
-    ) -> Video:
-        """Create a new video record with retry on transient errors"""
-        try:
-            video = Video(
-                video_id=video_id,
-                channel_id=channel_id,
-                title=title,
-                duration=duration,  # type: ignore[arg-type]
-                url=url,
-                **kwargs,
-            )
-            self.session.add(video)
-            self.session.commit()
-            logger.debug(f"Created video: {video_id}")
-            return video
-        except (IntegrityError, OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to create video {video_id}: {e}")
-            raise
-
-    @db_retry()
-    def get_video_by_id(self, video_id: str) -> Video | None:
-        """Get video by YouTube video ID with retry on transient errors"""
-        try:
-            return self.session.query(Video).filter(Video.video_id == video_id).first()
-        except (OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to get video {video_id}: {e}")
-            raise
-=======
     def create_fingerprint(
         self,
         video_id: int,
@@ -961,7 +894,6 @@ class VideoRepository:
         self.session.add(match)
         self.session.commit()
         return match
->>>>>>> Stashed changes
 
     @db_retry()
     def get_unprocessed_videos(self, limit: int = 100) -> list[Video]:
@@ -1210,20 +1142,6 @@ class VideoRepository:
 
     @db_retry()
     def get_top_matches(self, query_fp_id: int, limit: int = 10) -> list[MatchResult]:
-<<<<<<< Updated upstream
-        """Get top matches for a query fingerprint with retry on transient errors"""
-        try:
-            return (
-                self.session.query(MatchResult)
-                .filter(MatchResult.query_fingerprint_id == query_fp_id)
-                .order_by(MatchResult.similarity_score.desc())
-                .limit(limit)
-                .all()
-            )
-        except (OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to get top matches for fingerprint {query_fp_id}: {e}")
-            raise
-=======
         """Get top matches for a query fingerprint"""
         return (
             self.session.query(MatchResult)
@@ -1232,20 +1150,12 @@ class VideoRepository:
             .limit(limit)
             .all()
         )
->>>>>>> Stashed changes
 
 
 class JobRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-<<<<<<< Updated upstream
-    @db_retry()
-    def create_job(
-        self, job_type: str, target_id: str, parameters: str | None = None
-    ) -> ProcessingJob:
-        """Create a new processing job with retry on transient errors.
-=======
     def create_job(
         self, job_type: str, target_id: str, parameters: str | None = None
     ) -> ProcessingJob:
@@ -1310,21 +1220,6 @@ class JobRepository:
                 job.started_at = datetime.utcnow()
             elif status in ["completed", "failed"]:
                 job.completed_at = datetime.utcnow()
->>>>>>> Stashed changes
-
-        Note: Always check job_exists() before calling this to ensure idempotency.
-        """
-        try:
-            job = ProcessingJob(
-                job_type=job_type, target_id=target_id, parameters=parameters, status="pending"
-            )
-            self.session.add(job)
-            self.session.commit()
-            logger.debug(f"Created job: type={job_type}, target={target_id}")
-            return job
-        except (IntegrityError, OperationalError, DBAPIError) as e:
-            logger.error(f"Failed to create job {job_type} for {target_id}: {e}")
-            raise
 
     @db_retry()
     def get_pending_jobs(self, job_type: str | None = None, limit: int = 10) -> list[ProcessingJob]:
