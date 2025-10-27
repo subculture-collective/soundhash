@@ -1,0 +1,27 @@
+[run]
+source = src
+omit =
+    */tests/*
+    */migrations/*
+    */__pycache__/*
+    */test_*.py
+
+[report]
+precision = 2
+fail_under = 80
+show_missing = True
+skip_covered = False
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
