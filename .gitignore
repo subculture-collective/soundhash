@@ -54,8 +54,10 @@ id_rsa*
 .ssh/
 
 # API Keys and Tokens (backup patterns)
+# Ignore files with API keys but not Python migration files in alembic
 *_secret_key*
 *_api_key*
+!alembic/versions/*_api_key*.py
 *_access_token*
 *.credentials
 
