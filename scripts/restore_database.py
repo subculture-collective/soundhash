@@ -29,7 +29,7 @@ class DatabaseRestore:
     def __init__(
         self,
         backup_dir: str | None = None,
-        s3_enabled: bool = False,
+        s3_enabled: bool | None = None,
         s3_bucket: str | None = None,
         s3_prefix: str | None = None,
     ):
@@ -38,7 +38,7 @@ class DatabaseRestore:
 
         Args:
             backup_dir: Directory containing backups (default: from config)
-            s3_enabled: Whether to download from S3 (default: from config)
+            s3_enabled: Whether to download from S3. If None, uses Config.BACKUP_S3_ENABLED
             s3_bucket: S3 bucket name (default: from config)
             s3_prefix: S3 key prefix (default: from config)
         """
