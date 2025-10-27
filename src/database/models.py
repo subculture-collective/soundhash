@@ -18,6 +18,53 @@ from sqlalchemy.orm import DeclarativeMeta, Mapped, relationship
 Base: DeclarativeMeta = declarative_base()  # type: ignore[assignment]
 
 
+class User(Base):  # type: ignore[misc,valid-type]
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(100), unique=True, nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255))
+    
+    # User status
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    last_login = Column(DateTime)
+    
+    # Relationships
+    api_keys: Mapped[list["APIKey"]] = relationship("APIKey", back_populates="user")  # type: ignore[assignment]
+
+
+class APIKey(Base):  # type: ignore[misc,valid-type]
+    __tablename__ = "api_keys"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    key_name = Column(String(100), nullable=False)
+    key_hash = Column(String(255), unique=True, nullable=False)
+    key_prefix = Column(String(20), nullable=False)  # First few chars for identification
+    
+    # Rate limiting
+    rate_limit_per_minute = Column(Integer, default=60, nullable=False)
+    
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+    expires_at = Column(DateTime)
+    last_used_at = Column(DateTime)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="api_keys")  # type: ignore[assignment]
+
+
 class Channel(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "channels"
 
@@ -149,6 +196,12 @@ class ProcessingJob(Base):  # type: ignore[misc,valid-type]
 
 
 # Indexes for performance
+Index("idx_users_username", User.username)
+Index("idx_users_email", User.email)
+Index("idx_users_is_active", User.is_active)
+Index("idx_api_keys_user_id", APIKey.user_id)
+Index("idx_api_keys_key_hash", APIKey.key_hash)
+Index("idx_api_keys_is_active", APIKey.is_active)
 Index("idx_videos_channel_id", Video.channel_id)
 Index("idx_videos_video_id", Video.video_id)
 Index("idx_videos_processed", Video.processed)

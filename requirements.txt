@@ -26,6 +26,16 @@ google-auth-oauthlib==1.2.1
 # Web server for OAuth callbacks
 fastapi==0.119.0
 uvicorn==0.38.0
+pydantic==2.10.5
+pydantic-settings==2.7.1
+
+# API Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# API Rate Limiting
+slowapi==0.1.9
 
 # Utilities
 python-dotenv==1.1.1

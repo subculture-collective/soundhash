@@ -36,6 +36,19 @@ class Config:
     AUTH_SERVER_HOST = os.getenv("AUTH_SERVER_HOST", "0.0.0.0")
     AUTH_SERVER_PORT = int(os.getenv("AUTH_SERVER_PORT", 8000))
 
+    # API Configuration
+    API_HOST = os.getenv("API_HOST", "0.0.0.0")
+    API_PORT = int(os.getenv("API_PORT", 8000))
+    API_SECRET_KEY = os.getenv("API_SECRET_KEY", "dev-secret-key-change-in-production")
+    API_ALGORITHM = os.getenv("API_ALGORITHM", "HS256")
+    API_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("API_ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    API_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("API_REFRESH_TOKEN_EXPIRE_DAYS", 7))
+    API_RATE_LIMIT_PER_MINUTE = int(os.getenv("API_RATE_LIMIT_PER_MINUTE", 60))
+    API_CORS_ORIGINS = os.getenv("API_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+    API_TITLE = os.getenv("API_TITLE", "SoundHash API")
+    API_VERSION = os.getenv("API_VERSION", "1.0.0")
+    API_DESCRIPTION = os.getenv("API_DESCRIPTION", "Audio fingerprinting and matching API")
+
     # Processing
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
     MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", 3))
