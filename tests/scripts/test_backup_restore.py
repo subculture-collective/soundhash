@@ -56,15 +56,51 @@ class TestDatabaseBackup:
         assert backup.s3_bucket == "test-bucket"
         assert backup.s3_prefix == "test-prefix/"
 
+    def test_init_s3_enabled_none_uses_config(self, temp_dir):
+        """Test that s3_enabled=None falls back to config value."""
+        with patch.object(backup_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = True  # Config says enabled
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
+
+            # When s3_enabled is not passed (defaults to None), use config
+            backup = DatabaseBackup()
+
+            assert backup.s3_enabled is True  # Should use config value
+
+    def test_init_s3_enabled_false_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=False overrides config."""
+        with patch.object(backup_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = True  # Config says enabled
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
+
+            # Explicitly pass False to override config
+            backup = DatabaseBackup(s3_enabled=False)
+
+            assert backup.s3_enabled is False  # Should use explicit False, not config
+
     def test_backup_dir_created(self, temp_dir):
         """Test that backup directory is created if it doesn't exist."""
-        backup_dir = Path(temp_dir) / "new_backup_dir"
-        assert not backup_dir.exists()
+        with patch.object(backup_database, "Config") as mock_config:
+            # Mock all Config attributes used in __init__
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = False
+            mock_config.BACKUP_S3_BUCKET = None
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
 
-        DatabaseBackup(backup_dir=str(backup_dir))
+            backup_dir = Path(temp_dir) / "new_backup_dir"
+            assert not backup_dir.exists()
 
-        assert backup_dir.exists()
-        assert backup_dir.is_dir()
+            DatabaseBackup(backup_dir=str(backup_dir))
+
+            assert backup_dir.exists()
+            assert backup_dir.is_dir()
 
     @patch.object(backup_database.subprocess, "run")
     @patch.object(backup_database, "Config")
@@ -136,102 +172,76 @@ class TestDatabaseBackup:
         """Test cleanup of old backup files."""
         from datetime import datetime, timedelta, timezone
 
-        backup_dir = Path(temp_dir)
+        with patch.object(backup_database, "Config") as mock_config:
+            # Mock all Config attributes used in __init__
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_RETENTION_DAYS = 30
+            mock_config.BACKUP_S3_ENABLED = False
+            mock_config.BACKUP_S3_BUCKET = None
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
 
-        # Create some test backup files with different ages
-        now = datetime.now(timezone.utc)
-        old_time = (now - timedelta(days=40)).timestamp()
-        recent_time = (now - timedelta(days=10)).timestamp()
+            backup_dir = Path(temp_dir)
 
-        old_backup = backup_dir / "old_backup_20240101_120000.dump"
-        recent_backup = backup_dir / "recent_backup_20240201_120000.dump"
+            # Create some test backup files with different ages
+            now = datetime.now(timezone.utc)
+            old_time = (now - timedelta(days=40)).timestamp()
+            recent_time = (now - timedelta(days=10)).timestamp()
 
-        old_backup.write_text("old backup data")
-        recent_backup.write_text("recent backup data")
+            old_backup = backup_dir / "old_backup_20240101_120000.dump"
+            recent_backup = backup_dir / "recent_backup_20240201_120000.dump"
 
-        # Set modification times
-        import os
+            old_backup.write_text("old backup data")
+            recent_backup.write_text("recent backup data")
 
-        os.utime(old_backup, (old_time, old_time))
-        os.utime(recent_backup, (recent_time, recent_time))
+            # Set modification times
+            import os
 
-        # Run cleanup with 30 day retention
-        backup = DatabaseBackup(backup_dir=temp_dir, retention_days=30)
-        files_deleted, bytes_freed = backup.cleanup_old_backups(dry_run=False)
+            os.utime(old_backup, (old_time, old_time))
+            os.utime(recent_backup, (recent_time, recent_time))
 
-        # Verify old file deleted, recent file kept
-        assert files_deleted == 1
-        assert bytes_freed > 0
-        assert not old_backup.exists()
-        assert recent_backup.exists()
+            # Run cleanup with 30 day retention
+            backup = DatabaseBackup(backup_dir=temp_dir, retention_days=30)
+            files_deleted, bytes_freed = backup.cleanup_old_backups(dry_run=False)
+
+            # Verify old file deleted, recent file kept
+            assert files_deleted == 1
+            assert bytes_freed > 0
+            assert not old_backup.exists()
+            assert recent_backup.exists()
 
     def test_cleanup_dry_run(self, temp_dir):
         """Test cleanup in dry-run mode doesn't delete files."""
         from datetime import datetime, timedelta, timezone
 
-        backup_dir = Path(temp_dir)
-
-        # Create an old backup file
-        now = datetime.now(timezone.utc)
-        old_time = (now - timedelta(days=40)).timestamp()
-
-        old_backup = backup_dir / "old_backup_20240101_120000.dump"
-        old_backup.write_text("old backup data")
-
-        import os
-
-        os.utime(old_backup, (old_time, old_time))
-
-        # Run cleanup in dry-run mode
-        backup = DatabaseBackup(backup_dir=temp_dir, retention_days=30)
-        files_deleted, bytes_freed = backup.cleanup_old_backups(dry_run=True)
-
-        # Verify file still exists (dry-run doesn't delete)
-        assert files_deleted == 1
-        assert bytes_freed > 0
-        assert old_backup.exists()
-
-    def test_s3_enabled_fallback_to_config(self, temp_dir):
-        """Test that s3_enabled falls back to config when not specified."""
         with patch.object(backup_database, "Config") as mock_config:
+            # Mock all Config attributes used in __init__
             mock_config.BACKUP_DIR = temp_dir
             mock_config.BACKUP_RETENTION_DAYS = 30
-            mock_config.BACKUP_S3_ENABLED = True  # Config says True
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+            mock_config.BACKUP_S3_ENABLED = False
+            mock_config.BACKUP_S3_BUCKET = None
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
 
-            # When s3_enabled is not specified, should use config value
-            backup = DatabaseBackup(backup_dir=temp_dir)
+            backup_dir = Path(temp_dir)
 
-            assert backup.s3_enabled is True  # Should use config value
+            # Create an old backup file
+            now = datetime.now(timezone.utc)
+            old_time = (now - timedelta(days=40)).timestamp()
 
-    def test_s3_enabled_explicit_false_overrides_config(self, temp_dir):
-        """Test that explicitly passing s3_enabled=False overrides config."""
-        with patch.object(backup_database, "Config") as mock_config:
-            mock_config.BACKUP_DIR = temp_dir
-            mock_config.BACKUP_RETENTION_DAYS = 30
-            mock_config.BACKUP_S3_ENABLED = True  # Config says True
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+            old_backup = backup_dir / "old_backup_20240101_120000.dump"
+            old_backup.write_text("old backup data")
 
-            # When s3_enabled is explicitly False, should override config
-            backup = DatabaseBackup(backup_dir=temp_dir, s3_enabled=False)
+            import os
 
-            assert backup.s3_enabled is False  # Should override config
+            os.utime(old_backup, (old_time, old_time))
 
-    def test_s3_enabled_explicit_true_overrides_config(self, temp_dir):
-        """Test that explicitly passing s3_enabled=True overrides config."""
-        with patch.object(backup_database, "Config") as mock_config:
-            mock_config.BACKUP_DIR = temp_dir
-            mock_config.BACKUP_RETENTION_DAYS = 30
-            mock_config.BACKUP_S3_ENABLED = False  # Config says False
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
+            # Run cleanup in dry-run mode
+            backup = DatabaseBackup(backup_dir=temp_dir, retention_days=30)
+            files_deleted, bytes_freed = backup.cleanup_old_backups(dry_run=True)
 
-            # When s3_enabled is explicitly True, should override config
-            backup = DatabaseBackup(backup_dir=temp_dir, s3_enabled=True)
-
-            assert backup.s3_enabled is True  # Should override config
+            # Verify file still exists (dry-run doesn't delete)
+            assert files_deleted == 1
+            assert bytes_freed > 0
+            assert old_backup.exists()
 
 
 class TestDatabaseRestore:
@@ -250,31 +260,71 @@ class TestDatabaseRestore:
             assert restore.backup_dir == Path(temp_dir)
             assert restore.s3_enabled is False
 
+    def test_init_s3_enabled_none_uses_config(self, temp_dir):
+        """Test that s3_enabled=None falls back to config value."""
+        with patch.object(restore_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = True  # Config says enabled
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
+
+            # When s3_enabled is not passed (defaults to None), use config
+            restore = DatabaseRestore()
+
+            assert restore.s3_enabled is True  # Should use config value
+
+    def test_init_s3_enabled_false_overrides_config(self, temp_dir):
+        """Test that explicitly passing s3_enabled=False overrides config."""
+        with patch.object(restore_database, "Config") as mock_config:
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = True  # Config says enabled
+            mock_config.BACKUP_S3_BUCKET = "config-bucket"
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
+
+            # Explicitly pass False to override config
+            restore = DatabaseRestore(s3_enabled=False)
+
+            assert restore.s3_enabled is False  # Should use explicit False, not config
+
     def test_list_local_backups(self, temp_dir):
         """Test listing local backup files."""
-        backup_dir = Path(temp_dir)
+        with patch.object(restore_database, "Config") as mock_config:
+            # Mock all Config attributes used in __init__
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = False
+            mock_config.BACKUP_S3_BUCKET = None
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
 
-        # Create some test backup files
-        backup1 = backup_dir / "backup_20240101_120000.dump"
-        backup2 = backup_dir / "backup_20240102_120000.dump"
-        backup1.write_text("backup 1 data")
-        backup2.write_text("backup 2 data")
+            backup_dir = Path(temp_dir)
 
-        restore = DatabaseRestore(backup_dir=temp_dir)
-        backups = restore.list_backups()
+            # Create some test backup files
+            backup1 = backup_dir / "backup_20240101_120000.dump"
+            backup2 = backup_dir / "backup_20240102_120000.dump"
+            backup1.write_text("backup 1 data")
+            backup2.write_text("backup 2 data")
 
-        # Should return sorted list (newest first)
-        assert len(backups) == 2
-        assert backups[0][0] == "backup_20240102_120000.dump"
-        assert backups[1][0] == "backup_20240101_120000.dump"
-        assert all(location == "local" for _, _, location in backups)
+            restore = DatabaseRestore(backup_dir=temp_dir)
+            backups = restore.list_backups()
+
+            # Should return sorted list (newest first)
+            assert len(backups) == 2
+            assert backups[0][0] == "backup_20240102_120000.dump"
+            assert backups[1][0] == "backup_20240101_120000.dump"
+            assert all(location == "local" for _, _, location in backups)
 
     def test_list_backups_empty_dir(self, temp_dir):
         """Test listing backups from empty directory."""
-        restore = DatabaseRestore(backup_dir=temp_dir)
-        backups = restore.list_backups()
+        with patch.object(restore_database, "Config") as mock_config:
+            # Mock all Config attributes used in __init__
+            mock_config.BACKUP_DIR = temp_dir
+            mock_config.BACKUP_S3_ENABLED = False
+            mock_config.BACKUP_S3_BUCKET = None
+            mock_config.BACKUP_S3_PREFIX = "soundhash-backups/"
 
-        assert backups == []
+            restore = DatabaseRestore(backup_dir=temp_dir)
+            backups = restore.list_backups()
+
+            assert backups == []
 
     @patch.object(restore_database.subprocess, "run")
     @patch.object(restore_database, "Config")
@@ -331,42 +381,3 @@ class TestDatabaseRestore:
             restore.restore_backup(invalid_file)
 
         assert "Invalid backup file format" in str(exc_info.value)
-
-    def test_s3_enabled_fallback_to_config(self, temp_dir):
-        """Test that s3_enabled falls back to config when not specified."""
-        with patch.object(restore_database, "Config") as mock_config:
-            mock_config.BACKUP_DIR = temp_dir
-            mock_config.BACKUP_S3_ENABLED = True  # Config says True
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
-
-            # When s3_enabled is not specified, should use config value
-            restore = DatabaseRestore(backup_dir=temp_dir)
-
-            assert restore.s3_enabled is True  # Should use config value
-
-    def test_s3_enabled_explicit_false_overrides_config(self, temp_dir):
-        """Test that explicitly passing s3_enabled=False overrides config."""
-        with patch.object(restore_database, "Config") as mock_config:
-            mock_config.BACKUP_DIR = temp_dir
-            mock_config.BACKUP_S3_ENABLED = True  # Config says True
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
-
-            # When s3_enabled is explicitly False, should override config
-            restore = DatabaseRestore(backup_dir=temp_dir, s3_enabled=False)
-
-            assert restore.s3_enabled is False  # Should override config
-
-    def test_s3_enabled_explicit_true_overrides_config(self, temp_dir):
-        """Test that explicitly passing s3_enabled=True overrides config."""
-        with patch.object(restore_database, "Config") as mock_config:
-            mock_config.BACKUP_DIR = temp_dir
-            mock_config.BACKUP_S3_ENABLED = False  # Config says False
-            mock_config.BACKUP_S3_BUCKET = "config-bucket"
-            mock_config.BACKUP_S3_PREFIX = "config-prefix/"
-
-            # When s3_enabled is explicitly True, should override config
-            restore = DatabaseRestore(backup_dir=temp_dir, s3_enabled=True)
-
-            assert restore.s3_enabled is True  # Should override config
