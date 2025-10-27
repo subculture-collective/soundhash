@@ -26,32 +26,26 @@ def get_db() -> Session:
 
 
 async def get_current_user_from_token(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-    db: Annotated[Session, Depends(get_db)],
-) -> User:
-    """Get current user from JWT token."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
+) -> User | None:
+    """Get current user from JWT token (optional)."""
+    if credentials is None:
+        return None
     
     token = credentials.credentials
     payload = decode_token(token)
     
     if payload is None:
-        raise credentials_exception
+        return None
     
     username: str = payload.get("sub")
     token_type: str = payload.get("type")
     
     if username is None or token_type != "access":
-        raise credentials_exception
+        return None
     
     user = db.query(User).filter(User.username == username).first()
-    
-    if user is None:
-        raise credentials_exception
     
     return user
 

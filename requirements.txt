@@ -28,6 +28,7 @@ fastapi==0.119.0
 uvicorn==0.38.0
 pydantic==2.10.5
 pydantic-settings==2.7.1
+email-validator==2.2.0
 
 # API Authentication & Security
 python-jose[cryptography]==3.3.0

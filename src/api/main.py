@@ -83,14 +83,15 @@ async def health_check():
         )
 
 
-# Import and include routers (will be added after routes are created)
-# from src.api.routes import auth, videos, matches, channels, fingerprints, admin
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-# app.include_router(videos.router, prefix="/api/v1/videos", tags=["Videos"])
-# app.include_router(matches.router, prefix="/api/v1/matches", tags=["Matches"])
-# app.include_router(channels.router, prefix="/api/v1/channels", tags=["Channels"])
-# app.include_router(fingerprints.router, prefix="/api/v1/fingerprints", tags=["Fingerprints"])
-# app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+# Import and include routers
+from src.api.routes import admin, auth, channels, fingerprints, matches, videos
+
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(videos.router, prefix="/api/v1/videos", tags=["Videos"])
+app.include_router(matches.router, prefix="/api/v1/matches", tags=["Matches"])
+app.include_router(channels.router, prefix="/api/v1/channels", tags=["Channels"])
+app.include_router(fingerprints.router, prefix="/api/v1/fingerprints", tags=["Fingerprints"])
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 
 
 if __name__ == "__main__":
