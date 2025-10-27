@@ -296,3 +296,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+backups_test/
+.env
+backups/
+*.dump

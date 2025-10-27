@@ -11,6 +11,7 @@ A sophisticated system for matching audio clips from videos across social media 
 - [Architecture Overview](#architecture-overview) - System design and data flow
 - [Social Media Bots](#social-media-bots) - Twitter and Reddit bot setup
 - [Troubleshooting](#troubleshooting-common-issues) - Solutions to common problems
+- [Database Backups](#-database-backups-and-restore) - Backup and restore procedures
 - [Usage](#usage) - Command-line options and examples
 - [Security](#security-and-secrets-management) - Credential management
 
@@ -522,6 +523,134 @@ The system now provides specific remediation advice for common errors:
 5. **Docker networking**:
    - From host: use `localhost:5435` (as configured in docker-compose.yml)
    - From app container: use `postgres:5432` (service name as host)
+
+### 💾 Database Backups and Restore
+
+**Backup Strategy**: Regular backups ensure data safety for fingerprints and matches. Use the provided scripts for automated backup and restore operations.
+
+#### Creating Backups
+
+**Basic backup** (local filesystem):
+```bash
+# Create a backup with default settings
+python scripts/backup_database.py
+
+# Create a backup with custom name
+python scripts/backup_database.py --name daily_backup
+
+# Clean up old backups only
+python scripts/backup_database.py --cleanup-only
+```
+
+**S3 backup** (optional, requires boto3):
+```bash
+# Install boto3 if using S3
+pip install boto3
+
+# Configure S3 settings in .env
+BACKUP_S3_ENABLED=true
+BACKUP_S3_BUCKET=my-soundhash-backups
+BACKUP_S3_PREFIX=soundhash-backups/
+
+# Create backup and upload to S3
+python scripts/backup_database.py --s3
+```
+
+**Automated backups** with cron:
+```bash
+# Add to crontab (crontab -e):
+# Daily backup at 2 AM with S3 upload
+0 2 * * * cd /path/to/soundhash && python scripts/backup_database.py --s3 >> /var/log/soundhash-backup.log 2>&1
+
+# Weekly backup on Sunday at 3 AM (local only)
+0 3 * * 0 cd /path/to/soundhash && python scripts/backup_database.py --name weekly >> /var/log/soundhash-backup.log 2>&1
+```
+
+#### Restoring from Backups
+
+**List available backups**:
+```bash
+# List local backups
+python scripts/restore_database.py --list
+
+# List S3 backups
+python scripts/restore_database.py --list --from-s3
+```
+
+**Restore from backup**:
+```bash
+# Restore from latest backup (local)
+python scripts/restore_database.py --latest
+
+# Restore from specific backup file
+python scripts/restore_database.py --file soundhash_backup_20240101_120000.dump
+
+# Restore from S3
+python scripts/restore_database.py --latest --from-s3
+
+# WARNING: Clean mode drops all existing objects first
+python scripts/restore_database.py --latest --clean
+```
+
+**Partial restore options**:
+```bash
+# Restore only data (preserve existing schema)
+python scripts/restore_database.py --latest --data-only
+
+# Restore only schema (preserve existing data)
+python scripts/restore_database.py --latest --schema-only
+```
+
+#### Backup Configuration
+
+Configure backup settings in `.env`:
+```bash
+# Local backup directory
+BACKUP_DIR=./backups
+
+# Retention policy (days)
+BACKUP_RETENTION_DAYS=30
+
+# S3 configuration (optional)
+BACKUP_S3_ENABLED=false
+BACKUP_S3_BUCKET=my-soundhash-backups
+BACKUP_S3_PREFIX=soundhash-backups/
+```
+
+#### Testing Backup/Restore
+
+**Verify backup integrity** by restoring to a fresh database:
+```bash
+# 1. Create a test database
+# If you have PostgreSQL client tools installed locally:
+createdb soundhash_test
+# Or, if you are using Docker Compose for PostgreSQL:
+docker compose exec postgres createdb -U soundhash soundhash_test
+
+# 2. Create a backup from production
+python scripts/backup_database.py --name test_restore
+
+# 3. Restore to test database (modify .env temporarily to point to test DB)
+DATABASE_NAME=soundhash_test python scripts/restore_database.py --latest --clean
+
+# 4. Verify data integrity
+psql soundhash_test -c "SELECT COUNT(*) FROM videos;"
+psql soundhash_test -c "SELECT COUNT(*) FROM audio_fingerprints;"
+
+# 5. Clean up test database
+# If you have PostgreSQL client tools installed locally:
+dropdb soundhash_test
+# Or, if your database is running in Docker Compose:
+docker compose exec postgres dropdb -U soundhash soundhash_test
+```
+
+**Backup best practices**:
+- ✅ Test restore process regularly
+- ✅ Store backups in multiple locations (local + S3)
+- ✅ Set up automated daily/weekly backups via cron
+- ✅ Monitor backup logs for failures
+- ✅ Keep backups for at least 30 days
+- ✅ Document backup/restore procedures for your team
 
 ### 📦 Import/Dependency Errors
 
