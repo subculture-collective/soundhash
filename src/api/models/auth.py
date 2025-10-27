@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.api.models.common import IDMixin, TimestampMixin
 
@@ -37,8 +37,7 @@ class UserResponse(UserBase, IDMixin, TimestampMixin):
     is_verified: bool
     last_login: datetime | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -83,8 +82,7 @@ class APIKeyResponse(IDMixin):
     last_used_at: datetime | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class APIKeyWithSecret(APIKeyResponse):

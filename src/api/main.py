@@ -64,10 +64,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    from sqlalchemy import text
+    
     try:
         # Check database connection
         session = db_manager.get_session()
-        session.execute("SELECT 1")
+        session.execute(text("SELECT 1"))
         session.close()
         db_healthy = True
     except Exception as e:

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.api.models.common import IDMixin, TimestampMixin
 
@@ -23,8 +23,8 @@ class ChannelResponse(ChannelBase, IDMixin, TimestampMixin):
     last_processed: datetime | None = None
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class ChannelIngestRequest(BaseModel):

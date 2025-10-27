@@ -1,0 +1,1 @@
+"""REST API tests initialization."""

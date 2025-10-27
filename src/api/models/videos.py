@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from src.api.models.common import IDMixin, TimestampMixin
 
@@ -30,8 +30,8 @@ class VideoResponse(VideoBase, IDMixin, TimestampMixin):
     processing_completed: datetime | None = None
     processing_error: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class VideoUploadRequest(BaseModel):
