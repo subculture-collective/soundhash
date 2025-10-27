@@ -84,37 +84,18 @@ class AlertManager:
             payload = {
                 "text": f"🚨 SoundHash Alert: {message}",
                 "blocks": [
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": f"🚨 {message}"
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": details
-                        }
-                    },
+                    {"type": "header", "text": {"type": "plain_text", "text": f"🚨 {message}"}},
+                    {"type": "section", "text": {"type": "mrkdwn", "text": details}},
                     {
                         "type": "context",
                         "elements": [
-                            {
-                                "type": "mrkdwn",
-                                "text": f"_Timestamp: {datetime.now().isoformat()}_"
-                            }
-                        ]
-                    }
-                ]
+                            {"type": "mrkdwn", "text": f"_Timestamp: {datetime.now().isoformat()}_"}
+                        ],
+                    },
+                ],
             }
 
-            response = requests.post(
-                self.slack_webhook,
-                json=payload,
-                timeout=10
-            )
+            response = requests.post(self.slack_webhook, json=payload, timeout=10)
             response.raise_for_status()
             logger.info("Slack alert sent successfully")
             return True
@@ -137,18 +118,12 @@ class AlertManager:
                         "description": details,
                         "color": 15158332,  # Red color
                         "timestamp": datetime.now().isoformat(),
-                        "footer": {
-                            "text": "SoundHash Alerting System"
-                        }
+                        "footer": {"text": "SoundHash Alerting System"},
                     }
-                ]
+                ],
             }
 
-            response = requests.post(
-                self.discord_webhook,
-                json=payload,
-                timeout=10
-            )
+            response = requests.post(self.discord_webhook, json=payload, timeout=10)
             response.raise_for_status()
             logger.info("Discord alert sent successfully")
             return True
@@ -187,7 +162,7 @@ class AlertManager:
         event = FailureEvent(
             timestamp=datetime.now(),
             failure_type="rate_limit",
-            details=f"HTTP {error_code} for {url}: {error_message}"
+            details=f"HTTP {error_code} for {url}: {error_message}",
         )
 
         self.rate_limit_failures.append(event)
@@ -204,8 +179,7 @@ class AlertManager:
         if len(self.rate_limit_failures) >= self.rate_limit_threshold:
             if self._should_send_alert(self.last_rate_limit_alert):
                 message = (
-                    f"Rate Limit Threshold Exceeded "
-                    f"({len(self.rate_limit_failures)} failures)"
+                    f"Rate Limit Threshold Exceeded " f"({len(self.rate_limit_failures)} failures)"
                 )
                 details = (
                     f"**{len(self.rate_limit_failures)} rate limit errors** detected in the last "
@@ -244,7 +218,7 @@ class AlertManager:
         event = FailureEvent(
             timestamp=datetime.now(),
             failure_type="job_failure",
-            details=f"{job_type} job {job_id}: {error_message}"
+            details=f"{job_type} job {job_id}: {error_message}",
         )
 
         self.job_failures.append(event)
@@ -303,8 +277,8 @@ class AlertManager:
             "time_window_minutes": Config.ALERT_TIME_WINDOW_MINUTES,
             "webhooks_configured": {
                 "slack": bool(self.slack_webhook),
-                "discord": bool(self.discord_webhook)
-            }
+                "discord": bool(self.discord_webhook),
+            },
         }
 
 

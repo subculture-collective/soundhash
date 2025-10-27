@@ -38,7 +38,6 @@ class AudioFingerprinter:
 
         # Validate parameters
         self._validate_parameters(self.sample_rate, n_fft, hop_length)
-
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.freq_bins = n_fft // 2 + 1

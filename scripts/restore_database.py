@@ -19,6 +19,7 @@ from config.settings import Config
 
 class RestoreError(Exception):
     """Custom exception for restore errors."""
+
     pass
 
 
@@ -106,7 +107,7 @@ class DatabaseRestore:
                     for obj in page["Contents"]:
                         key = obj["Key"]
                         if key.endswith(".dump"):
-                            filename = key[len(self.s3_prefix):]
+                            filename = key[len(self.s3_prefix) :]
                             size = obj["Size"]
                             backups.append((filename, size, "s3"))
 
@@ -206,7 +207,8 @@ class DatabaseRestore:
         cmd = [
             "pg_restore",
             "-v",  # Verbose
-            "-d", Config.DATABASE_NAME,  # Target database
+            "-d",
+            Config.DATABASE_NAME,  # Target database
         ]
 
         # Add connection parameters

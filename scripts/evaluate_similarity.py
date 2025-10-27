@@ -131,9 +131,7 @@ def generate_test_data(output_dir: str) -> None:
 
     print(f"Generated test data in {output_path}")
     print(f"- {len(test_cases)} queries")
-    total_candidates = sum(
-        len(tc["true_matches"]) + len(tc["false_matches"]) for tc in test_cases
-    )
+    total_candidates = sum(len(tc["true_matches"]) + len(tc["false_matches"]) for tc in test_cases)
     print(f"- {total_candidates} candidates")
 
 
@@ -258,12 +256,8 @@ def evaluate_similarity(
         total_fp = sum(r["false_positives"] for r in results)
         total_fn = sum(r["false_negatives"] for r in results)
 
-        micro_precision = (
-            total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
-        )
-        micro_recall = (
-            total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
-        )
+        micro_precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        micro_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
         micro_f1 = (
             2 * micro_precision * micro_recall / (micro_precision + micro_recall)
             if (micro_precision + micro_recall) > 0

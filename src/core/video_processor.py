@@ -33,8 +33,8 @@ class VideoProcessor:
     """
 
     def __init__(
-        self,
-        temp_dir: str | None = None,
+    self,
+    temp_dir: str | None = None,
         segment_length: int | None = None,
         youtube_service: Any | None = None,
     ) -> None:
