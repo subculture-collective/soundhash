@@ -8,7 +8,6 @@ from typing import Dict
 import numpy as np
 
 from src.core.audio_fingerprinting import AudioFingerprinter
-from src.database.repositories import get_video_repository
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 class StreamingAudioProcessor:
     """
     Process streaming audio in real-time for fingerprint matching.
-    
+
     Maintains a sliding buffer of audio data and periodically extracts
     fingerprints to find matches in the database.
     """
@@ -29,7 +28,7 @@ class StreamingAudioProcessor:
     ):
         """
         Initialize streaming audio processor.
-        
+
         Args:
             sample_rate: Audio sample rate in Hz
             buffer_duration: Duration of audio buffer in seconds
@@ -47,7 +46,7 @@ class StreamingAudioProcessor:
     def add_audio(self, audio_chunk: bytes) -> None:
         """
         Add audio chunk to buffer.
-        
+
         Args:
             audio_chunk: Raw audio data as bytes (expected to be float32)
         """
@@ -71,7 +70,7 @@ class StreamingAudioProcessor:
     async def process_buffer(self) -> list[dict]:
         """
         Extract fingerprint from current buffer and find matches.
-        
+
         Returns:
             List of matching videos with similarity scores
         """
@@ -89,11 +88,11 @@ class StreamingAudioProcessor:
 
             # Find matches using the fingerprint
             matches = await self.find_matches(fingerprint_result)
-            
+
             if matches:
                 self.total_matches += len(matches)
                 logger.info(f"Found {len(matches)} matches in buffer")
-            
+
             self.last_process_time = time.time()
             return matches
 
@@ -104,28 +103,27 @@ class StreamingAudioProcessor:
     async def find_matches(self, fingerprint: dict) -> list[dict]:
         """
         Find matches for the fingerprint in database.
-        
+
         Args:
             fingerprint: Fingerprint data dictionary
-            
+
         Returns:
             List of matching videos with metadata
         """
         try:
             from src.database.connection import db_manager
             from src.database.models import AudioFingerprint, Video
-            from sqlalchemy import func
-            
+
             session = db_manager.get_session()
-            
+
             try:
                 # Get fingerprint hash for initial filtering
                 fp_hash = fingerprint.get('fingerprint_hash')
                 compact_fp = fingerprint.get('compact_fingerprint')
-                
+
                 if fp_hash is None or compact_fp is None:
                     return []
-                
+
                 # Query similar fingerprints (exact hash match for now)
                 # In production, this would use more sophisticated similarity search
                 similar_fps = (
@@ -135,7 +133,7 @@ class StreamingAudioProcessor:
                     .limit(10)
                     .all()
                 )
-                
+
                 matches = []
                 for fp, video in similar_fps:
                     matches.append({
@@ -148,12 +146,12 @@ class StreamingAudioProcessor:
                         "similarity_score": 0.95,  # Would be calculated in production
                         "confidence": fp.confidence_score or 0.9,
                     })
-                
+
                 return matches
-                
+
             finally:
                 session.close()
-                
+
         except Exception as e:
             logger.error(f"Error finding matches: {e}")
             return []
@@ -176,28 +174,28 @@ processors: Dict[str, StreamingAudioProcessor] = {}
 async def process_audio_chunk(client_id: str, audio_chunk: bytes):
     """
     Process incoming audio chunk for a client.
-    
+
     Args:
         client_id: Unique client identifier
         audio_chunk: Raw audio data
     """
     from src.api.websocket import manager
-    
+
     # Create processor if it doesn't exist
     if client_id not in processors:
         processors[client_id] = StreamingAudioProcessor()
         await manager.send_status(client_id, "Streaming processor initialized")
-    
+
     processor = processors[client_id]
-    
+
     try:
         # Add audio to buffer
         processor.add_audio(audio_chunk)
-        
+
         # Process buffer if ready
         if processor.should_process():
             matches = await processor.process_buffer()
-            
+
             if matches:
                 # Send matches to client via WebSocket
                 await manager.send_match(client_id, {

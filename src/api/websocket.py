@@ -1,12 +1,10 @@
 """WebSocket support for real-time audio streaming and matching."""
 
-import asyncio
-import json
 import logging
 import time
 from typing import Dict
 
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
