@@ -12,14 +12,22 @@ from src.database.models import APIKey, Base, User
 
 @pytest.fixture
 def test_db():
-    """Create a test database."""
-    # Use in-memory SQLite for tests
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    """
+    Create a test database.
+
+    NOTE: This fixture uses a PostgreSQL database for testing to avoid masking
+    PostgreSQL-specific issues that SQLite would not catch. Set the TEST_DATABASE_URL
+    environment variable to point to a dedicated test database (e.g., 'postgresql+psycopg2://user:pass@localhost/soundhash_test').
+
+    If you must use SQLite for local/dev testing, be aware that some issues may not be caught.
+    """
+    import os
+    test_db_url = os.getenv("TEST_DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost/soundhash_test")
+    engine = create_engine(test_db_url)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
+
     # Create all tables
     Base.metadata.create_all(bind=engine)
-    
     db = TestingSessionLocal()
     try:
         yield db
