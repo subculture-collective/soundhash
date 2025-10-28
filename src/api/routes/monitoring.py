@@ -64,7 +64,11 @@ async def disconnect_stream(
     and cleans up their resources.
     """
     # Check if user is admin (for now, allow all authenticated users)
-    # In production, would check current_user.is_admin or similar
+    if not getattr(current_user, "is_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required to disconnect streams"
+        )
 
     if client_id in manager.active_connections:
         # Send disconnect message
