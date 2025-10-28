@@ -21,12 +21,16 @@ A sophisticated system for matching audio clips from videos across social media 
 
 ## Features
 
-- Audio fingerprinting using spectral analysis
-- PostgreSQL database for scalable storage
-- Social media bot integration (Twitter, Reddit)
-- YouTube channel ingestion
-- Real-time clip matching
-- Beautiful colored logging with progress tracking
+- 🎵 Audio fingerprinting using spectral analysis
+- 🗄️ PostgreSQL database for scalable storage
+- 🤖 Social media bot integration (Twitter, Reddit)
+- 📺 YouTube channel ingestion
+- 🔍 Real-time clip matching
+- 📊 Beautiful colored logging with progress tracking
+- 🚀 **REST API with JWT authentication** ([API Docs](docs/API.md))
+- 📝 Interactive API documentation (Swagger/ReDoc)
+- 🔐 API key support for machine-to-machine access
+- ⚡ Rate limiting and CORS support
 
 ## Architecture Overview
 
@@ -75,6 +79,58 @@ SoundHash processes videos through a multi-stage pipeline:
 - **audio_fingerprints**: Spectral fingerprint data for audio segments (vector + hash)
 - **match_results**: Query results and similarity scores
 - **processing_jobs**: Background job queue with status tracking
+
+## REST API
+
+SoundHash provides a comprehensive REST API for programmatic access to all features. The API supports JWT authentication and API keys, with interactive documentation available at `/docs`.
+
+### Quick Start
+
+1. **Start the API server:**
+   ```bash
+   python scripts/start_api.py
+   ```
+
+2. **Access interactive documentation:**
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
+
+3. **Register a user:**
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{"username": "user", "email": "user@example.com", "password": "SecurePass123!"}'
+   ```
+
+4. **Login and get access token:**
+   ```bash
+   curl -X POST http://localhost:8000/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"username": "user", "password": "SecurePass123!"}'
+   ```
+
+### API Endpoints
+
+- **Authentication** (`/api/v1/auth`) - User registration, login, API keys
+- **Videos** (`/api/v1/videos`) - Upload, list, process videos
+- **Matches** (`/api/v1/matches`) - Find audio matches, search
+- **Channels** (`/api/v1/channels`) - Channel management
+- **Fingerprints** (`/api/v1/fingerprints`) - Fingerprint data
+- **Admin** (`/api/v1/admin`) - System stats, job management
+
+See [API Documentation](docs/API.md) for complete details, examples, and code snippets.
+
+### Configuration
+
+Set these environment variables in `.env`:
+
+```bash
+API_HOST=0.0.0.0
+API_PORT=8000
+API_SECRET_KEY=your-secret-key-here  # Generate with: openssl rand -hex 32
+API_ACCESS_TOKEN_EXPIRE_MINUTES=30
+API_CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+```
 
 ## Social Media Bots
 

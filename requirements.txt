@@ -26,6 +26,17 @@ google-auth-oauthlib==1.2.1
 # Web server for OAuth callbacks
 fastapi==0.119.0
 uvicorn==0.38.0
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# API Authentication & Security
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# API Rate Limiting
+slowapi==0.1.9
 
 # Utilities
 python-dotenv==1.1.1
@@ -41,6 +52,7 @@ prometheus-client==0.21.1
 pytest==8.4.2
 black==25.9.0
 flake8==7.3.0
+httpx==0.28.1  # For FastAPI testing
 
 # Async support
 aiohttp==3.13.1
