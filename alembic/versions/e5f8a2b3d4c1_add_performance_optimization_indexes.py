@@ -1,7 +1,7 @@
 """add_performance_optimization_indexes
 
 Revision ID: e5f8a2b3d4c1
-Revises: d4a7e3b9c2f1
+Revises: c8e9d4a1f2b3
 Create Date: 2025-10-28 17:10:00.000000
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e5f8a2b3d4c1"
-down_revision: Union[str, Sequence[str], None] = "d4a7e3b9c2f1"
+down_revision: Union[str, Sequence[str], None] = "c8e9d4a1f2b3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
