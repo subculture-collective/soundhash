@@ -28,6 +28,11 @@ coverage.xml
 junit.xml
 htmlcov/
 
+# Benchmarks
+benchmark_results.json
+benchmark_results.md
+benchmark_baseline.json
+
 # Type checking
 .mypy_cache/
 .dmypy.json
