@@ -34,11 +34,11 @@ nano .env  # or vim, code, etc.
 === "Using Individual Settings"
 
     ```env
-    DATABASE_HOST=localhost
-    DATABASE_PORT=5432
-    DATABASE_NAME=soundhash
-    DATABASE_USER=soundhash_user
-    DATABASE_PASSWORD=your_password
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_NAME=soundhash
+    DB_USER=soundhash_user
+    DB_PASSWORD=your_password
     ```
 
 ### Connection Pooling
