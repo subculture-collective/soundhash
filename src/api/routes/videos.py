@@ -69,11 +69,25 @@ async def upload_video(
             message="Video queued for reprocessing",
         )
     
+    # Get or create a default channel for user uploads
+    from src.database.models import Channel
+    default_channel = db.query(Channel).filter(Channel.channel_id == "user_uploads").first()
+    if not default_channel:
+        default_channel = Channel(
+            channel_id="user_uploads",
+            channel_name="User Uploads",
+            description="Default channel for user-uploaded videos",
+            is_active=True,
+        )
+        db.add(default_channel)
+        db.commit()
+        db.refresh(default_channel)
+    
     # Create video record
     new_video = Video(
         video_id=video_id,
         url=video_url,
-        channel_id=1,  # Default channel for user uploads
+        channel_id=default_channel.id,
         processed=False,
     )
     db.add(new_video)

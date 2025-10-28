@@ -64,7 +64,11 @@ async def get_current_user_from_api_key(
     for key_record in api_keys:
         if verify_api_key(api_key, key_record.key_hash):
             # Update last used timestamp
-            key_record.last_used_at = db.query(User).filter(User.id == key_record.user_id).first()
+            from datetime import datetime
+            key_record.last_used_at = datetime.utcnow()
+            db.commit()
+            
+            # Get and return the user
             user = db.query(User).filter(User.id == key_record.user_id).first()
             if user:
                 return user
