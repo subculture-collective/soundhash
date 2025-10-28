@@ -22,7 +22,7 @@ from config.logging_config import setup_logging
 from config.settings import Config
 from src.database.connection import db_manager
 from src.database.monitoring import get_query_metrics, reset_query_metrics
-from src.database.repositories import get_job_repository, get_video_repository
+from src.database.repositories import get_job_repo_session, get_video_repo_session
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,18 @@ def benchmark_query(
                 "success": False,
             }
     
+    # Calculate p95 based on available sample size
+    if len(durations) >= 20:
+        p95_ms = statistics.quantiles(durations, n=20)[18] * 1000
+    elif len(durations) >= 10:
+        # For 10-19 samples, use 90th percentile as approximation
+        sorted_durations = sorted(durations)
+        p95_index = int(len(durations) * 0.9)
+        p95_ms = sorted_durations[p95_index] * 1000
+    else:
+        # For very small samples, use max as conservative estimate
+        p95_ms = max(durations) * 1000
+    
     return {
         "name": name,
         "success": True,
@@ -69,9 +81,7 @@ def benchmark_query(
         "max_ms": max(durations) * 1000,
         "avg_ms": statistics.mean(durations) * 1000,
         "median_ms": statistics.median(durations) * 1000,
-        "p95_ms": (
-            statistics.quantiles(durations, n=20)[18] * 1000 if len(durations) >= 20 else max(durations) * 1000
-        ),
+        "p95_ms": p95_ms,
     }
 
 
@@ -132,87 +142,80 @@ def run_benchmarks() -> list[dict[str, Any]]:
     
     results = []
     
-    # Get repository instances
-    video_repo = get_video_repository()
-    job_repo = get_job_repository()
-    
-    try:
-        # Test 1: Get channel by ID (should be fast with index)
-        results.append(
-            benchmark_query(
-                "Get channel by ID",
-                video_repo.get_channel_by_id,
-                iterations=10,
-                channel_id="test_channel_123",
+    # Use context managers for proper resource cleanup
+    with get_video_repo_session() as video_repo:
+        with get_job_repo_session() as job_repo:
+            # Test 1: Get channel by ID (should be fast with index)
+            results.append(
+                benchmark_query(
+                    "Get channel by ID",
+                    video_repo.get_channel_by_id,
+                    iterations=10,
+                    channel_id="test_channel_123",
+                )
             )
-        )
-        
-        # Test 2: Get video by ID (should be fast with index)
-        results.append(
-            benchmark_query(
-                "Get video by ID",
-                video_repo.get_video_by_id,
-                iterations=10,
-                video_id="test_video_123",
+            
+            # Test 2: Get video by ID (should be fast with index)
+            results.append(
+                benchmark_query(
+                    "Get video by ID",
+                    video_repo.get_video_by_id,
+                    iterations=10,
+                    video_id="test_video_123",
+                )
             )
-        )
-        
-        # Test 3: Get unprocessed videos (partial index should help)
-        results.append(
-            benchmark_query(
-                "Get unprocessed videos (limit 100)",
-                video_repo.get_unprocessed_videos,
-                iterations=10,
-                limit=100,
+            
+            # Test 3: Get unprocessed videos (partial index should help)
+            results.append(
+                benchmark_query(
+                    "Get unprocessed videos (limit 100)",
+                    video_repo.get_unprocessed_videos,
+                    iterations=10,
+                    limit=100,
+                )
             )
-        )
-        
-        # Test 4: Get pending jobs (should use composite index)
-        results.append(
-            benchmark_query(
-                "Get pending jobs (limit 10)",
-                job_repo.get_pending_jobs,
-                iterations=10,
-                limit=10,
+            
+            # Test 4: Get pending jobs (should use composite index)
+            results.append(
+                benchmark_query(
+                    "Get pending jobs (limit 10)",
+                    job_repo.get_pending_jobs,
+                    iterations=10,
+                    limit=10,
+                )
             )
-        )
-        
-        # Test 5: Check job exists (should use composite index)
-        results.append(
-            benchmark_query(
-                "Check job exists",
-                job_repo.job_exists,
-                iterations=10,
-                job_type="video_process",
-                target_id="test_target_123",
-                statuses=["pending", "running"],
+            
+            # Test 5: Check job exists (should use composite index)
+            results.append(
+                benchmark_query(
+                    "Check job exists",
+                    job_repo.job_exists,
+                    iterations=10,
+                    job_type="video_process",
+                    target_id="test_target_123",
+                    statuses=["pending", "running"],
+                )
             )
-        )
-        
-        # Test 6: Count jobs by status
-        results.append(
-            benchmark_query(
-                "Count jobs by status",
-                job_repo.count_jobs_by_status,
-                iterations=10,
-                status="pending",
+            
+            # Test 6: Count jobs by status
+            results.append(
+                benchmark_query(
+                    "Count jobs by status",
+                    job_repo.count_jobs_by_status,
+                    iterations=10,
+                    status="pending",
+                )
             )
-        )
-        
-        # Test 7: Find matching fingerprints (should use hash index)
-        results.append(
-            benchmark_query(
-                "Find matching fingerprints",
-                video_repo.find_matching_fingerprints,
-                iterations=10,
-                fingerprint_hash="test_hash_123",
+            
+            # Test 7: Find matching fingerprints (should use hash index)
+            results.append(
+                benchmark_query(
+                    "Find matching fingerprints",
+                    video_repo.find_matching_fingerprints,
+                    iterations=10,
+                    fingerprint_hash="test_hash_123",
+                )
             )
-        )
-        
-    finally:
-        # Clean up
-        video_repo.session.close()
-        job_repo.session.close()
     
     return results
 
