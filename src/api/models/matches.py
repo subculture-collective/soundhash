@@ -67,11 +67,7 @@ class FingerprintResponse(IDMixin):
     confidence_score: float | None = None
     peak_count: int | None = None
     created_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
-
-
-
 class FingerprintStats(BaseModel):
     """Fingerprint statistics."""
 
