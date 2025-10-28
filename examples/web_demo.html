@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundHash Live Matching Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn-start {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-start:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: #f3f4f6;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #6b7280;
+        }
+        
+        .status-indicator.active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .matches-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .match-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease;
+            transition: transform 0.3s ease;
+        }
+        
+        .match-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .match-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .match-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .match-title {
+            flex: 1;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .match-confidence {
+            font-size: 2em;
+            font-weight: bold;
+            color: #10b981;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .match-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .match-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: #f3f4f6;
+            border-radius: 5px;
+        }
+        
+        .match-detail-label {
+            font-weight: 600;
+            color: #6b7280;
+        }
+        
+        .match-detail-value {
+            color: #1f2937;
+        }
+        
+        .no-matches {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+        }
+        
+        .config-section {
+            margin-bottom: 20px;
+        }
+        
+        .config-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .config-section input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .config-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 SoundHash Live Matching</h1>
+            <p>Real-time audio identification powered by AI</p>
+        </div>
+        
+        <div class="control-panel">
+            <div class="config-section">
+                <label for="api-url">API URL:</label>
+                <input type="text" id="api-url" value="ws://localhost:8000" placeholder="ws://localhost:8000">
+            </div>
+            
+            <div class="config-section">
+                <label for="api-key">API Key:</label>
+                <input type="text" id="api-key" value="demo-key" placeholder="your-api-key">
+            </div>
+            
+            <div class="controls">
+                <button id="start-btn" class="btn-start">🎤 Start Listening</button>
+                <button id="stop-btn" class="btn-stop" disabled>⏹️ Stop</button>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator" id="connection-indicator"></div>
+                <div><strong>Connection:</strong> <span id="connection-status">Disconnected</span></div>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator" id="microphone-indicator"></div>
+                <div><strong>Microphone:</strong> <span id="microphone-status">Inactive</span></div>
+            </div>
+            <div class="status-item">
+                <div><strong>Matches Found:</strong> <span id="match-count">0</span></div>
+            </div>
+        </div>
+        
+        <div id="matches-container" class="matches-container">
+            <div class="no-matches">
+                👂 Start listening to find audio matches
+            </div>
+        </div>
+    </div>
+    
+    <script src="../client-sdk/soundhash.js"></script>
+    <script>
+        let client = null;
+        let matchCount = 0;
+        
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const apiUrlInput = document.getElementById('api-url');
+        const apiKeyInput = document.getElementById('api-key');
+        const matchesContainer = document.getElementById('matches-container');
+        const connectionStatus = document.getElementById('connection-status');
+        const connectionIndicator = document.getElementById('connection-indicator');
+        const microphoneStatus = document.getElementById('microphone-status');
+        const microphoneIndicator = document.getElementById('microphone-indicator');
+        const matchCountElement = document.getElementById('match-count');
+        
+        function updateConnectionStatus(status, connected) {
+            connectionStatus.textContent = status;
+            if (connected) {
+                connectionIndicator.classList.add('active');
+            } else {
+                connectionIndicator.classList.remove('active');
+            }
+        }
+        
+        function updateMicrophoneStatus(status, active) {
+            microphoneStatus.textContent = status;
+            if (active) {
+                microphoneIndicator.classList.add('active');
+            } else {
+                microphoneIndicator.classList.remove('active');
+            }
+        }
+        
+        function createMatchCard(match, index) {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            
+            const confidence = (match.similarity_score * 100).toFixed(1);
+            const title = match.title || 'Unknown Track';
+            const url = match.url || match.video_url || '#';
+            const startTime = match.start_time || 0;
+            const endTime = match.end_time || 0;
+            
+            card.innerHTML = `
+                <div class="match-header">
+                    <div class="match-number">#${index}</div>
+                    <div class="match-title">${title}</div>
+                </div>
+                <div class="match-confidence">${confidence}%</div>
+                <div class="match-details">
+                    <div class="match-detail-item">
+                        <span class="match-detail-label">Time Range:</span>
+                        <span class="match-detail-value">${startTime.toFixed(1)}s - ${endTime.toFixed(1)}s</span>
+                    </div>
+                    ${url !== '#' ? `
+                    <div class="match-detail-item">
+                        <span class="match-detail-label">URL:</span>
+                        <span class="match-detail-value"><a href="${url}" target="_blank">View Video</a></span>
+                    </div>
+                    ` : ''}
+                    <div class="match-detail-item">
+                        <span class="match-detail-label">Timestamp:</span>
+                        <span class="match-detail-value">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        function addMatch(match) {
+            matchCount++;
+            matchCountElement.textContent = matchCount;
+            
+            // Remove "no matches" message if present
+            const noMatches = matchesContainer.querySelector('.no-matches');
+            if (noMatches) {
+                noMatches.remove();
+            }
+            
+            // Create and add match card at the beginning
+            const card = createMatchCard(match, matchCount);
+            matchesContainer.insertBefore(card, matchesContainer.firstChild);
+        }
+        
+        startBtn.onclick = async () => {
+            try {
+                const apiUrl = apiUrlInput.value;
+                const apiKey = apiKeyInput.value;
+                
+                startBtn.disabled = true;
+                updateConnectionStatus('Connecting...', false);
+                
+                // Create client
+                client = new SoundHashClient(apiUrl, apiKey);
+                
+                // Set up callbacks
+                client.onMatch = (matchData) => {
+                    const matches = matchData.matches || [];
+                    matches.forEach(match => addMatch(match));
+                };
+                
+                client.onStatus = (status) => {
+                    console.log('Status:', status);
+                };
+                
+                client.onError = (error) => {
+                    alert('Error: ' + error);
+                    stopBtn.click();
+                };
+                
+                // Connect
+                await client.connect();
+                updateConnectionStatus('Connected', true);
+                
+                // Start microphone
+                updateMicrophoneStatus('Starting...', false);
+                await client.startMicrophone();
+                updateMicrophoneStatus('Active', true);
+                
+                stopBtn.disabled = false;
+                apiUrlInput.disabled = true;
+                apiKeyInput.disabled = true;
+            } catch (error) {
+                alert('Failed to start: ' + error.message);
+                startBtn.disabled = false;
+                updateConnectionStatus('Error', false);
+                updateMicrophoneStatus('Error', false);
+            }
+        };
+        
+        stopBtn.onclick = () => {
+            if (client) {
+                client.disconnect();
+                client = null;
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            apiUrlInput.disabled = false;
+            apiKeyInput.disabled = false;
+            updateConnectionStatus('Disconnected', false);
+            updateMicrophoneStatus('Inactive', false);
+        };
+    </script>
+</body>
+</html>

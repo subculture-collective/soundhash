@@ -86,7 +86,7 @@ async def health_check():
 
 
 # Import and include routers
-from src.api.routes import admin, auth, channels, fingerprints, matches, videos
+from src.api.routes import admin, auth, channels, fingerprints, matches, monitoring, videos
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(videos.router, prefix="/api/v1/videos", tags=["Videos"])
@@ -94,6 +94,42 @@ app.include_router(matches.router, prefix="/api/v1/matches", tags=["Matches"])
 app.include_router(channels.router, prefix="/api/v1/channels", tags=["Channels"])
 app.include_router(fingerprints.router, prefix="/api/v1/fingerprints", tags=["Fingerprints"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
+
+
+# WebSocket endpoint for real-time audio streaming
+from fastapi import WebSocket, WebSocketDisconnect
+from src.api.websocket import manager
+from src.core.streaming_processor import cleanup_processor, process_audio_chunk
+
+
+@app.websocket("/ws/stream/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    """
+    WebSocket endpoint for real-time audio streaming.
+    
+    Clients connect with a unique client_id and stream audio data.
+    The server processes the audio in real-time and sends back match results.
+    """
+    await manager.connect(websocket, client_id)
+    await manager.send_status(client_id, "Connected to SoundHash streaming service")
+    
+    try:
+        while True:
+            # Receive audio chunk
+            data = await websocket.receive_bytes()
+            
+            # Process audio chunk
+            await process_audio_chunk(client_id, data)
+            
+    except WebSocketDisconnect:
+        logger.info(f"Client {client_id} disconnected")
+        manager.disconnect(client_id)
+        cleanup_processor(client_id)
+    except Exception as e:
+        logger.error(f"WebSocket error for {client_id}: {e}")
+        manager.disconnect(client_id)
+        cleanup_processor(client_id)
 
 
 if __name__ == "__main__":
