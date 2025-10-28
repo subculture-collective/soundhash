@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from src.core.streaming_processor import StreamingAudioProcessor, processors, cleanup_processor
 
