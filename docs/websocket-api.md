@@ -194,17 +194,8 @@ ws.onmessage = (event) => {
 Environment variables for tuning:
 
 ```bash
-# Buffer duration (seconds)
-STREAMING_BUFFER_DURATION=3.0
-
-# Processing interval (seconds)
-STREAMING_HOP_DURATION=0.5
-
 # Sample rate (Hz)
 FINGERPRINT_SAMPLE_RATE=22050
-
-# Maximum concurrent connections
-WEBSOCKET_MAX_CONNECTIONS=100
 ```
 
 ### Client Configuration
