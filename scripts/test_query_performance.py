@@ -11,7 +11,12 @@ import statistics
 import sys
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Callable
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from config.logging_config import setup_logging
 from config.settings import Config
