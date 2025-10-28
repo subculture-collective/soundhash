@@ -29,11 +29,7 @@ class VideoResponse(VideoBase, IDMixin, TimestampMixin):
     processing_started: datetime | None = None
     processing_completed: datetime | None = None
     processing_error: str | None = None
-
     model_config = ConfigDict(from_attributes=True)
-
-
-
 class VideoUploadRequest(BaseModel):
     """Video upload request."""
 
