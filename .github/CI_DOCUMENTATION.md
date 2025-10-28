@@ -2,84 +2,103 @@
 
 ## Overview
 
-This project uses GitHub Actions for continuous integration and continuous deployment. The CI pipeline ensures code quality through automated linting, type checking, and testing.
+This project uses GitHub Actions for comprehensive continuous integration, continuous deployment, security scanning, and performance benchmarking. The CI/CD pipeline ensures code quality, security, and automated deployments to staging and production environments.
 
-## Workflow Configuration
+## Workflows
 
-The main CI workflow is defined in `.github/workflows/ci.yml` and runs on:
+### 1. CI Workflow (`.github/workflows/ci.yml`)
+
+The main CI workflow runs on:
 - Push to `main` branch
 - Push to feature branches (`feature/**`, `bugfix/**`, `hotfix/**`)
 - Pull requests targeting `main` branch
 
-## Jobs
+#### Jobs
 
-### 1. Lint & Format Check
+##### Pre-commit Hooks
+- Runs pre-commit checks on all files
+- Validates code formatting, linting, and other hooks
 
-**Purpose**: Ensure code follows style guidelines and best practices
-
-**Tools**:
+##### Lint & Format Check
 - **Ruff**: Fast Python linter checking for errors and code smells
 - **Black**: Code formatter enforcing consistent code style
+- **Python Versions**: 3.10, 3.11, 3.12
 
-**Python Versions**: 3.10, 3.11, 3.12
-
-**Current Status**: ⚠️ Set to `continue-on-error` due to existing code issues
-- 648 ruff errors need to be fixed
-- 26 files need Black formatting
-
-**To Fix**:
-```bash
-# Auto-fix ruff issues
-ruff check --fix src scripts config
-
-# Auto-format with Black
-black src scripts config
-```
-
-**Once fixed**, remove the `continue-on-error` flags in the workflow.
-
-### 2. Type Check
-
-**Purpose**: Catch type-related errors early through static analysis
-
-**Tools**:
+##### Type Check
 - **Mypy**: Static type checker for Python
+- **Python Versions**: 3.10, 3.11, 3.12
+- **Status**: Set to `continue-on-error` while type hints are being added
 
-**Python Versions**: 3.10, 3.11, 3.12
+##### Tests with Coverage
+- **Pytest**: Testing framework with coverage reporting
+- **Python Versions**: 3.10, 3.11, 3.12
+- **Services**: PostgreSQL 16 and Redis 7 for integration testing
+- **Coverage Threshold**: 80% minimum (enforced with `--cov-fail-under=80`)
+- **Codecov Integration**: Automatic coverage reporting with fail on error
+- Uploads test results and coverage reports as artifacts
 
-**Current Status**: ⚠️ Set to `continue-on-error` due to lack of type annotations
-- Type hints need to be added to functions and methods
-- Currently configured with lenient settings in `pyproject.toml`
+##### Security Scanning
+- **Trivy**: Filesystem vulnerability scanner
+- **Safety**: Python dependency vulnerability checker
+- **TruffleHog**: Secret scanner (verified secrets only)
+- Results uploaded to GitHub Security tab
 
-**To Fix**:
-1. Add type hints gradually, starting with new code
-2. Use `mypy --strict` to see all issues
-3. Enable stricter mypy settings in `pyproject.toml` incrementally
+##### Performance Benchmarks
+- **Runs on**: Pull requests only
+- Benchmarks fingerprint extraction, comparison, and database operations
+- Compares results with baseline
+- Posts markdown report as PR comment
+- Detects performance regressions automatically
 
-**Once improved**, remove the `continue-on-error` flag in the workflow.
+##### Docker Build & Scan
+- Builds Docker image with BuildKit
+- Pushes to GitHub Container Registry (on `main` branch only)
+- Scans image with Trivy for vulnerabilities
+- Runs import test to verify build
 
-### 3. Tests
+### 2. Staging Deployment (`.github/workflows/deploy-staging.yml`)
 
-**Purpose**: Ensure code functionality through automated tests
+**Trigger**: Automatic on push to `main` branch
 
-**Tools**:
-- **Pytest**: Testing framework
-- **pytest-cov**: Coverage reporting
+**Process**:
+1. Pulls latest Docker images
+2. SSH to staging server
+3. Runs `git pull` and `docker-compose up`
+4. Applies database migrations
+5. Runs smoke tests
+6. Sends Slack notification (optional)
 
-**Python Versions**: 3.10, 3.11, 3.12
+### 3. Production Deployment (`.github/workflows/deploy-production.yml`)
 
-**Current Status**: ✅ Fully functional
-- Currently has 1 placeholder test
-- Test failures will block the build (no `continue-on-error`)
+**Trigger**: 
+- GitHub release publication
+- Manual workflow dispatch
 
-**Coverage Reports**: Uploaded as artifacts for each Python version
+**Process**:
+1. Creates database backup
+2. Deploys to production via SSH
+3. Applies database migrations
+4. Runs health checks (10 attempts)
+5. **Automatic rollback** on failure
+6. Sends Slack notification
 
-**To Improve**:
-1. Add unit tests for core functionality in `src/`
-2. Add integration tests for workflows
-3. Aim for >80% code coverage
+**Protection**: Requires manual approval via GitHub Environments
 
 ## Configuration Files
+
+### .coveragerc
+
+Coverage configuration with 80% threshold:
+```ini
+[run]
+source = src
+omit = */tests/*, */migrations/*, */__pycache__/*
+
+[report]
+precision = 2
+fail_under = 80
+show_missing = True
+```
 
 ### pyproject.toml
 
@@ -197,14 +216,64 @@ These can be downloaded from the Actions tab for debugging failed runs.
 
 ## Future Enhancements
 
+Completed:
+- [x] Code coverage percentage tracking (Codecov)
+- [x] Security scanning (Trivy, Safety, TruffleHog)
+- [x] Dependency vulnerability scanning (Trivy + Dependabot)
+- [x] Performance benchmarking with regression detection
+- [x] Docker image scanning
+- [x] Automated deployment to staging
+- [x] Production deployment with rollback
+
 Consider adding:
-- [ ] Code coverage percentage badge
-- [ ] Upload coverage to Codecov or similar service
-- [ ] Security scanning (e.g., Bandit, Safety)
-- [ ] Dependency vulnerability scanning
-- [ ] Performance benchmarking
+- [ ] Blue-green deployment for zero downtime
+- [ ] Canary deployments
 - [ ] Documentation building and deployment
-- [ ] Pre-commit hooks for local validation
+- [ ] Load testing in CI
+- [ ] Automated E2E testing
+
+## Required GitHub Secrets
+
+### For Deployments
+- `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY` - Staging server access
+- `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY` - Production server access
+
+### For Enhanced Features
+- `CODECOV_TOKEN` - Code coverage reporting (recommended)
+- `SLACK_WEBHOOK` - Deployment notifications (optional)
+
+### Automatic
+- `GITHUB_TOKEN` - Provided automatically by GitHub Actions
+
+## GitHub Environments
+
+Configure in Settings → Environments:
+
+1. **staging**
+   - No protection rules (auto-deploy)
+   - Set staging secrets
+
+2. **production**
+   - Required reviewers (recommended)
+   - Deployment branches: releases only
+   - Set production secrets
+
+## Performance Benchmarking
+
+The performance job runs on every PR and:
+1. Executes `scripts/benchmark_performance.py`
+2. Compares results with `scripts/compare_benchmarks.py`
+3. Posts results as PR comment
+4. Warns on regressions >20%
+
+**Baseline Management**:
+```bash
+# Update baseline after verified improvements
+python scripts/benchmark_performance.py
+python scripts/compare_benchmarks.py --save-baseline
+git add benchmark_baseline.json
+git commit -m "Update performance baseline"
+```
 
 ## Support
 

@@ -1,0 +1,96 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # Manual trigger with version input
+    inputs:
+      version:
+        description: 'Version tag to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    environment: 
+      name: production
+      url: https://api.soundhash.io
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.version }}
+      
+      - name: Create database backup
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            /opt/soundhash/scripts/backup_database.sh
+      
+      - name: Deploy to production
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/soundhash
+            git fetch --tags
+            git checkout ${{ github.event.release.tag_name || inputs.version }}
+            docker-compose pull
+            docker-compose up -d --no-deps api
+            docker-compose exec -T api alembic upgrade head
+      
+      - name: Health check
+        id: health_check
+        run: |
+          for i in {1..10}; do
+            if curl -f https://api.soundhash.io/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Health check failed, retrying... ($i/10)"
+            sleep 10
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
+      
+      - name: Rollback on failure
+        if: failure() && steps.health_check.outcome == 'failure'
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/soundhash
+            echo "Rolling back deployment..."
+            docker-compose down
+            /opt/soundhash/scripts/restore_database.sh latest
+            git checkout main
+            docker-compose up -d
+            echo "Rollback completed"
+      
+      - name: Notify deployment success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: '🚀 Production deployment successful for version ${{ github.event.release.tag_name || inputs.version }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
+      
+      - name: Notify deployment failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: '⚠️ Production deployment failed for version ${{ github.event.release.tag_name || inputs.version }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
