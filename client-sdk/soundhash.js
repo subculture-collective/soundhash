@@ -25,7 +25,7 @@ class SoundHashClient {
    * @param {number} [sampleRate=22050] - Audio sample rate in Hz
    */
   constructor(apiUrl, apiKey, clientId = null, sampleRate = 22050) {
-    this.apiUrl = apiUrl.replace('https://', 'wss://').replace('http://', 'wss://');
+    this.apiUrl = apiUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     this.apiKey = apiKey;
     this.clientId = clientId || this._generateUUID();
     this.sampleRate = sampleRate;
