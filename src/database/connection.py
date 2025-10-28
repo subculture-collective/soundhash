@@ -29,12 +29,23 @@ class DatabaseManager:
                 driver = "psycopg"
             if driver:
                 database_url = database_url.replace("postgresql://", f"postgresql+{driver}://", 1)
+        from sqlalchemy.pool import QueuePool
+        
+        # Build connect_args with statement timeout
+        connect_args = {
+            "options": f"-c statement_timeout={Config.DATABASE_STATEMENT_TIMEOUT}"
+        }
+        
         self.engine = create_engine(
             database_url,
-            pool_size=10,
-            max_overflow=20,
-            pool_pre_ping=True,
-            echo=False,  # Set to True for SQL debugging
+            poolclass=QueuePool,
+            pool_size=Config.DATABASE_POOL_SIZE,
+            max_overflow=Config.DATABASE_MAX_OVERFLOW,
+            pool_timeout=Config.DATABASE_POOL_TIMEOUT,
+            pool_recycle=Config.DATABASE_POOL_RECYCLE,
+            pool_pre_ping=True,  # Verify connections before using
+            echo=Config.DATABASE_ECHO,
+            connect_args=connect_args,
         )
 
         self.Session = sessionmaker(bind=self.engine)

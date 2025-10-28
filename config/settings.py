@@ -14,6 +14,22 @@ class Config:
     DATABASE_NAME = os.getenv("DATABASE_NAME", "soundhash")
     DATABASE_USER = os.getenv("DATABASE_USER")
     DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+    
+    # Database Connection Pooling
+    DATABASE_POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", 10))
+    DATABASE_MAX_OVERFLOW = int(os.getenv("DATABASE_MAX_OVERFLOW", 20))
+    DATABASE_POOL_TIMEOUT = int(os.getenv("DATABASE_POOL_TIMEOUT", 30))
+    DATABASE_POOL_RECYCLE = int(os.getenv("DATABASE_POOL_RECYCLE", 3600))
+    DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
+    DATABASE_STATEMENT_TIMEOUT = int(os.getenv("DATABASE_STATEMENT_TIMEOUT", 30000))  # milliseconds
+    
+    # Redis for Caching
+    REDIS_ENABLED = os.getenv("REDIS_ENABLED", "false").lower() == "true"
+    REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+    REDIS_DB = int(os.getenv("REDIS_DB", 0))
+    REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+    CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", 300))
 
     # API Keys
     YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
