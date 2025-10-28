@@ -69,7 +69,12 @@ class SoundHashClient:
             client_id: Unique client identifier (auto-generated if not provided)
             sample_rate: Audio sample rate in Hz
         """
-        self.api_url = api_url.replace('https://', 'wss://').replace('http://', 'ws://')
+        if api_url.startswith('https://'):
+            self.api_url = 'wss://' + api_url[len('https://'):]
+        elif api_url.startswith('http://'):
+            self.api_url = 'ws://' + api_url[len('http://'):]
+        else:
+            self.api_url = api_url
         self.api_key = api_key
         self.client_id = client_id or str(uuid.uuid4())
         self.sample_rate = sample_rate
