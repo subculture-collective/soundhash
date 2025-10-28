@@ -22,7 +22,6 @@ class ChannelResponse(ChannelBase, IDMixin, TimestampMixin):
     video_count: int | None = None
     last_processed: datetime | None = None
     is_active: bool
-
     model_config = ConfigDict(from_attributes=True)
 
 
