@@ -145,13 +145,7 @@ Configure yt-dlp for reliability:
 
 ```env
 SEGMENT_LENGTH_SECONDS=90
-FINGERPRINT_SAMPLE_RATE=22050
-```
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SEGMENT_LENGTH_SECONDS` | 90 | Length of each audio segment (seconds) |
-| `FINGERPRINT_SAMPLE_RATE` | 22050 | Sample rate for fingerprinting (Hz) |
+FINGERPRINT_SAMPLE_RATE=16000
 
 !!! warning "Changing These Values"
     
