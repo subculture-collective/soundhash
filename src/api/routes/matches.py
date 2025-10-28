@@ -146,12 +146,13 @@ async def bulk_match(
         try:
             # Process each query
             # In production, would actually process the query
+            first_video = db.query(Video).first()
             result = MatchResponse(
                 query_id=0,
                 total_matches=0,
                 matches=[],
                 processing_time_ms=0.0,
-                created_at=db.query(Video).first().created_at if db.query(Video).first() else None,
+                created_at=first_video.created_at if first_video else None,
             )
             results.append(result)
             successful += 1
