@@ -4,7 +4,7 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from src.api.websocket import ConnectionManager, manager
+from src.api.websocket import ConnectionManager
 
 
 @pytest.fixture
