@@ -1,0 +1,196 @@
+site_name: SoundHash Documentation
+site_url: https://docs.soundhash.io
+site_description: Audio fingerprinting and video clip matching system for social media platforms
+site_author: Subculture Collective
+repo_url: https://github.com/subculture-collective/soundhash
+repo_name: subculture-collective/soundhash
+edit_uri: edit/main/docs/
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.integrate
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+  palette:
+    # Light mode
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  icon:
+    logo: material/music-note
+    repo: fontawesome/brands/github
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+  - gen-files:
+      scripts:
+        - docs/scripts/gen_api_docs.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - swagger-ui-tag
+  - mermaid2
+
+# Navigation
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+      - First Match: getting-started/first-match.md
+  - Guides:
+      - guides/index.md
+      - Channel Ingestion: guides/ingestion.md
+      - Video Processing: guides/processing.md
+      - Clip Matching: guides/matching.md
+      - Social Media Bots: guides/bots.md
+      - YouTube Setup: guides/youtube-setup.md
+  - API Reference:
+      - api/index.md
+      - Authentication: api/authentication.md
+      - Videos: api/videos.md
+      - Matches: api/matches.md
+      - Channels: api/channels.md
+      - Fingerprints: api/fingerprints.md
+      - Admin: api/admin.md
+      - OpenAPI Specification: api/reference.md
+  - Deployment:
+      - deployment/index.md
+      - Docker: deployment/docker.md
+      - Kubernetes: deployment/kubernetes.md
+      - Cloud Providers: deployment/cloud-providers.md
+      - Scaling: deployment/scaling.md
+      - Production Checklist: deployment/production-checklist.md
+  - Architecture:
+      - architecture/index.md
+      - System Overview: architecture/overview.md
+      - Components: architecture/components.md
+      - Database Schema: architecture/database-schema.md
+      - Audio Fingerprinting: architecture/fingerprinting.md
+      - Performance: architecture/performance.md
+  - Development:
+      - development/index.md
+      - Contributing: development/contributing.md
+      - Development Setup: development/setup.md
+      - Testing: development/testing.md
+      - Code Style: development/code-style.md
+  - Reference:
+      - reference/index.md
+      - Configuration: reference/configuration.md
+      - CLI Commands: reference/cli-commands.md
+      - Troubleshooting: reference/troubleshooting.md
+      - FAQ: reference/faq.md
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/subculture-collective/soundhash
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/subcultureco
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/thumb-up-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/thumb-down-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve by opening an issue.
+
+# Copyright
+copyright: Copyright &copy; 2024 Subculture Collective
+
+# Extra CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Extra JavaScript
+extra_javascript:
+  - javascripts/extra.js
