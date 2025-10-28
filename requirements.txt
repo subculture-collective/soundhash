@@ -1,5 +1,5 @@
 # Core dependencies
-psycopg[binary]==3.2.11
+psycopg[binary]==3.2.12
 sqlalchemy==2.0.44
 alembic==1.17.0
 setuptools<81.0.0
@@ -11,7 +11,7 @@ numpy==2.3.4
 soundfile==0.13.1
 
 # Video processing
-yt-dlp==2025.10.14
+yt-dlp==2025.10.22
 ffmpeg-python==0.2.0
 
 # Social media APIs
@@ -19,23 +19,23 @@ tweepy==4.16.0
 praw==7.8.1
 
 # Google APIs
-google-api-python-client==2.154.0
+google-api-python-client==2.185.0
 google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.1
+google-auth-oauthlib==1.2.2
 
 # Web server for OAuth callbacks
-fastapi==0.119.0
+fastapi==0.120.1
 uvicorn==0.38.0
 
 # Utilities
-python-dotenv==1.1.1
+python-dotenv==1.2.1
 requests==2.32.5
 python-dateutil==2.9.0.post0
 tqdm==4.67.1
 colorlog==6.10.1
 
 # Observability
-prometheus-client==0.21.1
+prometheus-client==0.23.1
 
 # Development
 pytest==8.4.2
