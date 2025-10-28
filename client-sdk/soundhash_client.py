@@ -31,7 +31,7 @@ import asyncio
 import json
 import logging
 import uuid
-from typing import Callable, Optional
+from typing import Optional
 
 try:
     import websockets
