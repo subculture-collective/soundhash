@@ -1,12 +1,12 @@
 """Generate API documentation from OpenAPI spec."""
 
-import json
 from pathlib import Path
 
 
 def generate_api_docs():
     """Generate API documentation files from the OpenAPI spec."""
     docs_dir = Path("docs/api")
+    docs_dir.mkdir(parents=True, exist_ok=True)
     
     # Placeholder for OpenAPI spec generation
     # In a real implementation, this would:

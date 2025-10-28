@@ -53,7 +53,7 @@ TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA,UCDz8WxTg4R7FUTSz7GW2cYA
 
 # Processing Settings
 SEGMENT_LENGTH_SECONDS=90
-FINGERPRINT_SAMPLE_RATE=16000
+FINGERPRINT_SAMPLE_RATE=22050
 CLEANUP_SEGMENTS_AFTER_PROCESSING=true
 ```
 
@@ -178,18 +178,18 @@ Edit `.env` with your database credentials:
 DATABASE_URL=postgresql://soundhash_user:your_secure_password@localhost:5432/soundhash
 
 # Or use individual settings:
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=soundhash
-DB_USER=soundhash_user
-DB_PASSWORD=your_secure_password
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=soundhash
+DATABASE_USER=soundhash_user
+DATABASE_PASSWORD=your_secure_password
 
 # YouTube Channels
 TARGET_CHANNELS=UCo_QGM_tJZOkOCIFi2ik5kA
 
 # Processing Settings
 SEGMENT_LENGTH_SECONDS=90
-FINGERPRINT_SAMPLE_RATE=16000
+FINGERPRINT_SAMPLE_RATE=22050
 TEMP_DIR=/tmp/soundhash
 CLEANUP_SEGMENTS_AFTER_PROCESSING=true
 ```
@@ -267,7 +267,7 @@ MAX_CONCURRENT_DOWNLOADS=3
 
 # Processing settings
 SEGMENT_LENGTH_SECONDS=90
-FINGERPRINT_SAMPLE_RATE=16000
+FINGERPRINT_SAMPLE_RATE=22050
 
 # Storage
 TEMP_DIR=/tmp/soundhash

@@ -34,11 +34,11 @@ nano .env  # or vim, code, etc.
 === "Using Individual Settings"
 
     ```env
-    DB_HOST=localhost
-    DB_PORT=5432
-    DB_NAME=soundhash
-    DB_USER=soundhash_user
-    DB_PASSWORD=your_password
+    DATABASE_HOST=localhost
+    DATABASE_PORT=5432
+    DATABASE_NAME=soundhash
+    DATABASE_USER=soundhash_user
+    DATABASE_PASSWORD=your_password
     ```
 
 ### Connection Pooling
@@ -145,7 +145,7 @@ Configure yt-dlp for reliability:
 
 ```env
 SEGMENT_LENGTH_SECONDS=90
-FINGERPRINT_SAMPLE_RATE=16000
+FINGERPRINT_SAMPLE_RATE=22050
 
 !!! warning "Changing These Values"
     
