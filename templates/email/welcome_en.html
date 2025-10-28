@@ -2,7 +2,6 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to {{ app_name }}</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
@@ -12,7 +11,7 @@
         .button { display: inline-block; background: #667eea; color: white !important; padding: 14px 35px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         .features { background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0; }
         .feature-item { margin: 15px 0; padding-left: 25px; position: relative; }
-        .feature-item:before { content: "✓"; position: absolute; left: 0; color: #667eea; font-weight: bold; font-size: 18px; }
+        .feature-item span { position: absolute; left: 0; color: #667eea; font-weight: bold; font-size: 18px; }
         .footer { background: #f4f4f4; padding: 30px; text-align: center; color: #666; font-size: 12px; }
         .footer a { color: #667eea; text-decoration: none; }
     </style>
@@ -21,7 +20,7 @@
     <div class="container">
         <div class="header">
             <h1 style="margin: 0; font-size: 32px;">Welcome to {{ app_name }}!</h1>
-            <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">Your audio fingerprinting journey starts here</p>
+            <p style="margin: 10px 0 0; font-size: 16px; color: #e8e8e8;">Your audio fingerprinting journey starts here</p>
         </div>
         <div class="content">
             <h2 style="color: #333;">Hi {{ username }},</h2>
@@ -30,11 +29,11 @@
             
             <div class="features">
                 <h3 style="margin-top: 0; color: #667eea;">What you can do with {{ app_name }}:</h3>
-                <div class="feature-item">Submit audio clips for instant matching</div>
-                <div class="feature-item">Search our extensive database of fingerprinted videos</div>
-                <div class="feature-item">Get detailed match results with confidence scores</div>
-                <div class="feature-item">Integrate audio matching via our RESTful API</div>
-                <div class="feature-item">Real-time streaming with WebSocket support</div>
+                <div class="feature-item"><span>✓</span> Submit audio clips for instant matching</div>
+                <div class="feature-item"><span>✓</span> Search our extensive database of fingerprinted videos</div>
+                <div class="feature-item"><span>✓</span> Get detailed match results with confidence scores</div>
+                <div class="feature-item"><span>✓</span> Integrate audio matching via our RESTful API</div>
+                <div class="feature-item"><span>✓</span> Real-time streaming with WebSocket support</div>
             </div>
 
             <p style="text-align: center;">
