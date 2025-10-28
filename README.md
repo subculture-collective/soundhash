@@ -5,6 +5,8 @@
 
 A sophisticated system for matching audio clips from videos across social media platforms using audio fingerprinting and PostgreSQL.
 
+> **📚 [View Full Documentation](https://subculture-collective.github.io/soundhash/)** - Comprehensive guides, API reference, and architecture details
+
 ## Table of Contents
 
 - [Quick Start](#quick-start-target-15-minutes) - Get running in <15 minutes
