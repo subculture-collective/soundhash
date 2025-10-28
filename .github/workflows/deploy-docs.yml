@@ -74,39 +74,6 @@ jobs:
         uses: actions/deploy-pages@v4
 
   # Alternative: Deploy to gh-pages branch (if not using GitHub Pages environment)
-  deploy-gh-pages:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && false  # Disabled by default
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements-docs.txt
-
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Deploy with mike (versioned docs)
-        run: |
-          # Deploy latest version
-          mike deploy --push --update-aliases latest
-          
-          # Set default version
-          mike set-default --push latest
-
   # Job to validate documentation on PRs
   validate:
     if: github.event_name == 'pull_request'
