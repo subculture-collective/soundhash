@@ -39,6 +39,8 @@ class User(Base):  # type: ignore[misc,valid-type]
     
     # Relationships
     api_keys: Mapped[list["APIKey"]] = relationship("APIKey", back_populates="user")  # type: ignore[assignment]
+    email_preferences: Mapped["EmailPreference"] = relationship("EmailPreference", back_populates="user", uselist=False)  # type: ignore[assignment]
+    email_logs: Mapped[list["EmailLog"]] = relationship("EmailLog", back_populates="user")  # type: ignore[assignment]
 
 
 class APIKey(Base):  # type: ignore[misc,valid-type]
@@ -226,3 +228,167 @@ Index(
     ProcessingJob.job_type,
     ProcessingJob.status,
 )
+
+
+class EmailPreference(Base):  # type: ignore[misc,valid-type]
+    """User email notification preferences."""
+    
+    __tablename__ = "email_preferences"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    
+    # Transactional emails (always enabled for security)
+    receive_welcome = Column(Boolean, default=True, nullable=False)
+    receive_password_reset = Column(Boolean, default=True, nullable=False)
+    receive_security_alerts = Column(Boolean, default=True, nullable=False)
+    
+    # Product emails
+    receive_match_found = Column(Boolean, default=True, nullable=False)
+    receive_processing_complete = Column(Boolean, default=True, nullable=False)
+    receive_quota_warnings = Column(Boolean, default=True, nullable=False)
+    receive_api_key_generated = Column(Boolean, default=True, nullable=False)
+    
+    # Marketing emails
+    receive_feature_announcements = Column(Boolean, default=True, nullable=False)
+    receive_tips_tricks = Column(Boolean, default=True, nullable=False)
+    receive_case_studies = Column(Boolean, default=False, nullable=False)
+    
+    # Digest emails
+    receive_daily_digest = Column(Boolean, default=False, nullable=False)
+    receive_weekly_digest = Column(Boolean, default=True, nullable=False)
+    
+    # Language preference
+    preferred_language = Column(String(10), default="en", nullable=False)
+    
+    # Global unsubscribe
+    unsubscribed_at = Column(DateTime)
+    unsubscribe_token = Column(String(255), unique=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="email_preferences")  # type: ignore[assignment]
+
+
+class EmailTemplate(Base):  # type: ignore[misc,valid-type]
+    """Email templates for various notification types."""
+    
+    __tablename__ = "email_templates"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)  # e.g., 'welcome', 'password_reset'
+    category = Column(String(50), nullable=False)  # 'transactional', 'product', 'marketing', 'admin'
+    subject = Column(String(500), nullable=False)
+    html_body = Column(Text, nullable=False)
+    text_body = Column(Text)
+    
+    # Template variables
+    variables = Column(Text)  # JSON array of required variables
+    
+    # A/B Testing
+    variant = Column(String(20), default="A")  # A, B, C, etc.
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Multi-language support
+    language = Column(String(10), default="en", nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class EmailLog(Base):  # type: ignore[misc,valid-type]
+    """Log of all emails sent for tracking and analytics."""
+    
+    __tablename__ = "email_logs"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    recipient_email = Column(String(255), nullable=False)
+    
+    # Email details
+    template_name = Column(String(100))
+    template_variant = Column(String(20))
+    subject = Column(String(500))
+    category = Column(String(50))  # 'transactional', 'product', 'marketing', 'admin'
+    
+    # Sending status
+    status = Column(String(20), default="pending")  # pending, sent, failed, bounced
+    provider_message_id = Column(String(255))  # ID from SendGrid/SES
+    error_message = Column(Text)
+    
+    # Tracking
+    sent_at = Column(DateTime)
+    opened_at = Column(DateTime)
+    clicked_at = Column(DateTime)
+    open_count = Column(Integer, default=0)
+    click_count = Column(Integer, default=0)
+    
+    # Campaign tracking
+    campaign_id = Column(String(100))
+    ab_test_group = Column(String(20))
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="email_logs")  # type: ignore[assignment]
+
+
+class EmailCampaign(Base):  # type: ignore[misc,valid-type]
+    """Marketing automation campaigns."""
+    
+    __tablename__ = "email_campaigns"
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    
+    # Campaign settings
+    template_name = Column(String(100), nullable=False)
+    category = Column(String(50), default="marketing")
+    
+    # Scheduling
+    scheduled_at = Column(DateTime)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    
+    # Status
+    status = Column(String(20), default="draft")  # draft, scheduled, running, completed, cancelled
+    
+    # A/B Testing
+    ab_test_enabled = Column(Boolean, default=False)
+    ab_test_variants = Column(Text)  # JSON array of variant configs
+    ab_test_split_percentage = Column(Integer, default=50)  # % for variant A
+    
+    # Targeting
+    target_segment = Column(String(100))  # e.g., 'all_users', 'premium_users', 'inactive_users'
+    
+    # Analytics
+    total_recipients = Column(Integer, default=0)
+    emails_sent = Column(Integer, default=0)
+    emails_opened = Column(Integer, default=0)
+    emails_clicked = Column(Integer, default=0)
+    emails_failed = Column(Integer, default=0)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# Additional indexes for email tables
+Index("idx_email_preferences_user_id", EmailPreference.user_id)
+Index("idx_email_templates_name", EmailTemplate.name)
+Index("idx_email_templates_category", EmailTemplate.category)
+Index("idx_email_templates_language", EmailTemplate.language)
+Index("idx_email_logs_user_id", EmailLog.user_id)
+Index("idx_email_logs_status", EmailLog.status)
+Index("idx_email_logs_category", EmailLog.category)
+Index("idx_email_logs_sent_at", EmailLog.sent_at)
+Index("idx_email_logs_campaign_id", EmailLog.campaign_id)
+Index("idx_email_campaigns_status", EmailCampaign.status)
+Index("idx_email_campaigns_scheduled_at", EmailCampaign.scheduled_at)
+

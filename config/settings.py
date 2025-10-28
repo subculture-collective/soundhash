@@ -181,6 +181,34 @@ class Config:
         "BACKUP_S3_PREFIX", "soundhash-backups/"
     )  # S3 key prefix for backups
 
+    # Email Configuration
+    EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
+    EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "sendgrid")  # sendgrid or ses
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+    SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply@soundhash.io")
+    SENDGRID_FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "SoundHash")
+    
+    # AWS SES Configuration (alternative to SendGrid)
+    AWS_SES_REGION = os.getenv("AWS_SES_REGION", "us-east-1")
+    AWS_SES_ACCESS_KEY = os.getenv("AWS_SES_ACCESS_KEY")
+    AWS_SES_SECRET_KEY = os.getenv("AWS_SES_SECRET_KEY")
+    AWS_SES_FROM_EMAIL = os.getenv("AWS_SES_FROM_EMAIL", "noreply@soundhash.io")
+    
+    # Email Templates
+    EMAIL_TEMPLATES_DIR = os.getenv("EMAIL_TEMPLATES_DIR", "./templates/email")
+    
+    # Email Features
+    EMAIL_TRACK_OPENS = os.getenv("EMAIL_TRACK_OPENS", "true").lower() == "true"
+    EMAIL_TRACK_CLICKS = os.getenv("EMAIL_TRACK_CLICKS", "true").lower() == "true"
+    EMAIL_UNSUBSCRIBE_URL = os.getenv("EMAIL_UNSUBSCRIBE_URL", "http://localhost:8000/api/email/unsubscribe")
+    
+    # Digest Email Settings
+    DIGEST_DAILY_ENABLED = os.getenv("DIGEST_DAILY_ENABLED", "true").lower() == "true"
+    DIGEST_DAILY_TIME = os.getenv("DIGEST_DAILY_TIME", "09:00")  # HH:MM format
+    DIGEST_WEEKLY_ENABLED = os.getenv("DIGEST_WEEKLY_ENABLED", "true").lower() == "true"
+    DIGEST_WEEKLY_DAY = int(os.getenv("DIGEST_WEEKLY_DAY", 1))  # Monday = 0
+    DIGEST_WEEKLY_TIME = os.getenv("DIGEST_WEEKLY_TIME", "09:00")  # HH:MM format
+
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:
