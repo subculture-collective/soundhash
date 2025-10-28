@@ -44,6 +44,7 @@ requests==2.32.5
 python-dateutil==2.9.0.post0
 tqdm==4.67.1
 colorlog==6.10.1
+redis==5.2.1  # Optional: for query result caching
 
 # Observability
 prometheus-client==0.21.1
