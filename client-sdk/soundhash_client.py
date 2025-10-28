@@ -40,7 +40,6 @@ except ImportError:
 
 try:
     import pyaudio
-    import numpy as np
     PYAUDIO_AVAILABLE = True
 except ImportError:
     PYAUDIO_AVAILABLE = False
