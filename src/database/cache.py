@@ -83,7 +83,7 @@ class QueryCache:
             "args": args,
             "kwargs": tuple(sorted(kwargs.items())),
         }
-        key_hash = hashlib.md5(str(key_data).encode()).hexdigest()
+        key_hash = hashlib.sha256(str(key_data).encode()).hexdigest()
         return f"{prefix}:{func_name}:{key_hash}"
     
     def get(self, key: str) -> Any | None:
