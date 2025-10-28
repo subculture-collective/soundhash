@@ -30,10 +30,14 @@ def upgrade() -> None:
         sa.Column("receive_password_reset", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("receive_security_alerts", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("receive_match_found", sa.Boolean(), nullable=False, server_default="true"),
-        sa.Column("receive_processing_complete", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column(
+            "receive_processing_complete", sa.Boolean(), nullable=False, server_default="true"
+        ),
         sa.Column("receive_quota_warnings", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("receive_api_key_generated", sa.Boolean(), nullable=False, server_default="true"),
-        sa.Column("receive_feature_announcements", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column(
+            "receive_feature_announcements", sa.Boolean(), nullable=False, server_default="true"
+        ),
         sa.Column("receive_tips_tricks", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("receive_case_studies", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column("receive_daily_digest", sa.Boolean(), nullable=False, server_default="false"),
@@ -131,7 +135,6 @@ def upgrade() -> None:
     op.create_index("idx_email_campaigns_scheduled_at", "email_campaigns", ["scheduled_at"])
 
 
-
 def downgrade() -> None:
     """Downgrade schema."""
     # Drop tables in reverse order
@@ -153,4 +156,3 @@ def downgrade() -> None:
 
     op.drop_index("idx_email_preferences_user_id", "email_preferences")
     op.drop_table("email_preferences")
-

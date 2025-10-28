@@ -115,9 +115,7 @@ class EmailTemplateEngine:
             # Render text body if exists
             text_body = None
             if template.text_body:
-                text_template = Environment(autoescape=False).from_string(
-                    template.text_body
-                )
+                text_template = Environment(autoescape=False).from_string(template.text_body)
                 text_body = text_template.render(**full_context)
 
             return RenderedEmail(

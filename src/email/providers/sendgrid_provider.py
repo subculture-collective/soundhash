@@ -50,9 +50,7 @@ class SendGridProvider(EmailProvider):
     ) -> EmailResult:
         """Send email via SendGrid."""
         if not self.client:
-            return EmailResult(
-                success=False, error_message="SendGrid client not initialized"
-            )
+            return EmailResult(success=False, error_message="SendGrid client not initialized")
 
         try:
             # Use defaults if not provided

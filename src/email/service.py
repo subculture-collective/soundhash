@@ -241,9 +241,7 @@ class EmailService:
         tasks = [send_one(recipient) for recipient in recipients]
         await asyncio.gather(*tasks)
 
-        logger.info(
-            f"Bulk email complete: {results['sent']} sent, {results['failed']} failed"
-        )
+        logger.info(f"Bulk email complete: {results['sent']} sent, {results['failed']} failed")
         return results
 
     async def _check_user_preferences(self, user_id: int, category: str) -> bool:

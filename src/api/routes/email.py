@@ -66,17 +66,13 @@ async def update_email_preferences(
 
 
 @router.post("/unsubscribe", response_model=UnsubscribeResponse)
-async def unsubscribe_from_emails(
-    request: UnsubscribeRequest, db: Session = Depends(get_db)
-):
+async def unsubscribe_from_emails(request: UnsubscribeRequest, db: Session = Depends(get_db)):
     """Unsubscribe from all marketing emails."""
     # Find user by email
     user = db.query(User).filter_by(email=request.email).first()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Email not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
 
     # Get or create preferences
     preference = db.query(EmailPreference).filter_by(user_id=user.id).first()
@@ -111,9 +107,7 @@ async def resubscribe_to_emails(
     preference = db.query(EmailPreference).filter_by(user_id=current_user.id).first()
 
     if not preference:
-        return UnsubscribeResponse(
-            success=True, message="You are already subscribed to emails"
-        )
+        return UnsubscribeResponse(success=True, message="You are already subscribed to emails")
 
     preference.unsubscribed_at = None
     db.commit()
@@ -150,9 +144,7 @@ async def list_email_campaigns(
 ):
     """List email campaigns (admin only)."""
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     query = db.query(EmailCampaign)
 
@@ -164,7 +156,9 @@ async def list_email_campaigns(
     return campaigns
 
 
-@router.post("/campaigns", response_model=EmailCampaignResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/campaigns", response_model=EmailCampaignResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_email_campaign(
     campaign: EmailCampaignCreate,
     current_user: UserResponse = Depends(get_current_user),
@@ -172,9 +166,7 @@ async def create_email_campaign(
 ):
     """Create a new email campaign (admin only)."""
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     db_campaign = EmailCampaign(**campaign.model_dump())
     db_campaign.status = "draft"
@@ -194,16 +186,12 @@ async def get_email_campaign(
 ):
     """Get email campaign details (admin only)."""
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     campaign = db.query(EmailCampaign).filter_by(id=campaign_id).first()
 
     if not campaign:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found")
 
     return campaign
 
