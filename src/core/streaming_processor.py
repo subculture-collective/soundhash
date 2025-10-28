@@ -136,6 +136,28 @@ class StreamingAudioProcessor:
 
                 matches = []
                 for fp, video in similar_fps:
+                    # Deserialize the stored fingerprint to compare
+                    try:
+                        stored_fp_data = self.fingerprinter.deserialize_fingerprint(
+                            fp.fingerprint_data
+                        )
+                        stored_compact = stored_fp_data.get('compact_fingerprint')
+
+                        # Calculate actual similarity score
+                        if stored_compact is not None and compact_fp is not None:
+                            similarity_result = self.fingerprinter.compare_fingerprints(
+                                compact_fp,
+                                stored_compact,
+                                return_dict=True
+                            )
+                            similarity_score = similarity_result.get('combined_score', 0.0)
+                        else:
+                            # Fallback if fingerprints can't be compared
+                            similarity_score = 0.5
+                    except Exception as e:
+                        logger.warning(f"Error comparing fingerprints: {e}")
+                        similarity_score = 0.5
+
                     matches.append({
                         "video_id": video.video_id,
                         "title": video.title,
@@ -143,7 +165,7 @@ class StreamingAudioProcessor:
                         "thumbnail_url": video.thumbnail_url,
                         "start_time": fp.start_time,
                         "end_time": fp.end_time,
-                        "similarity_score": 0.95,  # Would be calculated in production
+                        "similarity_score": similarity_score,
                         "confidence": fp.confidence_score or 0.9,
                     })
 

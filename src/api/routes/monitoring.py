@@ -22,11 +22,15 @@ async def get_live_streams(
     """
     Get all active live streams.
 
-    Requires authentication. Returns information about all active
+    Requires admin authentication. Returns information about all active
     WebSocket connections and their processing status.
     """
-    # Check if user is admin (for now, allow all authenticated users)
-    # In production, would check current_user.is_admin or similar
+    # Check if user is admin
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required to view live streams"
+        )
 
     connections = manager.get_active_connections()
 
@@ -60,11 +64,11 @@ async def disconnect_stream(
     """
     Disconnect a live stream.
 
-    Requires authentication. Forcefully disconnects a client
+    Requires admin authentication. Forcefully disconnects a client
     and cleans up their resources.
     """
-    # Check if user is admin (for now, allow all authenticated users)
-    if not getattr(current_user, "is_admin", False):
+    # Check if user is admin
+    if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin privileges required to disconnect streams"
@@ -91,7 +95,18 @@ async def get_stream_details(
     client_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
 ):
-    """Get detailed information about a specific stream."""
+    """
+    Get detailed information about a specific stream.
+
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required to view stream details"
+        )
+
     if client_id not in manager.active_connections:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
