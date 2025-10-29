@@ -1,7 +1,7 @@
 """AWS SES email provider implementation."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from config.settings import Config
 from src.email.providers.base import EmailProvider, EmailResult
