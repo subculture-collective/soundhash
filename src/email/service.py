@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from config.settings import Config
 from src.database.connection import db_manager
@@ -38,12 +38,12 @@ class EmailService:
         recipient_email: str,
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None,
-        user_id: Optional[int] = None,
-        template_name: Optional[str] = None,
-        template_variant: Optional[str] = None,
+        text_body: str | None = None,
+        user_id: int | None = None,
+        template_name: str | None = None,
+        template_variant: str | None = None,
         category: str = "transactional",
-        campaign_id: Optional[str] = None,
+        campaign_id: str | None = None,
         track_opens: bool = None,
         track_clicks: bool = None,
     ) -> bool:
@@ -146,10 +146,10 @@ class EmailService:
         self,
         recipient_email: str,
         template_name: str,
-        context: Dict[str, Any],
-        user_id: Optional[int] = None,
+        context: dict[str, Any],
+        user_id: int | None = None,
         language: str = "en",
-        campaign_id: Optional[str] = None,
+        campaign_id: str | None = None,
     ) -> bool:
         """
         Send an email using a template.
@@ -204,10 +204,10 @@ class EmailService:
 
     async def send_bulk_emails(
         self,
-        recipients: List[Dict[str, Any]],
+        recipients: list[dict[str, Any]],
         template_name: str,
-        campaign_id: Optional[str] = None,
-    ) -> Dict[str, int]:
+        campaign_id: str | None = None,
+    ) -> dict[str, int]:
         """
         Send bulk emails for campaigns.
 
@@ -224,7 +224,7 @@ class EmailService:
         # Send emails in parallel with concurrency limit
         semaphore = asyncio.Semaphore(10)  # Max 10 concurrent sends
 
-        async def send_one(recipient: Dict[str, Any]):
+        async def send_one(recipient: dict[str, Any]):
             async with semaphore:
                 success = await self.send_template_email(
                     recipient_email=recipient["email"],

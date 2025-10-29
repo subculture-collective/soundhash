@@ -2,10 +2,9 @@
 
 import secrets
 from datetime import datetime
-from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from urllib.parse import urlparse
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_current_user, get_db
@@ -116,11 +115,11 @@ async def resubscribe_to_emails(
     return UnsubscribeResponse(success=True, message="Successfully resubscribed to emails")
 
 
-@router.get("/logs", response_model=List[EmailLogResponse])
+@router.get("/logs", response_model=list[EmailLogResponse])
 async def get_email_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    category: Optional[str] = None,
+    category: str | None = None,
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -135,11 +134,11 @@ async def get_email_logs(
     return logs
 
 
-@router.get("/campaigns", response_model=List[EmailCampaignResponse])
+@router.get("/campaigns", response_model=list[EmailCampaignResponse])
 async def list_email_campaigns(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    status: Optional[str] = None,
+    status: str | None = None,
     current_user: UserResponse = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -224,8 +223,9 @@ async def track_email_click(
     email_log_id: int, redirect_url: str = Query(...), db: Session = Depends(get_db)
 ):
     """Track email click event and redirect."""
-    from src.email.service import email_service
     from fastapi.responses import RedirectResponse
+
+    from src.email.service import email_service
 
     await email_service.track_email_click(email_log_id)
 

@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 
 @dataclass
@@ -10,8 +9,8 @@ class EmailResult:
     """Result of email send operation."""
 
     success: bool
-    message_id: Optional[str] = None
-    error_message: Optional[str] = None
+    message_id: str | None = None
+    error_message: str | None = None
 
 
 class EmailProvider(ABC):
@@ -23,14 +22,14 @@ class EmailProvider(ABC):
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        text_content: str | None = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
+        reply_to: str | None = None,
         track_opens: bool = True,
         track_clicks: bool = True,
-        category: Optional[str] = None,
-        custom_args: Optional[Dict[str, str]] = None,
+        category: str | None = None,
+        custom_args: dict[str, str] | None = None,
     ) -> EmailResult:
         """
         Send an email.

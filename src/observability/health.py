@@ -3,8 +3,8 @@ Health check functionality for monitoring system status.
 """
 
 import time
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import text
 
@@ -22,7 +22,7 @@ class HealthChecker:
         self.last_check_time = None
         self.last_check_results = None
 
-    def check_database(self) -> Dict[str, Any]:
+    def check_database(self) -> dict[str, Any]:
         """
         Check database connectivity and basic operations.
 
@@ -54,7 +54,7 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    def check_job_queue(self) -> Dict[str, Any]:
+    def check_job_queue(self) -> dict[str, Any]:
         """
         Check processing job queue status.
 
@@ -86,7 +86,7 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    def check_video_repository(self) -> Dict[str, Any]:
+    def check_video_repository(self) -> dict[str, Any]:
         """
         Check video repository status.
 
@@ -122,7 +122,7 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    def check_all(self) -> Dict[str, Any]:
+    def check_all(self) -> dict[str, Any]:
         """
         Run all health checks and return comprehensive status.
 
@@ -147,7 +147,7 @@ class HealthChecker:
         self.last_check_results = results
         return results
 
-    def get_last_check(self) -> Dict[str, Any] | None:
+    def get_last_check(self) -> dict[str, Any] | None:
         """
         Get results from the last health check.
 

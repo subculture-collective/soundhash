@@ -3,7 +3,8 @@ Metrics collection for SoundHash using Prometheus client.
 Tracks ingestion, processing, and matching operations.
 """
 
-from prometheus_client import Counter, Histogram, Gauge, Info, start_http_server
+from prometheus_client import Counter, Gauge, Histogram, Info, start_http_server
+
 from config.settings import Config
 
 

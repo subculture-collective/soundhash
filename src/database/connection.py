@@ -30,12 +30,12 @@ class DatabaseManager:
             if driver:
                 database_url = database_url.replace("postgresql://", f"postgresql+{driver}://", 1)
         from sqlalchemy.pool import QueuePool
-        
+
         # Build connect_args with statement timeout
         connect_args = {
             "options": f"-c statement_timeout={Config.DATABASE_STATEMENT_TIMEOUT}"
         }
-        
+
         self.engine = create_engine(
             database_url,
             poolclass=QueuePool,

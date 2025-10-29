@@ -18,10 +18,8 @@ TODO: Complete implementation
 import logging
 import re
 import time
-from typing import List, Optional
 
 import praw
-from praw.exceptions import RedditAPIException
 from prawcore.exceptions import (
     Forbidden,
     NotFound,
@@ -34,7 +32,6 @@ from prawcore.exceptions import (
 from config.settings import Config
 from src.core.audio_fingerprinting import AudioFingerprinter
 from src.core.video_processor import VideoProcessor
-from src.database.repositories import get_video_repository
 
 
 class RedditBot:
@@ -84,7 +81,7 @@ class RedditBot:
             self.logger.error(f"Failed to authenticate with Reddit: {e}")
             raise
 
-    def monitor_subreddits(self, subreddits: List[str], limit: int = 10):
+    def monitor_subreddits(self, subreddits: list[str], limit: int = 10):
         """
         Monitor specified subreddits for new posts and comments.
 
@@ -145,7 +142,7 @@ class RedditBot:
         # TODO: Implement filtering logic
         return False
 
-    def extract_video_urls(self, text: str) -> List[str]:
+    def extract_video_urls(self, text: str) -> list[str]:
         """
         Extract video URLs from text.
 
@@ -195,7 +192,7 @@ class RedditBot:
         self.logger.info(f"Processing comment: {comment.id}")
         # TODO: Implement
 
-    def find_matches(self, video_url: str) -> List[dict]:
+    def find_matches(self, video_url: str) -> list[dict]:
         """
         Find matches for a video URL.
 
@@ -208,7 +205,7 @@ class RedditBot:
         # TODO: Implement similar to TwitterBot.find_matches
         return []
 
-    def format_reply(self, matches: List[dict]) -> str:
+    def format_reply(self, matches: list[dict]) -> str:
         """
         Format matches into a Reddit comment.
 
@@ -260,7 +257,7 @@ class RedditBot:
                 self.logger.info(f"Replied to submission {submission.id}")
                 return True
 
-            except TooManyRequests as e:
+            except TooManyRequests:
                 # TODO: Implement proper rate limit handling
                 retry_count += 1
                 wait_time = retry_delay * (2 ** (retry_count - 1))
@@ -273,7 +270,7 @@ class RedditBot:
                 self.logger.error(f"Cannot reply to submission {submission.id}: {e}")
                 return False
 
-            except (ServerError, ResponseException, RequestException) as e:
+            except (ServerError, ResponseException, RequestException):
                 # TODO: Implement server error handling
                 retry_count += 1
                 wait_time = retry_delay * (2 ** (retry_count - 1))
@@ -306,7 +303,7 @@ class RedditBot:
                 self.logger.info(f"Replied to comment {comment.id}")
                 return True
 
-            except TooManyRequests as e:
+            except TooManyRequests:
                 # TODO: Implement proper rate limit handling
                 retry_count += 1
                 wait_time = retry_delay * (2 ** (retry_count - 1))
@@ -319,7 +316,7 @@ class RedditBot:
                 self.logger.error(f"Cannot reply to comment {comment.id}: {e}")
                 return False
 
-            except (ServerError, ResponseException, RequestException) as e:
+            except (ServerError, ResponseException, RequestException):
                 # TODO: Implement server error handling
                 retry_count += 1
                 wait_time = retry_delay * (2 ** (retry_count - 1))

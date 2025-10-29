@@ -3,7 +3,6 @@
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import List, Optional
 
 from src.database.connection import db_manager
 from src.database.models import EmailCampaign, EmailLog, User
@@ -317,7 +316,7 @@ class MarketingAutomation:
         finally:
             session.close()
 
-    def _get_campaign_users(self, session, target_segment: Optional[str]) -> List[User]:
+    def _get_campaign_users(self, session, target_segment: str | None) -> list[User]:
         """Get users for a campaign based on target segment."""
         query = session.query(User).filter_by(is_active=True)
 
