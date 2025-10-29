@@ -49,6 +49,9 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: build-and-push
+    permissions:
+      contents: read
+      id-token: write  # For AWS OIDC
     environment:
       name: staging
       url: https://staging.soundhash.io
