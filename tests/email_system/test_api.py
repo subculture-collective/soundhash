@@ -17,6 +17,7 @@ def client():
 def mock_current_user():
     """Mock authenticated user."""
     from src.api.models.auth import UserResponse
+
     return UserResponse(
         id=1,
         username="testuser",
@@ -35,13 +36,14 @@ def test_get_email_preferences_creates_default(client, mock_current_user):
         with patch("src.api.routes.email.get_db") as mock_db:
             mock_session = MagicMock()
             mock_db.return_value = mock_session
-            
+
             # No existing preferences
             mock_session.query.return_value.filter_by.return_value.first.return_value = None
-            
+
             response = client.get("/api/v1/email/preferences")
-            
+
             # Should create new preferences
+            assert response.status_code == 200
             assert mock_session.add.called
 
 
@@ -51,20 +53,22 @@ def test_update_email_preferences(client, mock_current_user):
         with patch("src.api.routes.email.get_db") as mock_db:
             mock_session = MagicMock()
             mock_db.return_value = mock_session
-            
+
             from src.database.models import EmailPreference
+
             mock_pref = EmailPreference(
                 id=1,
                 user_id=1,
                 receive_match_found=True,
             )
             mock_session.query.return_value.filter_by.return_value.first.return_value = mock_pref
-            
+
             response = client.put(
                 "/api/v1/email/preferences",
                 json={"receive_match_found": False},
             )
-            
+
+            assert response.status_code == 200
             assert mock_pref.receive_match_found is False
 
 
@@ -73,20 +77,21 @@ def test_unsubscribe_from_emails(client):
     with patch("src.api.routes.email.get_db") as mock_db:
         mock_session = MagicMock()
         mock_db.return_value = mock_session
-        
+
         from src.database.models import User, EmailPreference
+
         mock_user = User(id=1, email="test@example.com")
         mock_pref = EmailPreference(id=1, user_id=1)
-        
+
         mock_session.query.return_value.filter_by.return_value.first.side_effect = [
             mock_user,
             mock_pref,
         ]
-        
+
         response = client.post(
             "/api/v1/email/unsubscribe",
             json={"email": "test@example.com"},
         )
-        
+
         assert response.status_code == 200
         assert mock_pref.unsubscribed_at is not None

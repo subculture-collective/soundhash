@@ -1,7 +1,7 @@
 """SendGrid email provider implementation."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import (

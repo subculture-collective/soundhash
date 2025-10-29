@@ -99,7 +99,7 @@ class EmailTemplateEngine:
         """Render a database template."""
         try:
             # Add common context variables
-            full_context = self._get_base_context()
+            full_context = self.get_base_context()
             full_context.update(context)
 
             # Render subject
@@ -136,7 +136,7 @@ class EmailTemplateEngine:
         """Render a file-based template."""
         try:
             # Add common context
-            full_context = self._get_base_context()
+            full_context = self.get_base_context()
             full_context.update(context)
 
             # Try to load template with language suffix
@@ -185,15 +185,17 @@ class EmailTemplateEngine:
         try:
             self.jinja_env.get_template(template_name)
             return True
-        except:
+        except Exception:
             return False
 
-    def _get_base_context(self) -> Dict[str, Any]:
+    def get_base_context(self) -> Dict[str, Any]:
         """Get base context variables for all templates."""
+        from datetime import datetime
+
         return {
             "app_name": "SoundHash",
             "app_url": Config.CALLBACK_BASE_URL,
             "support_email": Config.SENDGRID_FROM_EMAIL,
             "unsubscribe_url": Config.EMAIL_UNSUBSCRIBE_URL,
-            "current_year": 2025,
+            "current_year": datetime.now().year,
         }

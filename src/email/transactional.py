@@ -46,10 +46,11 @@ async def send_password_reset_email(
     Returns:
         True if email sent successfully
     """
+    app_url = email_service.template_engine.get_base_context()["app_url"]
     context = {
         "username": username,
         "reset_token": reset_token,
-        "reset_url": f"{email_service.template_engine._get_base_context()['app_url']}/reset-password?token={reset_token}",
+        "reset_url": f"{app_url}/reset-password?token={reset_token}",
     }
 
     return await email_service.send_template_email(

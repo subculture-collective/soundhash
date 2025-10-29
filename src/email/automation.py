@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import List, Optional
 
-from config.settings import Config
 from src.database.connection import db_manager
 from src.database.models import EmailCampaign, EmailLog, User
 from src.email.service import email_service
@@ -100,7 +99,7 @@ class MarketingAutomation:
             inactive_users = (
                 session.query(User)
                 .filter(
-                    User.is_active == True,
+                    User.is_active.is_(True),
                     User.last_login < inactive_threshold,
                 )
                 .all()

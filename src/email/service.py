@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from config.settings import Config
 from src.database.connection import db_manager
-from src.database.models import EmailLog, EmailPreference, User
+from src.database.models import EmailLog, EmailPreference
 from src.email.providers.sendgrid_provider import SendGridProvider
 from src.email.providers.ses_provider import SESProvider
 from src.email.templates import EmailTemplateEngine

@@ -2,18 +2,15 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from config.settings import Config
 from src.database.connection import db_manager
 from src.database.models import (
-    AudioFingerprint,
-    EmailLog,
     EmailPreference,
     MatchResult,
     ProcessingJob,
     User,
-    Video,
 )
 from src.email.service import email_service
 
