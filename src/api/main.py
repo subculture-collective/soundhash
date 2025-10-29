@@ -86,7 +86,7 @@ async def health_check():
 
 
 # Import and include routers
-from src.api.routes import admin, auth, channels, fingerprints, matches, monitoring, videos
+from src.api.routes import admin, auth, channels, email, fingerprints, matches, monitoring, videos
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(videos.router, prefix="/api/v1/videos", tags=["Videos"])
@@ -95,6 +95,7 @@ app.include_router(channels.router, prefix="/api/v1/channels", tags=["Channels"]
 app.include_router(fingerprints.router, prefix="/api/v1/fingerprints", tags=["Fingerprints"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
+app.include_router(email.router, prefix="/api/v1", tags=["Email"])
 
 
 # WebSocket endpoint for real-time audio streaming

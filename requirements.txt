@@ -57,3 +57,7 @@ httpx==0.28.1  # For FastAPI testing
 
 # Async support
 aiohttp==3.13.1
+
+# Email services
+sendgrid==6.11.0
+jinja2==3.1.5

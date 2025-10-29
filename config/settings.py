@@ -14,7 +14,7 @@ class Config:
     DATABASE_NAME = os.getenv("DATABASE_NAME", "soundhash")
     DATABASE_USER = os.getenv("DATABASE_USER")
     DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
-    
+
     # Database Connection Pooling
     DATABASE_POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", 10))
     DATABASE_MAX_OVERFLOW = int(os.getenv("DATABASE_MAX_OVERFLOW", 20))
@@ -22,7 +22,7 @@ class Config:
     DATABASE_POOL_RECYCLE = int(os.getenv("DATABASE_POOL_RECYCLE", 3600))
     DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
     DATABASE_STATEMENT_TIMEOUT = int(os.getenv("DATABASE_STATEMENT_TIMEOUT", 30000))  # milliseconds
-    
+
     # Redis for Caching
     REDIS_ENABLED = os.getenv("REDIS_ENABLED", "false").lower() == "true"
     REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -60,7 +60,9 @@ class Config:
     API_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("API_ACCESS_TOKEN_EXPIRE_MINUTES", 30))
     API_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("API_REFRESH_TOKEN_EXPIRE_DAYS", 7))
     API_RATE_LIMIT_PER_MINUTE = int(os.getenv("API_RATE_LIMIT_PER_MINUTE", 60))
-    API_CORS_ORIGINS = os.getenv("API_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+    API_CORS_ORIGINS = os.getenv(
+        "API_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
+    ).split(",")
     API_TITLE = os.getenv("API_TITLE", "SoundHash API")
     API_VERSION = os.getenv("API_VERSION", "1.0.0")
     API_DESCRIPTION = os.getenv("API_DESCRIPTION", "Audio fingerprinting and matching API")
@@ -180,6 +182,36 @@ class Config:
     BACKUP_S3_PREFIX = os.getenv(
         "BACKUP_S3_PREFIX", "soundhash-backups/"
     )  # S3 key prefix for backups
+
+    # Email Configuration
+    EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
+    EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "sendgrid")  # sendgrid or ses
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+    SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply@soundhash.io")
+    SENDGRID_FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "SoundHash")
+
+    # AWS SES Configuration (alternative to SendGrid)
+    AWS_SES_REGION = os.getenv("AWS_SES_REGION", "us-east-1")
+    AWS_SES_ACCESS_KEY = os.getenv("AWS_SES_ACCESS_KEY")
+    AWS_SES_SECRET_KEY = os.getenv("AWS_SES_SECRET_KEY")
+    AWS_SES_FROM_EMAIL = os.getenv("AWS_SES_FROM_EMAIL", "noreply@soundhash.io")
+
+    # Email Templates
+    EMAIL_TEMPLATES_DIR = os.getenv("EMAIL_TEMPLATES_DIR", "./templates/email")
+
+    # Email Features
+    EMAIL_TRACK_OPENS = os.getenv("EMAIL_TRACK_OPENS", "true").lower() == "true"
+    EMAIL_TRACK_CLICKS = os.getenv("EMAIL_TRACK_CLICKS", "true").lower() == "true"
+    EMAIL_UNSUBSCRIBE_URL = os.getenv(
+        "EMAIL_UNSUBSCRIBE_URL", "http://localhost:8000/api/email/unsubscribe"
+    )
+
+    # Digest Email Settings
+    DIGEST_DAILY_ENABLED = os.getenv("DIGEST_DAILY_ENABLED", "true").lower() == "true"
+    DIGEST_DAILY_TIME = os.getenv("DIGEST_DAILY_TIME", "09:00")  # HH:MM format
+    DIGEST_WEEKLY_ENABLED = os.getenv("DIGEST_WEEKLY_ENABLED", "true").lower() == "true"
+    DIGEST_WEEKLY_DAY = int(os.getenv("DIGEST_WEEKLY_DAY", 0))  # Monday = 0, Sunday = 6
+    DIGEST_WEEKLY_TIME = os.getenv("DIGEST_WEEKLY_TIME", "09:00")  # HH:MM format
 
     @classmethod
     def get_database_url(cls):

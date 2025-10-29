@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to {{ app_name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+        .content { padding: 40px 30px; }
+        .button { display: inline-block; background: #667eea; color: white !important; padding: 14px 35px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .features { background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .feature-item { margin: 15px 0; padding-left: 25px; position: relative; }
+        .feature-item span { position: absolute; left: 0; color: #667eea; font-weight: bold; font-size: 18px; }
+        .footer { background: #f4f4f4; padding: 30px; text-align: center; color: #666; font-size: 12px; }
+        .footer a { color: #667eea; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 style="margin: 0; font-size: 32px;">Welcome to {{ app_name }}!</h1>
+            <p style="margin: 10px 0 0; font-size: 16px; color: #e8e8e8;">Your audio fingerprinting journey starts here</p>
+        </div>
+        <div class="content">
+            <h2 style="color: #333;">Hi {{ username }},</h2>
+            <p>Thank you for joining {{ app_name }}! We're excited to have you on board.</p>
+            <p>{{ app_name }} is a powerful audio fingerprinting and matching service that helps you identify and match audio clips from videos. Whether you're tracking music usage, identifying samples, or building audio recognition into your app, we've got you covered.</p>
+            
+            <div class="features">
+                <h3 style="margin-top: 0; color: #667eea;">What you can do with {{ app_name }}:</h3>
+                <div class="feature-item"><span>✓</span> Submit audio clips for instant matching</div>
+                <div class="feature-item"><span>✓</span> Search our extensive database of fingerprinted videos</div>
+                <div class="feature-item"><span>✓</span> Get detailed match results with confidence scores</div>
+                <div class="feature-item"><span>✓</span> Integrate audio matching via our RESTful API</div>
+                <div class="feature-item"><span>✓</span> Real-time streaming with WebSocket support</div>
+            </div>
+
+            <p style="text-align: center;">
+                <a href="{{ app_url }}/dashboard" class="button">Go to Your Dashboard</a>
+            </p>
+
+            <p><strong>Quick Start:</strong></p>
+            <ol>
+                <li>Generate your API key from the dashboard</li>
+                <li>Check out our <a href="{{ app_url }}/docs" style="color: #667eea;">API documentation</a></li>
+                <li>Try our example code snippets</li>
+                <li>Start fingerprinting!</li>
+            </ol>
+
+            <p>Need help? Our support team is here for you at <a href="mailto:{{ support_email }}" style="color: #667eea;">{{ support_email }}</a>.</p>
+            
+            <p style="margin-top: 30px;">Best regards,<br><strong>The {{ app_name }} Team</strong></p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ current_year }} {{ app_name }}. All rights reserved.</p>
+            <p>
+                <a href="{{ app_url }}/docs">Documentation</a> | 
+                <a href="{{ app_url }}/support">Support</a> | 
+                <a href="{{ unsubscribe_url }}">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -33,6 +33,11 @@ A sophisticated system for matching audio clips from videos across social media 
 - 📝 Interactive API documentation (Swagger/ReDoc)
 - 🔐 API key support for machine-to-machine access
 - ⚡ Rate limiting and CORS support
+- ✉️ **Email notification system** with marketing automation ([Email Docs](docs/email-system.md))
+- 📧 Transactional, product, and marketing emails
+- 🎨 Customizable templates with A/B testing
+- 📈 Email analytics with open/click tracking
+
 
 ## Architecture Overview
 
