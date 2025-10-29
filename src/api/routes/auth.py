@@ -17,7 +17,7 @@ from src.api.auth import (
     hash_api_key,
     verify_password,
 )
-from src.api.dependencies import get_admin_user, get_current_user, get_db
+from src.api.dependencies import get_current_user, get_db
 from src.api.models.auth import (
     APIKeyCreate,
     APIKeyResponse,
@@ -47,7 +47,7 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered",
         )
-    
+
     # Check if email already exists
     existing_email = db.query(User).filter(User.email == user_data.email).first()
     if existing_email:
@@ -55,7 +55,7 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    
+
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
@@ -67,11 +67,11 @@ async def register(
         is_admin=False,
         is_verified=False,
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
+
     return new_user
 
 
@@ -83,28 +83,28 @@ async def login(
     """Login and get access token."""
     # Find user
     user = db.query(User).filter(User.username == credentials.username).first()
-    
+
     if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user account",
         )
-    
+
     # Update last login
     user.last_login = datetime.utcnow()
     db.commit()
-    
+
     # Create tokens
     access_token = create_access_token(data={"sub": user.username})
     refresh_token = create_refresh_token(data={"sub": user.username})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -120,26 +120,26 @@ async def refresh_token(
 ):
     """Refresh access token using refresh token."""
     payload = decode_token(token_data.refresh_token)
-    
+
     if payload is None or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
-    
+
     username = payload.get("sub")
     user = db.query(User).filter(User.username == username).first()
-    
+
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid user",
         )
-    
+
     # Create new tokens
     access_token = create_access_token(data={"sub": user.username})
     refresh_token = create_refresh_token(data={"sub": user.username})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -175,16 +175,16 @@ async def update_current_user(
                 detail="Email already in use",
             )
         current_user.email = user_data.email
-    
+
     if user_data.full_name is not None:
         current_user.full_name = user_data.full_name
-    
+
     if user_data.password:
         current_user.hashed_password = get_password_hash(user_data.password)
-    
+
     db.commit()
     db.refresh(current_user)
-    
+
     return current_user
 
 
@@ -199,12 +199,12 @@ async def create_api_key(
     api_key = generate_api_key()
     key_hash = hash_api_key(api_key)
     key_prefix = get_api_key_prefix(api_key)
-    
+
     # Calculate expiration
     expires_at = None
     if key_data.expires_in_days:
         expires_at = datetime.utcnow() + timedelta(days=key_data.expires_in_days)
-    
+
     # Create API key record
     new_key = APIKey(
         user_id=current_user.id,
@@ -215,15 +215,15 @@ async def create_api_key(
         is_active=True,
         expires_at=expires_at,
     )
-    
+
     db.add(new_key)
     db.commit()
     db.refresh(new_key)
-    
+
     # Return response with the full API key (only shown once)
     response = APIKeyWithSecret.model_validate(new_key)
     response.api_key = api_key
-    
+
     return response
 
 
@@ -248,14 +248,14 @@ async def delete_api_key(
         APIKey.id == key_id,
         APIKey.user_id == current_user.id
     ).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="API key not found",
         )
-    
+
     db.delete(api_key)
     db.commit()
-    
+
     return None

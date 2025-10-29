@@ -8,7 +8,7 @@ from fastapi import Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
@@ -35,32 +35,32 @@ async def request_logging_middleware(request: Request, call_next):
     """Log all requests with timing information."""
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
-    
+
     start_time = time.time()
-    
+
     logger.info(
         f"Request started: {request.method} {request.url.path}",
         extra={"request_id": request_id},
     )
-    
+
     response = await call_next(request)
-    
+
     process_time = time.time() - start_time
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Process-Time"] = str(process_time)
-    
+
     logger.info(
         f"Request completed: {request.method} {request.url.path} - "
         f"Status: {response.status_code} - Time: {process_time:.3f}s",
         extra={"request_id": request_id, "status_code": response.status_code},
     )
-    
+
     return response
 
 
 def add_exception_handlers(app):
     """Add custom exception handlers to the app."""
-    
+
     @app.exception_handler(ValidationError)
     async def validation_exception_handler(request: Request, exc: ValidationError):
         """Handle Pydantic validation errors."""
@@ -72,7 +72,7 @@ def add_exception_handlers(app):
                 "request_id": getattr(request.state, "request_id", None),
             },
         )
-    
+
     @app.exception_handler(RateLimitExceeded)
     async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         """Handle rate limit errors."""
@@ -84,7 +84,7 @@ def add_exception_handlers(app):
                 "request_id": getattr(request.state, "request_id", None),
             },
         )
-    
+
     @app.exception_handler(Exception)
     async def generic_exception_handler(request: Request, exc: Exception):
         """Handle all other exceptions."""

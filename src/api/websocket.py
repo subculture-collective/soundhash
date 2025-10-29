@@ -2,7 +2,6 @@
 
 import logging
 import time
-from typing import Dict
 
 from fastapi import WebSocket
 
@@ -13,9 +12,9 @@ class ConnectionManager:
     """Manages WebSocket connections for real-time audio streaming."""
 
     def __init__(self):
-        self.active_connections: Dict[str, WebSocket] = {}
-        self.user_streams: Dict[str, list] = {}
-        self.connection_times: Dict[str, float] = {}
+        self.active_connections: dict[str, WebSocket] = {}
+        self.user_streams: dict[str, list] = {}
+        self.connection_times: dict[str, float] = {}
 
     async def connect(self, websocket: WebSocket, client_id: str):
         """Accept and register a new WebSocket connection."""

@@ -1,7 +1,6 @@
 """SendGrid email provider implementation."""
 
 import logging
-from typing import Dict, Optional
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import (
@@ -39,14 +38,14 @@ class SendGridProvider(EmailProvider):
         to_email: str,
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
-        reply_to: Optional[str] = None,
+        text_content: str | None = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
+        reply_to: str | None = None,
         track_opens: bool = True,
         track_clicks: bool = True,
-        category: Optional[str] = None,
-        custom_args: Optional[Dict[str, str]] = None,
+        category: str | None = None,
+        custom_args: dict[str, str] | None = None,
     ) -> EmailResult:
         """Send email via SendGrid."""
         if not self.client:

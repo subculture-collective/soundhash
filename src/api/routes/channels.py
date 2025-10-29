@@ -8,7 +8,6 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_current_user, get_db
-from src.api.middleware import limiter
 from src.api.models.channels import (
     ChannelIngestRequest,
     ChannelIngestResponse,
@@ -31,16 +30,16 @@ async def list_channels(
 ):
     """List ingested channels."""
     query = db.query(Channel)
-    
+
     if is_active is not None:
         query = query.filter(Channel.is_active == is_active)
-    
+
     query = query.order_by(desc(Channel.created_at))
-    
+
     total = query.count()
     offset = (pagination.page - 1) * pagination.per_page
     channels = query.offset(offset).limit(pagination.per_page).all()
-    
+
     return PaginatedResponse(
         data=channels,
         total=total,
@@ -59,7 +58,7 @@ async def ingest_channel(
     """Ingest a new YouTube channel."""
     # Extract channel ID from URL
     channel_url = ingest_data.channel_url
-    
+
     # Simple extraction - in production would use YouTube API
     if "channel/" in channel_url:
         channel_id = channel_url.split("channel/")[-1].split("/")[0].split("?")[0]
@@ -67,13 +66,13 @@ async def ingest_channel(
         channel_id = channel_url.split("@")[-1].split("/")[0].split("?")[0]
     else:
         channel_id = channel_url
-    
+
     # Check if channel exists
     existing_channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if existing_channel:
         channel_name = existing_channel.channel_name or channel_id
-        
+
         # In production, would trigger ingestion job here
         return ChannelIngestResponse(
             channel_id=channel_id,
@@ -83,7 +82,7 @@ async def ingest_channel(
             job_ids=[],
             message="Channel already exists. Use reprocess to update.",
         )
-    
+
     # Create new channel
     new_channel = Channel(
         channel_id=channel_id,
@@ -93,13 +92,13 @@ async def ingest_channel(
     db.add(new_channel)
     db.commit()
     db.refresh(new_channel)
-    
+
     # In production, would:
     # 1. Fetch channel metadata from YouTube API
     # 2. List videos using YouTube API
     # 3. Create video records
     # 4. Create processing jobs
-    
+
     return ChannelIngestResponse(
         channel_id=channel_id,
         channel_name=channel_id,
@@ -118,13 +117,13 @@ async def get_channel(
 ):
     """Get channel details."""
     channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if not channel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found",
         )
-    
+
     return channel
 
 
@@ -138,20 +137,20 @@ async def get_channel_videos(
     """Get videos for a channel."""
     # Find channel
     channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if not channel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found",
         )
-    
+
     # Get videos
     query = db.query(Video).filter(Video.channel_id == channel.id).order_by(desc(Video.created_at))
-    
+
     total = query.count()
     offset = (pagination.page - 1) * pagination.per_page
     videos = query.offset(offset).limit(pagination.per_page).all()
-    
+
     return PaginatedResponse(
         data=[{
             "id": v.id,
@@ -175,26 +174,26 @@ async def get_channel_stats(
 ):
     """Get channel statistics."""
     channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if not channel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found",
         )
-    
+
     # Count videos
     total_videos = db.query(func.count(Video.id)).filter(Video.channel_id == channel.id).scalar()
-    
+
     processed_videos = db.query(func.count(Video.id)).filter(
         Video.channel_id == channel.id,
         Video.processed == True
     ).scalar()
-    
+
     # Count fingerprints
     total_fingerprints = db.query(func.count(AudioFingerprint.id)).join(
         Video, AudioFingerprint.video_id == Video.id
     ).filter(Video.channel_id == channel.id).scalar()
-    
+
     return ChannelStats(
         channel_id=channel.channel_id,
         channel_name=channel.channel_name or channel.channel_id,
@@ -214,25 +213,25 @@ async def update_channel(
 ):
     """Update channel settings."""
     channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if not channel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found",
         )
-    
+
     if update_data.is_active is not None:
         channel.is_active = update_data.is_active
-    
+
     if update_data.channel_name is not None:
         channel.channel_name = update_data.channel_name
-    
+
     if update_data.description is not None:
         channel.description = update_data.description
-    
+
     db.commit()
     db.refresh(channel)
-    
+
     return channel
 
 
@@ -244,15 +243,15 @@ async def delete_channel(
 ):
     """Delete a channel."""
     channel = db.query(Channel).filter(Channel.channel_id == channel_id).first()
-    
+
     if not channel:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Channel not found",
         )
-    
+
     # Note: In production, should handle cascade deletion of videos and fingerprints
     db.delete(channel)
     db.commit()
-    
+
     return SuccessResponse(message="Channel deleted successfully")

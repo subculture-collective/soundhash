@@ -22,25 +22,25 @@ async def get_system_stats(
     """Get system statistics (admin only)."""
     total_users = db.query(func.count(User.id)).scalar() or 0
     active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar() or 0
-    
+
     total_channels = db.query(func.count(Channel.id)).scalar() or 0
     active_channels = db.query(func.count(Channel.id)).filter(Channel.is_active == True).scalar() or 0
-    
+
     total_videos = db.query(func.count(Video.id)).scalar() or 0
     processed_videos = db.query(func.count(Video.id)).filter(Video.processed == True).scalar() or 0
-    
+
     pending_jobs = db.query(func.count(ProcessingJob.id)).filter(
         ProcessingJob.status == 'pending'
     ).scalar() or 0
-    
+
     running_jobs = db.query(func.count(ProcessingJob.id)).filter(
         ProcessingJob.status == 'running'
     ).scalar() or 0
-    
+
     failed_jobs = db.query(func.count(ProcessingJob.id)).filter(
         ProcessingJob.status == 'failed'
     ).scalar() or 0
-    
+
     return {
         "users": {
             "total": total_users,
@@ -73,19 +73,19 @@ async def list_jobs(
 ):
     """List processing jobs (admin only)."""
     query = db.query(ProcessingJob)
-    
+
     if status_filter:
         query = query.filter(ProcessingJob.status == status_filter)
-    
+
     if job_type:
         query = query.filter(ProcessingJob.job_type == job_type)
-    
+
     query = query.order_by(desc(ProcessingJob.created_at))
-    
+
     total = query.count()
     offset = (pagination.page - 1) * pagination.per_page
     jobs = query.offset(offset).limit(pagination.per_page).all()
-    
+
     return PaginatedResponse(
         data=[{
             "id": j.id,
@@ -114,19 +114,19 @@ async def retry_job(
 ):
     """Retry a failed job (admin only)."""
     job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id).first()
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Job not found",
         )
-    
+
     if job.status not in ['failed', 'completed']:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Can only retry failed or completed jobs",
         )
-    
+
     # Reset job status
     job.status = 'pending'
     job.progress = 0.0
@@ -135,9 +135,9 @@ async def retry_job(
     job.started_at = None
     job.completed_at = None
     job.retry_count += 1
-    
+
     db.commit()
-    
+
     return SuccessResponse(message="Job queued for retry")
 
 
@@ -150,16 +150,16 @@ async def list_users(
 ):
     """List all users (admin only)."""
     query = db.query(User)
-    
+
     if is_active is not None:
         query = query.filter(User.is_active == is_active)
-    
+
     query = query.order_by(desc(User.created_at))
-    
+
     total = query.count()
     offset = (pagination.page - 1) * pagination.per_page
     users = query.offset(offset).limit(pagination.per_page).all()
-    
+
     return PaginatedResponse(
         data=[{
             "id": u.id,
@@ -191,16 +191,16 @@ async def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete your own account",
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    
+
     db.delete(user)
     db.commit()
-    
+
     return SuccessResponse(message="User deleted successfully")

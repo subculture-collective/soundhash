@@ -67,6 +67,9 @@ class Config:
     API_VERSION = os.getenv("API_VERSION", "1.0.0")
     API_DESCRIPTION = os.getenv("API_DESCRIPTION", "Audio fingerprinting and matching API")
 
+    # Multi-tenant Configuration
+    BASE_DOMAIN = os.getenv("BASE_DOMAIN", "soundhash.io")
+
     # Processing
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
     MAX_CONCURRENT_DOWNLOADS = int(os.getenv("MAX_CONCURRENT_DOWNLOADS", 3))

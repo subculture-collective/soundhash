@@ -31,6 +31,12 @@ app = FastAPI(
 
 # Add middleware
 add_cors_middleware(app)
+
+# Add tenant middleware for multi-tenant support
+from src.api.middleware.tenant_middleware import TenantMiddleware
+
+app.add_middleware(TenantMiddleware)
+
 app.middleware("http")(request_logging_middleware)
 app.state.limiter = limiter
 add_exception_handlers(app)
@@ -65,7 +71,7 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     from sqlalchemy import text
-    
+
     try:
         # Check database connection
         session = db_manager.get_session()
@@ -75,7 +81,7 @@ async def health_check():
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         db_healthy = False
-    
+
     if db_healthy:
         return {"status": "healthy", "database": "connected"}
     else:
@@ -86,7 +92,17 @@ async def health_check():
 
 
 # Import and include routers
-from src.api.routes import admin, auth, channels, email, fingerprints, matches, monitoring, videos
+from src.api.routes import (
+    admin,
+    auth,
+    channels,
+    email,
+    fingerprints,
+    matches,
+    monitoring,
+    tenants,
+    videos,
+)
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(videos.router, prefix="/api/v1/videos", tags=["Videos"])
@@ -96,10 +112,12 @@ app.include_router(fingerprints.router, prefix="/api/v1/fingerprints", tags=["Fi
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
 app.include_router(email.router, prefix="/api/v1", tags=["Email"])
+app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
 
 
 # WebSocket endpoint for real-time audio streaming
 from fastapi import WebSocket, WebSocketDisconnect
+
 from src.api.websocket import manager
 from src.core.streaming_processor import cleanup_processor, process_audio_chunk
 
@@ -114,15 +132,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """
     await manager.connect(websocket, client_id)
     await manager.send_status(client_id, "Connected to SoundHash streaming service")
-    
+
     try:
         while True:
             # Receive audio chunk
             data = await websocket.receive_bytes()
-            
+
             # Process audio chunk
             await process_audio_chunk(client_id, data)
-            
+
     except WebSocketDisconnect:
         logger.info(f"Client {client_id} disconnected")
         manager.disconnect(client_id)

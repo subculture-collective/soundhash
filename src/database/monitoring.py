@@ -34,11 +34,11 @@ def after_cursor_execute(
 ) -> None:
     """Log slow queries and record metrics after execution."""
     total = time.time() - conn.info["query_start_time"].pop(-1)
-    
+
     # Update metrics
     query_metrics["total_queries"] += 1
     query_metrics["total_duration"] += total
-    
+
     # Log slow queries (> 100ms)
     if total > 0.1:
         query_metrics["slow_queries"] += 1
@@ -58,7 +58,7 @@ def get_query_metrics() -> dict[str, Any]:
         avg_duration = query_metrics["total_duration"] / query_metrics["total_queries"]
     else:
         avg_duration = 0.0
-    
+
     return {
         "total_queries": query_metrics["total_queries"],
         "slow_queries": query_metrics["slow_queries"],

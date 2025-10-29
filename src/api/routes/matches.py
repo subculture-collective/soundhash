@@ -9,7 +9,6 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_current_user, get_db
-from src.api.middleware import limiter
 from src.api.models.common import PaginatedResponse, PaginationParams
 from src.api.models.matches import (
     BulkMatchRequest,
@@ -18,7 +17,7 @@ from src.api.models.matches import (
     MatchResponse,
     MatchSegment,
 )
-from src.database.models import AudioFingerprint, MatchResult, User, Video
+from src.database.models import MatchResult, User, Video
 
 router = APIRouter()
 
@@ -31,26 +30,26 @@ async def find_matches(
 ):
     """Find audio matches for uploaded clip or URL."""
     start_time = time.time()
-    
+
     # Validate request
     if not match_request.audio_url and not match_request.video_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Either audio_url or video_url must be provided",
         )
-    
+
     # In production, this would:
     # 1. Download the audio/video from URL
     # 2. Extract audio fingerprint
     # 3. Compare against database fingerprints
     # 4. Return top matches
-    
+
     # For now, return mock data to demonstrate structure
     mock_matches = []
-    
+
     # Query some videos as examples
     videos = db.query(Video).filter(Video.processed == True).limit(match_request.max_results).all()
-    
+
     for idx, video in enumerate(videos):
         mock_matches.append(MatchSegment(
             video_id=video.video_id,
@@ -63,9 +62,9 @@ async def find_matches(
             thumbnail_url=video.thumbnail_url,
             video_url=video.url or f"https://youtube.com/watch?v={video.video_id}",
         ))
-    
+
     processing_time = (time.time() - start_time) * 1000
-    
+
     from datetime import datetime
     return MatchResponse(
         query_id=0,  # Would be actual query ID
@@ -84,13 +83,13 @@ async def get_match_details(
 ):
     """Get details of a specific match."""
     match = db.query(MatchResult).filter(MatchResult.id == match_id).first()
-    
+
     if not match:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Match not found",
         )
-    
+
     return {
         "id": match.id,
         "query_fingerprint_id": match.query_fingerprint_id,
@@ -113,11 +112,11 @@ async def list_matches(
     """List user's match queries."""
     # In production, would filter by user
     query = db.query(MatchResult).order_by(desc(MatchResult.created_at))
-    
+
     total = query.count()
     offset = (pagination.page - 1) * pagination.per_page
     matches = query.offset(offset).limit(pagination.per_page).all()
-    
+
     return PaginatedResponse(
         data=[{
             "id": m.id,
@@ -142,7 +141,7 @@ async def bulk_match(
     results = []
     successful = 0
     failed = 0
-    
+
     for query in bulk_request.queries:
         try:
             # Process each query
@@ -159,7 +158,7 @@ async def bulk_match(
             successful += 1
         except Exception:
             failed += 1
-    
+
     return BulkMatchResponse(
         results=results,
         total_queries=len(bulk_request.queries),

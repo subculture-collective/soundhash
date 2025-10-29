@@ -2,7 +2,6 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Optional
 
 from config.settings import Config
 from src.database.connection import db_manager
@@ -17,7 +16,7 @@ from src.email.service import email_service
 logger = logging.getLogger(__name__)
 
 
-async def generate_daily_digest(user_id: int) -> Optional[Dict]:
+async def generate_daily_digest(user_id: int) -> dict | None:
     """
     Generate daily digest data for a user.
 
@@ -87,7 +86,7 @@ async def generate_daily_digest(user_id: int) -> Optional[Dict]:
         session.close()
 
 
-async def generate_weekly_digest(user_id: int) -> Optional[Dict]:
+async def generate_weekly_digest(user_id: int) -> dict | None:
     """
     Generate weekly digest data for a user.
 
@@ -173,7 +172,7 @@ async def generate_weekly_digest(user_id: int) -> Optional[Dict]:
         session.close()
 
 
-async def send_daily_digests() -> Dict[str, int]:
+async def send_daily_digests() -> dict[str, int]:
     """
     Send daily digest emails to all eligible users.
 
@@ -223,7 +222,7 @@ async def send_daily_digests() -> Dict[str, int]:
     return results
 
 
-async def send_weekly_digests() -> Dict[str, int]:
+async def send_weekly_digests() -> dict[str, int]:
     """
     Send weekly digest emails to all eligible users.
 

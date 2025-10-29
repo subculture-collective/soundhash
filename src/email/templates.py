@@ -3,7 +3,7 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -20,7 +20,7 @@ class RenderedEmail:
 
     subject: str
     html_body: str
-    text_body: Optional[str]
+    text_body: str | None
     category: str
     variant: str
 
@@ -42,8 +42,8 @@ class EmailTemplateEngine:
             logger.info(f"Initialized Jinja2 templates from {self.templates_dir}")
 
     async def render_template(
-        self, template_name: str, context: Dict[str, Any], language: str = "en"
-    ) -> Optional[RenderedEmail]:
+        self, template_name: str, context: dict[str, Any], language: str = "en"
+    ) -> RenderedEmail | None:
         """
         Render an email template.
 
@@ -70,7 +70,7 @@ class EmailTemplateEngine:
 
     async def _get_db_template(
         self, template_name: str, language: str = "en"
-    ) -> Optional[EmailTemplate]:
+    ) -> EmailTemplate | None:
         """Get template from database."""
         session = db_manager.get_session()
         try:
@@ -94,7 +94,7 @@ class EmailTemplateEngine:
             session.close()
 
     async def _render_db_template(
-        self, template: EmailTemplate, context: Dict[str, Any]
+        self, template: EmailTemplate, context: dict[str, Any]
     ) -> RenderedEmail:
         """Render a database template."""
         try:
@@ -131,8 +131,8 @@ class EmailTemplateEngine:
             return None
 
     async def _render_file_template(
-        self, template_name: str, context: Dict[str, Any], language: str = "en"
-    ) -> Optional[RenderedEmail]:
+        self, template_name: str, context: dict[str, Any], language: str = "en"
+    ) -> RenderedEmail | None:
         """Render a file-based template."""
         try:
             # Add common context
@@ -188,7 +188,7 @@ class EmailTemplateEngine:
         except Exception:
             return False
 
-    def get_base_context(self) -> Dict[str, Any]:
+    def get_base_context(self) -> dict[str, Any]:
         """Get base context variables for all templates."""
         from datetime import datetime
 

@@ -3,7 +3,6 @@
 import logging
 import time
 from collections import deque
-from typing import Dict
 
 import numpy as np
 
@@ -190,7 +189,7 @@ class StreamingAudioProcessor:
 
 
 # Global processor instances (one per client)
-processors: Dict[str, StreamingAudioProcessor] = {}
+processors: dict[str, StreamingAudioProcessor] = {}
 
 
 async def process_audio_chunk(client_id: str, audio_chunk: bytes):

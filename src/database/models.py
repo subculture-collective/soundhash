@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
@@ -18,6 +19,45 @@ from sqlalchemy.orm import DeclarativeMeta, Mapped, relationship
 Base: DeclarativeMeta = declarative_base()  # type: ignore[assignment]
 
 
+class Tenant(Base):  # type: ignore[misc,valid-type]
+    """Multi-tenant support for enterprise customers."""
+
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)  # URL-safe identifier
+
+    # Contact
+    admin_email = Column(String(255), nullable=False)
+    admin_name = Column(String(255))
+
+    # Branding
+    logo_url = Column(String(500))
+    primary_color = Column(String(7))  # Hex color
+    custom_domain = Column(String(255), unique=True)
+
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+    plan_tier = Column(String(50))  # Links to subscription plan
+
+    # Limits (can override plan defaults)
+    max_users = Column(Integer)
+    max_api_calls_per_month = Column(Integer)
+    max_storage_gb = Column(Integer)
+
+    # Metadata
+    settings = Column(JSON)  # Tenant-specific settings
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    users: Mapped[list["User"]] = relationship("User", back_populates="tenant")  # type: ignore[assignment]
+    channels: Mapped[list["Channel"]] = relationship("Channel", back_populates="tenant")  # type: ignore[assignment]
+    videos: Mapped[list["Video"]] = relationship("Video", back_populates="tenant")  # type: ignore[assignment]
+    fingerprints: Mapped[list["AudioFingerprint"]] = relationship("AudioFingerprint", back_populates="tenant")  # type: ignore[assignment]
+
+
 class User(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "users"
 
@@ -26,18 +66,23 @@ class User(Base):  # type: ignore[misc,valid-type]
     email = Column(String(255), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255))
-    
+
+    # Multi-tenant support
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    role = Column(String(50), default="member")  # owner, admin, member
+
     # User status
     is_active = Column(Boolean, default=True, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = Column(DateTime)
-    
+
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="users")  # type: ignore[assignment]
     api_keys: Mapped[list["APIKey"]] = relationship("APIKey", back_populates="user")  # type: ignore[assignment]
     email_preferences: Mapped["EmailPreference"] = relationship("EmailPreference", back_populates="user", uselist=False)  # type: ignore[assignment]
     email_logs: Mapped[list["EmailLog"]] = relationship("EmailLog", back_populates="user")  # type: ignore[assignment]
@@ -47,23 +92,28 @@ class APIKey(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "api_keys"
 
     id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     key_name = Column(String(100), nullable=False)
     key_hash = Column(String(255), unique=True, nullable=False)
     key_prefix = Column(String(20), nullable=False)  # First few chars for identification
-    
+
+    # Permissions
+    scopes = Column(JSON)  # ["read", "write", "admin"]
+
     # Rate limiting
     rate_limit_per_minute = Column(Integer, default=60, nullable=False)
-    
+
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
     expires_at = Column(DateTime)
     last_used_at = Column(DateTime)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
+
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant")  # type: ignore[assignment]
     user: Mapped["User"] = relationship("User", back_populates="api_keys")  # type: ignore[assignment]
 
 
@@ -71,6 +121,7 @@ class Channel(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "channels"
 
     id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     channel_id = Column(String(255), unique=True, nullable=False)
     channel_name = Column(String(500))
     description = Column(Text)
@@ -82,6 +133,7 @@ class Channel(Base):  # type: ignore[misc,valid-type]
     is_active = Column(Boolean, default=True)
 
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="channels")  # type: ignore[assignment]
     videos: Mapped[list["Video"]] = relationship("Video", back_populates="channel")  # type: ignore[assignment]
 
 
@@ -89,6 +141,7 @@ class Video(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "videos"
 
     id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     video_id = Column(String(255), unique=True, nullable=False)  # YouTube video ID
     channel_id = Column(Integer, ForeignKey("channels.id"), nullable=False)
     title = Column(String(1000))
@@ -111,6 +164,7 @@ class Video(Base):  # type: ignore[misc,valid-type]
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="videos")  # type: ignore[assignment]
     channel: Mapped["Channel"] = relationship("Channel", back_populates="videos")  # type: ignore[assignment]
     fingerprints: Mapped[list["AudioFingerprint"]] = relationship("AudioFingerprint", back_populates="video")  # type: ignore[assignment]
 
@@ -119,6 +173,7 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "audio_fingerprints"
 
     id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
 
     # Time segments
@@ -145,6 +200,7 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="fingerprints")  # type: ignore[assignment]
     video: Mapped["Video"] = relationship("Video", back_populates="fingerprints")  # type: ignore[assignment]
 
 
@@ -198,15 +254,23 @@ class ProcessingJob(Base):  # type: ignore[misc,valid-type]
 
 
 # Indexes for performance
+Index("idx_tenants_slug", Tenant.slug)
+Index("idx_tenants_custom_domain", Tenant.custom_domain)
+Index("idx_tenants_is_active", Tenant.is_active)
+Index("idx_users_tenant_id", User.tenant_id)
 Index("idx_users_username", User.username)
 Index("idx_users_email", User.email)
 Index("idx_users_is_active", User.is_active)
+Index("idx_api_keys_tenant_id", APIKey.tenant_id)
 Index("idx_api_keys_user_id", APIKey.user_id)
 Index("idx_api_keys_key_hash", APIKey.key_hash)
 Index("idx_api_keys_is_active", APIKey.is_active)
+Index("idx_channels_tenant_id", Channel.tenant_id)
+Index("idx_videos_tenant_id", Video.tenant_id)
 Index("idx_videos_channel_id", Video.channel_id)
 Index("idx_videos_video_id", Video.video_id)
 Index("idx_videos_processed", Video.processed)
+Index("idx_fingerprints_tenant_id", AudioFingerprint.tenant_id)
 Index("idx_fingerprints_video_id", AudioFingerprint.video_id)
 Index("idx_fingerprints_hash", AudioFingerprint.fingerprint_hash)
 Index("idx_fingerprints_time", AudioFingerprint.start_time, AudioFingerprint.end_time)
@@ -217,6 +281,7 @@ Index("idx_processing_jobs_type", ProcessingJob.job_type)
 # Composite indexes for common query patterns
 Index("idx_fingerprints_video_time", AudioFingerprint.video_id, AudioFingerprint.start_time)
 Index("idx_fingerprints_hash_video", AudioFingerprint.fingerprint_hash, AudioFingerprint.video_id)
+Index("idx_fingerprints_tenant_hash", AudioFingerprint.tenant_id, AudioFingerprint.fingerprint_hash)
 Index("idx_match_results_query_fp", MatchResult.query_fingerprint_id, MatchResult.similarity_score)
 Index(
     "idx_match_results_matched_fp", MatchResult.matched_fingerprint_id, MatchResult.similarity_score
@@ -232,69 +297,69 @@ Index(
 
 class EmailPreference(Base):  # type: ignore[misc,valid-type]
     """User email notification preferences."""
-    
+
     __tablename__ = "email_preferences"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-    
+
     # Transactional emails (always enabled for security)
     receive_welcome = Column(Boolean, default=True, nullable=False)
     receive_password_reset = Column(Boolean, default=True, nullable=False)
     receive_security_alerts = Column(Boolean, default=True, nullable=False)
-    
+
     # Product emails
     receive_match_found = Column(Boolean, default=True, nullable=False)
     receive_processing_complete = Column(Boolean, default=True, nullable=False)
     receive_quota_warnings = Column(Boolean, default=True, nullable=False)
     receive_api_key_generated = Column(Boolean, default=True, nullable=False)
-    
+
     # Marketing emails
     receive_feature_announcements = Column(Boolean, default=True, nullable=False)
     receive_tips_tricks = Column(Boolean, default=True, nullable=False)
     receive_case_studies = Column(Boolean, default=False, nullable=False)
-    
+
     # Digest emails
     receive_daily_digest = Column(Boolean, default=False, nullable=False)
     receive_weekly_digest = Column(Boolean, default=True, nullable=False)
-    
+
     # Language preference
     preferred_language = Column(String(10), default="en", nullable=False)
-    
+
     # Global unsubscribe
     unsubscribed_at = Column(DateTime)
     unsubscribe_token = Column(String(255), unique=True)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    
+
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_preferences")  # type: ignore[assignment]
 
 
 class EmailTemplate(Base):  # type: ignore[misc,valid-type]
     """Email templates for various notification types."""
-    
+
     __tablename__ = "email_templates"
-    
+
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)  # e.g., 'welcome', 'password_reset'
     category = Column(String(50), nullable=False)  # 'transactional', 'product', 'marketing', 'admin'
     subject = Column(String(500), nullable=False)
     html_body = Column(Text, nullable=False)
     text_body = Column(Text)
-    
+
     # Template variables
     variables = Column(Text)  # JSON array of required variables
-    
+
     # A/B Testing
     variant = Column(String(20), default="A")  # A, B, C, etc.
     is_active = Column(Boolean, default=True, nullable=False)
-    
+
     # Multi-language support
     language = Column(String(10), default="en", nullable=False)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
@@ -302,78 +367,78 @@ class EmailTemplate(Base):  # type: ignore[misc,valid-type]
 
 class EmailLog(Base):  # type: ignore[misc,valid-type]
     """Log of all emails sent for tracking and analytics."""
-    
+
     __tablename__ = "email_logs"
-    
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     recipient_email = Column(String(255), nullable=False)
-    
+
     # Email details
     template_name = Column(String(100))
     template_variant = Column(String(20))
     subject = Column(String(500))
     category = Column(String(50))  # 'transactional', 'product', 'marketing', 'admin'
-    
+
     # Sending status
     status = Column(String(20), default="pending")  # pending, sent, failed, bounced
     provider_message_id = Column(String(255))  # ID from SendGrid/SES
     error_message = Column(Text)
-    
+
     # Tracking
     sent_at = Column(DateTime)
     opened_at = Column(DateTime)
     clicked_at = Column(DateTime)
     open_count = Column(Integer, default=0)
     click_count = Column(Integer, default=0)
-    
+
     # Campaign tracking
     campaign_id = Column(String(100))
     ab_test_group = Column(String(20))
-    
+
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    
+
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_logs")  # type: ignore[assignment]
 
 
 class EmailCampaign(Base):  # type: ignore[misc,valid-type]
     """Marketing automation campaigns."""
-    
+
     __tablename__ = "email_campaigns"
-    
+
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     description = Column(Text)
-    
+
     # Campaign settings
     template_name = Column(String(100), nullable=False)
     category = Column(String(50), default="marketing")
-    
+
     # Scheduling
     scheduled_at = Column(DateTime)
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
-    
+
     # Status
     status = Column(String(20), default="draft")  # draft, scheduled, running, completed, cancelled
-    
+
     # A/B Testing
     ab_test_enabled = Column(Boolean, default=False)
     ab_test_variants = Column(Text)  # JSON array of variant configs
     ab_test_split_percentage = Column(Integer, default=50)  # % for variant A
-    
+
     # Targeting
     target_segment = Column(String(100))  # e.g., 'all_users', 'premium_users', 'inactive_users'
-    
+
     # Analytics
     total_recipients = Column(Integer, default=0)
     emails_sent = Column(Integer, default=0)
     emails_opened = Column(Integer, default=0)
     emails_clicked = Column(Integer, default=0)
     emails_failed = Column(Integer, default=0)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
