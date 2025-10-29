@@ -1,8 +1,6 @@
 """Transactional email helpers for common use cases."""
 
 import logging
-from typing import Optional
-
 from src.email.service import email_service
 
 logger = logging.getLogger(__name__)
