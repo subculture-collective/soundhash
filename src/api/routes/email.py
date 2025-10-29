@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from urllib.parse import urlparse
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_current_user, get_db
@@ -228,4 +229,10 @@ async def track_email_click(
 
     await email_service.track_email_click(email_log_id)
 
-    return RedirectResponse(url=redirect_url)
+    # Remove backslashes and validate that the URL is relative (no scheme, no netloc)
+    cleaned_url = redirect_url.replace('\\', '')
+    parsed = urlparse(cleaned_url)
+    if not parsed.netloc and not parsed.scheme:
+        return RedirectResponse(url=cleaned_url)
+    # Fallback: redirect to home if not a safe relative URL
+    return RedirectResponse(url="/")
