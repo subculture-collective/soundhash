@@ -46,6 +46,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         """
         Extract tenant from various sources.
 
+        Note: This method performs sequential database queries for tenant detection.
+        For high-traffic scenarios, consider implementing caching for frequently
+        accessed tenants, especially those identified by API keys or custom domains.
+
         Args:
             request: FastAPI request object
 

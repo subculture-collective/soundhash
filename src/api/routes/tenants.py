@@ -246,7 +246,7 @@ async def get_tenant_usage(
     ).count()
     api_keys_count = db.query(APIKey).filter(
         APIKey.tenant_id == tenant_id,
-        APIKey.is_active == True  # noqa: E712
+        APIKey.is_active.is_(True)
     ).count()
 
     usage = {

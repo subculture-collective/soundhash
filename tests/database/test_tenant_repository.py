@@ -2,9 +2,10 @@
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from src.database.models import Base, Tenant, User
+from src.database.models import Base, User
 from src.database.tenant_repository import TenantRepository
 
 
@@ -218,13 +219,13 @@ class TestTenantRepository:
 
     def test_list_tenants_filtered_by_active(self, tenant_repo):
         """Test listing tenants filtered by active status."""
-        active_tenant = tenant_repo.create_tenant(
+        tenant_repo.create_tenant(
             name="Active Tenant",
             slug="active-tenant",
             admin_email="active@example.com",
             is_active=True,
         )
-        inactive_tenant = tenant_repo.create_tenant(
+        tenant_repo.create_tenant(
             name="Inactive Tenant",
             slug="inactive-tenant",
             admin_email="inactive@example.com",
@@ -272,7 +273,7 @@ class TestTenantRepositoryEdgeCases:
             admin_email="first@example.com",
         )
 
-        with pytest.raises(Exception):  # Should raise IntegrityError
+        with pytest.raises(IntegrityError):
             tenant_repo.create_tenant(
                 name="Second Tenant",
                 slug="duplicate-slug",
@@ -288,7 +289,7 @@ class TestTenantRepositoryEdgeCases:
             custom_domain="shared.example.com",
         )
 
-        with pytest.raises(Exception):  # Should raise IntegrityError
+        with pytest.raises(IntegrityError):
             tenant_repo.create_tenant(
                 name="Second Tenant",
                 slug="second-tenant",

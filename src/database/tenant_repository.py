@@ -44,6 +44,7 @@ class TenantRepository:
             logger.debug(f"Created tenant: {slug}")
             return tenant
         except (IntegrityError, OperationalError, DBAPIError) as e:
+            self.session.rollback()
             logger.error(f"Failed to create tenant {slug}: {e}")
             raise
 
@@ -190,7 +191,10 @@ class TenantRepository:
 def get_tenant_repository() -> TenantRepository:
     """Get a tenant repository instance.
 
-    NOTE: Caller is responsible for session lifecycle (commit/rollback/close).
+    NOTE: Session lifecycle should be managed by the caller. When used in
+    tenant middleware, the session is automatically closed in the middleware's
+    finally block. For other use cases, caller is responsible for session
+    lifecycle (commit/rollback/close).
     """
     from .connection import db_manager
     session = db_manager.get_session()

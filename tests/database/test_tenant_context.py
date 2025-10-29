@@ -1,7 +1,5 @@
 """Tests for tenant context filtering and isolation."""
 
-import pytest
-
 from src.database.tenant_filter import (
     get_current_tenant_id,
     set_current_tenant_id,
