@@ -5,7 +5,10 @@ metadata:
   namespace: soundhash-production
 data:
   # Database configuration
-  DATABASE_HOST: "postgres-service"
+  # NOTE: Update DATABASE_HOST to your actual database endpoint
+  # For AWS RDS, use the endpoint from Terraform outputs (e.g., soundhash-prod-postgres.xxxxx.us-east-1.rds.amazonaws.com)
+  # For in-cluster PostgreSQL, use the service name (e.g., postgres-service)
+  DATABASE_HOST: "RDS-ENDPOINT-OR-SERVICE-NAME"
   DATABASE_PORT: "5432"
   DATABASE_NAME: "soundhash"
   DATABASE_POOL_SIZE: "10"

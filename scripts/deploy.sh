@@ -85,15 +85,26 @@ kubectl wait --for=condition=available --timeout=300s \
 echo -e "${GREEN}✓ Pods are ready${NC}"
 echo ""
 
-# Run database migrations
+# Run database migrations using Kubernetes Job
 echo -e "${YELLOW}Running database migrations...${NC}"
-POD_NAME=$(kubectl get pods -n ${NAMESPACE} -l app.kubernetes.io/name=soundhash,component=api -o jsonpath='{.items[0].metadata.name}')
 
-if [ -n "$POD_NAME" ]; then
-    kubectl exec -n ${NAMESPACE} ${POD_NAME} -- alembic upgrade head
+# Delete previous migration job if it exists
+kubectl delete job soundhash-migration -n ${NAMESPACE} --ignore-not-found=true
+
+# Update migration job image tag and apply
+cat k8s/migration-job.yaml | \
+  sed "s|image: ghcr.io/subculture-collective/soundhash:latest|image: ghcr.io/subculture-collective/soundhash:${VERSION}|g" | \
+  kubectl apply -f -
+
+# Wait for migration job to complete
+kubectl wait --for=condition=complete --timeout=300s job/soundhash-migration -n ${NAMESPACE}
+
+if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Database migrations complete${NC}"
 else
-    echo -e "${YELLOW}⚠ Could not find pod for migrations${NC}"
+    echo -e "${RED}✗ Database migrations failed${NC}"
+    kubectl logs -n ${NAMESPACE} job/soundhash-migration --tail=50
+    exit 1
 fi
 echo ""
 

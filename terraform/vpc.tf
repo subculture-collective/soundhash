@@ -113,7 +113,7 @@ resource "aws_db_subnet_group" "postgres" {
 # ElastiCache Subnet Group
 resource "aws_elasticache_subnet_group" "redis" {
   name       = "${local.cluster_name}-redis"
-  subnet_ids = module.vpc.private_subnets
+  subnet_ids = module.vpc.database_subnets
 
   tags = merge(
     local.common_tags,

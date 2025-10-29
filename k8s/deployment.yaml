@@ -116,7 +116,7 @@ spec:
         # Readiness probe - don't send traffic if not ready
         readinessProbe:
           httpGet:
-            path: /health
+            path: /health/ready
             port: 8000
             scheme: HTTP
           initialDelaySeconds: 10

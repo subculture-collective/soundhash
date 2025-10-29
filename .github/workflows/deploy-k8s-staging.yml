@@ -108,8 +108,14 @@ jobs:
           # Wait for service to be ready
           sleep 30
           
+          # Get ingress hostname from deployed resources
+          INGRESS_HOST=$(kubectl get ingress -n soundhash-staging \
+            -o jsonpath='{.items[0].spec.rules[0].host}' 2>/dev/null || echo "staging.soundhash.io")
+          
+          echo "Testing endpoints at: https://${INGRESS_HOST}"
+          
           # Test health endpoint
-          if curl -f https://staging.soundhash.io/health; then
+          if curl -f https://${INGRESS_HOST}/health; then
             echo "✅ Health check passed"
           else
             echo "⚠️ Health check failed"
@@ -117,7 +123,7 @@ jobs:
           fi
           
           # Test ready endpoint
-          if curl -f https://staging.soundhash.io/health/ready; then
+          if curl -f https://${INGRESS_HOST}/health/ready; then
             echo "✅ Readiness check passed"
           else
             echo "⚠️ Readiness check failed"

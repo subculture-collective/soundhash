@@ -65,7 +65,7 @@ resource "aws_db_instance" "postgres" {
   maintenance_window        = "mon:04:00-mon:05:00"
   copy_tags_to_snapshot     = true
   skip_final_snapshot       = false
-  final_snapshot_identifier = "${local.cluster_name}-postgres-final-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  final_snapshot_identifier = "${local.cluster_name}-postgres-final"
 
   # Performance Insights
   performance_insights_enabled    = true
