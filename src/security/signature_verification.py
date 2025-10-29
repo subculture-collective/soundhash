@@ -34,6 +34,10 @@ class SignatureVerifier:
         """
         Generate HMAC-SHA256 signature for request.
 
+        Note: This uses SHA256 for HMAC signature verification, NOT for password hashing.
+        HMAC-SHA256 is the industry standard for request signature verification and is
+        appropriate for this use case. Password hashing uses bcrypt (see auth.py).
+
         Args:
             method: HTTP method (GET, POST, etc.)
             path: Request path
@@ -48,6 +52,7 @@ class SignatureVerifier:
         message = f"{method}|{path}|{body}|{timestamp}|{api_key}".encode()
 
         # Generate HMAC-SHA256 signature
+        # Note: SHA256 is appropriate for HMAC signatures (not password hashing)
         signature = hmac.new(self.secret_key, message, hashlib.sha256).hexdigest()
 
         return signature
