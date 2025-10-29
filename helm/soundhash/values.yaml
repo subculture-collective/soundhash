@@ -1,0 +1,268 @@
+# Default values for SoundHash Helm chart
+
+# Global settings
+global:
+  environment: production
+
+# Number of API replicas
+replicaCount: 3
+
+# Container image configuration
+image:
+  repository: ghcr.io/subculture-collective/soundhash
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "soundhash-api"
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/websocket-services: "soundhash-api-service"
+  hosts:
+    - host: api.soundhash.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: soundhash-tls
+      hosts:
+        - api.soundhash.io
+        - "*.soundhash.io"
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      selectPolicy: Max
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - soundhash
+        topologyKey: kubernetes.io/hostname
+
+# Persistent storage
+persistence:
+  enabled: true
+  temp:
+    size: 50Gi
+    storageClass: efs-sc
+    accessMode: ReadWriteMany
+  cache:
+    size: 20Gi
+    storageClass: efs-sc
+    accessMode: ReadWriteMany
+  logs:
+    size: 10Gi
+    storageClass: efs-sc
+    accessMode: ReadWriteMany
+
+# PostgreSQL configuration (using external database)
+postgresql:
+  enabled: false
+  external:
+    host: postgres-service
+    port: 5432
+    database: soundhash
+    existingSecret: soundhash-secrets
+    userKey: database-user
+    passwordKey: database-password
+
+# PgBouncer configuration
+pgbouncer:
+  enabled: true
+  replicas: 2
+  poolMode: transaction
+  maxClientConn: 1000
+  defaultPoolSize: 25
+  reservePoolSize: 5
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Redis configuration
+redis:
+  enabled: true
+  architecture: standalone
+  replicas: 3
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 10Gi
+      storageClass: gp3
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "200m"
+
+# Application configuration
+config:
+  # Database
+  databasePoolSize: 10
+  databaseMaxOverflow: 20
+  databasePoolTimeout: 30
+  databasePoolRecycle: 3600
+  
+  # Redis
+  redisEnabled: true
+  cacheTtlSeconds: 300
+  
+  # API
+  apiHost: "0.0.0.0"
+  apiPort: 8000
+  apiTitle: "SoundHash API"
+  apiVersion: "1.0.0"
+  apiAlgorithm: "HS256"
+  apiAccessTokenExpireMinutes: 30
+  apiRefreshTokenExpireDays: 7
+  apiRateLimitPerMinute: 60
+  apiCorsOrigins: "https://soundhash.io,https://api.soundhash.io,https://www.soundhash.io"
+  
+  # Multi-tenant
+  baseDomain: "soundhash.io"
+  
+  # Processing
+  tempDir: "/app/temp"
+  maxConcurrentDownloads: 3
+  maxConcurrentChannels: 2
+  segmentLengthSeconds: 90
+  fingerprintSampleRate: 22050
+  
+  # Similarity
+  similarityCorrelationThreshold: 0.70
+  similarityL2Threshold: 0.70
+  similarityMinScore: 0.70
+  
+  # Environment
+  environment: production
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Startup probe configuration
+startupProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 12

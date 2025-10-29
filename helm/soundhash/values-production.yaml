@@ -1,0 +1,73 @@
+# Production environment overrides
+global:
+  environment: production
+
+# Production replica count
+replicaCount: 3
+
+image:
+  tag: "latest"
+  pullPolicy: Always
+
+# Full autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Production resources
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+# Production ingress
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+  hosts:
+    - host: api.soundhash.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: soundhash-tls
+      hosts:
+        - api.soundhash.io
+        - "*.soundhash.io"
+
+# Full persistent storage
+persistence:
+  temp:
+    size: 50Gi
+  cache:
+    size: 20Gi
+  logs:
+    size: 10Gi
+
+# Redis cluster
+redis:
+  replicas: 3
+  master:
+    persistence:
+      size: 10Gi
+
+# PgBouncer HA
+pgbouncer:
+  replicas: 2
+
+# Production config
+config:
+  environment: production
+  databasePoolSize: 10
+  maxConcurrentDownloads: 3
+  maxConcurrentChannels: 2
+  apiCorsOrigins: "https://soundhash.io,https://api.soundhash.io,https://www.soundhash.io"

@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "soundhash.fullname" . }}-api
+  labels:
+    {{- include "soundhash.labels" . | nindent 4 }}
+    component: api
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "soundhash.selectorLabels" . | nindent 6 }}
+      component: api
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "soundhash.selectorLabels" . | nindent 8 }}
+        component: api
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "soundhash.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      containers:
+      - name: api
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-url
+        - name: DATABASE_HOST
+          value: {{ .Values.postgresql.external.host | quote }}
+        - name: DATABASE_PORT
+          value: {{ .Values.postgresql.external.port | quote }}
+        - name: DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.external.existingSecret }}
+              key: database-name
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.external.existingSecret }}
+              key: {{ .Values.postgresql.external.userKey }}
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgresql.external.existingSecret }}
+              key: {{ .Values.postgresql.external.passwordKey }}
+        - name: API_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: api-secret-key
+        - name: REDIS_ENABLED
+          value: {{ .Values.config.redisEnabled | quote }}
+        - name: REDIS_HOST
+          value: "redis-client"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: API_HOST
+          value: {{ .Values.config.apiHost | quote }}
+        - name: API_PORT
+          value: {{ .Values.config.apiPort | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.config.environment | quote }}
+        - name: TEMP_DIR
+          value: {{ .Values.config.tempDir | quote }}
+        - name: API_CORS_ORIGINS
+          value: {{ .Values.config.apiCorsOrigins | quote }}
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        startupProbe:
+          {{- toYaml .Values.startupProbe | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.persistence.enabled }}
+        volumeMounts:
+        - name: temp-storage
+          mountPath: /app/temp
+        - name: cache-storage
+          mountPath: /app/cache
+        - name: logs-storage
+          mountPath: /app/logs
+        {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+      - name: temp-storage
+        persistentVolumeClaim:
+          claimName: {{ include "soundhash.fullname" . }}-temp-pvc
+      - name: cache-storage
+        persistentVolumeClaim:
+          claimName: {{ include "soundhash.fullname" . }}-cache-pvc
+      - name: logs-storage
+        persistentVolumeClaim:
+          claimName: {{ include "soundhash.fullname" . }}-logs-pvc
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

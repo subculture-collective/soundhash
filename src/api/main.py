@@ -91,6 +91,55 @@ async def health_check():
         )
 
 
+@app.get("/health/ready")
+async def readiness_check():
+    """
+    Readiness check endpoint for Kubernetes.
+    Returns 200 if the service is ready to accept traffic.
+    """
+    from sqlalchemy import text
+
+    try:
+        # Check database connection
+        session = db_manager.get_session()
+        session.execute(text("SELECT 1"))
+        session.close()
+        db_ready = True
+    except Exception as e:
+        logger.error(f"Readiness check - Database not ready: {e}")
+        db_ready = False
+
+    # Check Redis if enabled
+    redis_ready = True
+    if Config.REDIS_ENABLED:
+        try:
+            import redis
+            r = redis.Redis(
+                host=Config.REDIS_HOST,
+                port=Config.REDIS_PORT,
+                db=Config.REDIS_DB,
+                password=Config.REDIS_PASSWORD,
+                socket_connect_timeout=2
+            )
+            r.ping()
+            r.close()
+        except Exception as e:
+            logger.error(f"Readiness check - Redis not ready: {e}")
+            redis_ready = False
+
+    if db_ready and redis_ready:
+        return {"status": "ready", "database": "connected", "redis": "connected" if Config.REDIS_ENABLED else "disabled"}
+    else:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "database": "connected" if db_ready else "disconnected",
+                "redis": "connected" if redis_ready else "disconnected"
+            },
+        )
+
+
 # Import and include routers
 from src.api.routes import (
     admin,

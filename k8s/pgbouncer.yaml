@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: soundhash-production
+data:
+  pgbouncer.ini: |
+    [databases]
+    soundhash = host=postgres-service port=5432 dbname=soundhash
+    
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 6432
+    auth_type = md5
+    auth_file = /etc/pgbouncer/userlist.txt
+    
+    # Pool configuration
+    pool_mode = transaction
+    max_client_conn = 1000
+    default_pool_size = 25
+    reserve_pool_size = 5
+    reserve_pool_timeout = 3
+    
+    # Connection lifetime
+    server_lifetime = 3600
+    server_idle_timeout = 600
+    server_connect_timeout = 15
+    
+    # Logging
+    log_connections = 1
+    log_disconnections = 1
+    log_pooler_errors = 1
+    
+    # Performance tuning
+    query_timeout = 30
+    query_wait_timeout = 120
+    client_idle_timeout = 0
+    idle_transaction_timeout = 0
+    
+  userlist.txt: |
+    # Format: "username" "password"
+    # This should be populated from secrets in production
+    # Or use peer authentication if database is co-located
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: soundhash-production
+  labels:
+    app: pgbouncer
+    component: database-proxy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+        component: database-proxy
+    spec:
+      containers:
+      - name: pgbouncer
+        image: pgbouncer/pgbouncer:1.21.0
+        ports:
+        - containerPort: 6432
+          name: pgbouncer
+          protocol: TCP
+        
+        # Environment variables for configuration
+        env:
+        - name: POSTGRESQL_HOST
+          value: "postgres-service"
+        - name: POSTGRESQL_PORT
+          value: "5432"
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-name
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-user
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-password
+        
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pgbouncer
+          readOnly: true
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        
+        livenessProbe:
+          tcpSocket:
+            port: 6432
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        
+        readinessProbe:
+          tcpSocket:
+            port: 6432
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: config
+        configMap:
+          name: pgbouncer-config
+      
+      securityContext:
+        fsGroup: 999
+        runAsNonRoot: true
+        runAsUser: 999
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer-service
+  namespace: soundhash-production
+  labels:
+    app: pgbouncer
+    component: database-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: pgbouncer
+  ports:
+  - name: pgbouncer
+    port: 6432
+    targetPort: 6432
+    protocol: TCP
+  sessionAffinity: None

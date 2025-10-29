@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: soundhash-production
+  labels:
+    name: soundhash-production
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: soundhash-staging
+  labels:
+    name: soundhash-staging
+    environment: staging

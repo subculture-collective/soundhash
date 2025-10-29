@@ -1,0 +1,58 @@
+# Example Terraform variables file
+# Copy this to terraform.tfvars and customize for your environment
+
+# AWS Configuration
+aws_region  = "us-east-1"
+environment = "production"
+
+# Project
+project_name = "soundhash"
+
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+
+# EKS Configuration
+eks_cluster_version = "1.28"
+
+# Customize node groups as needed
+# eks_node_groups = {
+#   general = {
+#     desired_size   = 3
+#     min_size       = 2
+#     max_size       = 10
+#     instance_types = ["t3.xlarge"]
+#     capacity_type  = "ON_DEMAND"
+#   }
+#   spot = {
+#     desired_size   = 2
+#     min_size       = 0
+#     max_size       = 8
+#     instance_types = ["t3.large", "t3.xlarge"]
+#     capacity_type  = "SPOT"
+#   }
+# }
+
+# RDS PostgreSQL Configuration
+db_instance_class          = "db.r6g.xlarge"
+db_allocated_storage       = 100
+db_name                    = "soundhash"
+db_username                = "soundhash_admin"
+db_password                = "CHANGE_ME_USE_STRONG_PASSWORD"  # Use AWS Secrets Manager in production
+db_backup_retention_period = 30
+
+# ElastiCache Redis Configuration
+redis_node_type       = "cache.r6g.large"
+redis_num_cache_nodes = 1
+
+# S3 Configuration
+s3_bucket_name = "soundhash-storage-prod"
+
+# Tags
+tags = {
+  Project     = "soundhash"
+  ManagedBy   = "terraform"
+  Environment = "production"
+  Team        = "platform"
+  CostCenter  = "engineering"
+}
