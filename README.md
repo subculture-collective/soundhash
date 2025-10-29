@@ -33,6 +33,9 @@ A sophisticated system for matching audio clips from videos across social media 
 - 📝 Interactive API documentation (Swagger/ReDoc)
 - 🔐 API key support for machine-to-machine access
 - ⚡ Rate limiting and CORS support
+- 🛡️ **Enterprise Security** - Multi-tier rate limiting, WAF, DDoS protection ([Security Docs](docs/security/README.md))
+- 🔒 Threat detection (SQL injection, XSS, brute force)
+- 📋 Compliance ready (SOC 2, ISO 27001, HIPAA)
 - ✉️ **Email notification system** with marketing automation ([Email Docs](docs/email-system.md))
 - 📧 Transactional, product, and marketing emails
 - 🎨 Customizable templates with A/B testing
@@ -1247,6 +1250,18 @@ terraform/             # Infrastructure as Code
 
 ### Security Features
 
+**Production-Grade Security** (see [Security Documentation](docs/security/README.md))
+
+**Application Security:**
+- ✅ Multi-tier rate limiting (per-IP, per-user, per-endpoint)
+- ✅ Automated threat detection (SQL injection, XSS, path traversal)
+- ✅ IP allowlist/blocklist with CIDR support
+- ✅ API key management with rotation and expiration
+- ✅ Request signature verification (HMAC-SHA256)
+- ✅ Security headers (CSP, HSTS, X-Frame-Options)
+- ✅ Security audit logging (SOC 2, ISO 27001 ready)
+
+**Infrastructure Security:**
 - Non-root container users
 - Security contexts and dropped capabilities
 - Secrets management via Kubernetes Secrets
@@ -1254,6 +1269,11 @@ terraform/             # Infrastructure as Code
 - Network policies for pod isolation
 - RBAC for access control
 - Image vulnerability scanning
+
+**DDoS Protection & WAF:**
+- Cloudflare or AWS Shield integration
+- OWASP Top 10 protection
+- See [DDoS Protection Guide](docs/security/DDOS_PROTECTION.md)
 
 ### Scaling
 
