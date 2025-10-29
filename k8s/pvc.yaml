@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: soundhash-temp-pvc
+  namespace: soundhash-production
+spec:
+  accessModes:
+    - ReadWriteMany  # Allow multiple pods to access the same volume
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: efs-sc  # Use EFS for multi-AZ shared storage in AWS
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: soundhash-cache-pvc
+  namespace: soundhash-production
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: efs-sc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: soundhash-logs-pvc
+  namespace: soundhash-production
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: efs-sc

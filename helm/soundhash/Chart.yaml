@@ -1,0 +1,18 @@
+apiVersion: v2
+name: soundhash
+description: SoundHash audio fingerprinting and matching platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - audio
+  - fingerprinting
+  - youtube
+  - matching
+  - api
+home: https://soundhash.io
+sources:
+  - https://github.com/subculture-collective/soundhash
+maintainers:
+  - name: SoundHash Team
+    email: admin@soundhash.io

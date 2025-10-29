@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: soundhash-migration
+  namespace: soundhash-production
+  labels:
+    app: soundhash
+    component: migration
+spec:
+  # Keep last 3 successful jobs for history
+  successfulJobsHistoryLimit: 3
+  # Keep last 1 failed job for debugging
+  failedJobsHistoryLimit: 1
+  
+  template:
+    metadata:
+      labels:
+        app: soundhash
+        component: migration
+    spec:
+      restartPolicy: OnFailure
+      
+      containers:
+      - name: migration
+        image: ghcr.io/subculture-collective/soundhash:latest
+        command:
+        - alembic
+        - upgrade
+        - head
+        
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: soundhash-config
+        
+        # Sensitive environment variables from Secrets
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-url
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-user
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: soundhash-secrets
+              key: database-password
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000

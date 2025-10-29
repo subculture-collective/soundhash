@@ -1119,3 +1119,165 @@ A: Varies by usage. Estimate ~50MB per video (audio + segments). Enable cleanup 
 
 **Q: Does this work with private/unlisted videos?**  
 A: Only if your authenticated cookies have access to those videos.
+
+## Production Deployment
+
+SoundHash includes production-ready Kubernetes configurations for enterprise deployment.
+
+### Deployment Options
+
+#### 1. Kubernetes (Recommended for Production)
+```bash
+# Deploy to production using Helm
+helm install soundhash ./helm/soundhash \
+  --namespace soundhash-production \
+  --values ./helm/soundhash/values-production.yaml
+```
+
+**Features:**
+- Zero-downtime rolling updates
+- Horizontal Pod Autoscaler (3-20 replicas)
+- TLS/SSL with Let's Encrypt
+- PgBouncer connection pooling
+- Redis caching
+- Multi-AZ deployment
+- Health checks and readiness probes
+
+📚 **Documentation:**
+- [Kubernetes Deployment Guide](docs/deployment/kubernetes.md)
+- [Helm Charts Guide](docs/deployment/helm.md)
+- [Terraform Infrastructure](docs/deployment/terraform.md)
+
+#### 2. Infrastructure as Code (Terraform)
+Provision AWS infrastructure (EKS, RDS, ElastiCache, S3, EFS):
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+**Includes:**
+- EKS cluster with managed node groups
+- Multi-AZ RDS PostgreSQL
+- ElastiCache Redis
+- S3 object storage
+- EFS for shared storage
+- Security groups and IAM roles
+
+#### 3. Automated Deployment Script
+```bash
+# Deploy to production
+./scripts/deploy.sh production v1.0.0
+
+# Deploy to staging
+./scripts/deploy.sh staging latest
+```
+
+### CI/CD Pipelines
+
+GitHub Actions workflows for automated deployment:
+
+- **Staging**: Auto-deploys on push to `main` branch
+- **Production**: Deploys on release publication
+- **Docker Build**: Tests and validates Docker images on PRs
+
+### Quick Start - Production Deployment
+
+1. **Prerequisites:**
+   - Kubernetes cluster (v1.27+)
+   - kubectl and Helm installed
+   - Docker registry access
+
+2. **Create Secrets:**
+   ```bash
+   kubectl create secret generic soundhash-secrets \
+     --namespace=soundhash-production \
+     --from-literal=database-url="postgresql://user:pass@host:5432/soundhash" \
+     --from-literal=api-secret-key="your-secret-key"
+   ```
+
+3. **Deploy with Helm:**
+   ```bash
+   helm install soundhash ./helm/soundhash \
+     --namespace soundhash-production \
+     --values ./helm/soundhash/values-production.yaml
+   ```
+
+4. **Verify Deployment:**
+   ```bash
+   kubectl get pods -n soundhash-production
+   kubectl get svc -n soundhash-production
+   ```
+
+### Configuration Files
+
+```
+k8s/                    # Raw Kubernetes manifests
+├── deployment.yaml     # API deployment
+├── service.yaml        # Load balancer service
+├── ingress.yaml        # TLS/SSL ingress
+├── hpa.yaml           # Horizontal Pod Autoscaler
+├── pgbouncer.yaml     # Database connection pooling
+└── redis.yaml         # Redis StatefulSet
+
+helm/soundhash/        # Helm charts
+├── Chart.yaml
+├── values.yaml        # Default values
+├── values-staging.yaml
+├── values-production.yaml
+└── templates/         # Kubernetes templates
+
+terraform/             # Infrastructure as Code
+├── main.tf           # AWS provider config
+├── eks.tf            # EKS cluster
+├── rds.tf            # PostgreSQL database
+├── elasticache.tf    # Redis cache
+├── s3.tf             # Object storage
+└── vpc.tf            # Network configuration
+```
+
+### Monitoring & Observability
+
+- **Prometheus**: Metrics collection (pods annotated for scraping)
+- **Grafana**: Visualization dashboards
+- **ELK/Loki**: Log aggregation
+- **CloudWatch**: AWS infrastructure monitoring
+
+### Security Features
+
+- Non-root container users
+- Security contexts and dropped capabilities
+- Secrets management via Kubernetes Secrets
+- TLS/SSL for all external traffic
+- Network policies for pod isolation
+- RBAC for access control
+- Image vulnerability scanning
+
+### Scaling
+
+**Manual:**
+```bash
+kubectl scale deployment/soundhash-api -n soundhash-production --replicas=10
+```
+
+**Automatic:**
+- HPA scales based on CPU (70%) and memory (80%) utilization
+- Scales from 3 to 20 replicas
+- Smart scale-up (immediate) and scale-down (5min stabilization)
+
+### Estimated Costs
+
+**Production (AWS EKS):**
+- EKS Cluster: $73/month
+- EC2 Nodes (3x t3.xlarge): $450/month
+- RDS (db.r6g.xlarge Multi-AZ): $730/month
+- ElastiCache (cache.r6g.large): $340/month
+- EFS/S3/Data Transfer: ~$100/month
+- **Total: ~$1,700/month**
+
+**Development (optimized):**
+- Smaller instances: ~$220/month
+
+For detailed deployment instructions, see the [deployment documentation](docs/deployment/).

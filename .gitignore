@@ -308,3 +308,24 @@ backups_test/
 backups/
 *.dump
 site/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+terraform/.terraform.tfstate.lock.info
+terraform/override.tf
+terraform/override.tf.json
+terraform/*_override.tf
+terraform/*_override.tf.json
+terraform/.terraformrc
+terraform/terraform.rc
+terraform/crash.log
+terraform/crash.*.log
+
+# Kubernetes secrets
+k8s/secrets.yaml
+!k8s/secrets.yaml.template

@@ -1,0 +1,43 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "soundhash.fullname" . }}-temp-pvc
+  labels:
+    {{- include "soundhash.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.temp.accessMode }}
+  storageClassName: {{ .Values.persistence.temp.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.temp.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "soundhash.fullname" . }}-cache-pvc
+  labels:
+    {{- include "soundhash.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.cache.accessMode }}
+  storageClassName: {{ .Values.persistence.cache.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.cache.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "soundhash.fullname" . }}-logs-pvc
+  labels:
+    {{- include "soundhash.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.logs.accessMode }}
+  storageClassName: {{ .Values.persistence.logs.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.logs.size }}
+{{- end }}
