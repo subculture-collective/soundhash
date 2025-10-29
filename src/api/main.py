@@ -32,9 +32,16 @@ app = FastAPI(
 # Add middleware
 add_cors_middleware(app)
 
+# Add security headers middleware
+from src.security.headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add advanced security middleware (rate limiting, threat detection, IP filtering)
+from src.security.middleware import AdvancedSecurityMiddleware
+app.add_middleware(AdvancedSecurityMiddleware)
+
 # Add tenant middleware for multi-tenant support
 from src.api.middleware.tenant_middleware import TenantMiddleware
-
 app.add_middleware(TenantMiddleware)
 
 app.middleware("http")(request_logging_middleware)
@@ -149,6 +156,7 @@ from src.api.routes import (
     fingerprints,
     matches,
     monitoring,
+    security,
     tenants,
     videos,
 )
@@ -162,6 +170,7 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monitoring"])
 app.include_router(email.router, prefix="/api/v1", tags=["Email"])
 app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
+app.include_router(security.router, prefix="/api/v1/security", tags=["Security"])
 
 
 # WebSocket endpoint for real-time audio streaming
