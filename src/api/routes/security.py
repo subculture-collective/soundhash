@@ -1,7 +1,7 @@
 """API routes for security management."""
 
 import logging
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -11,11 +11,11 @@ from src.api.dependencies import get_admin_user, get_current_user, get_db
 from src.database.models import User
 from src.security import (
     APIKeyManager,
+    SecurityEventType,
     get_audit_logger,
     get_ip_manager,
     get_rate_limiter,
     get_threat_detector,
-    SecurityEventType,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class APIKeyCreate(BaseModel):
     """Request model for creating API key."""
 
     name: str = Field(..., description="Descriptive name for the API key")
-    expires_days: Optional[int] = Field(None, description="Days until expiration (None = never)")
+    expires_days: int | None = Field(None, description="Days until expiration (None = never)")
 
 
 class APIKeyResponse(BaseModel):
@@ -40,8 +40,8 @@ class APIKeyResponse(BaseModel):
     name: str
     key_prefix: str
     created_at: str
-    expires_at: Optional[str]
-    last_used_at: Optional[str]
+    expires_at: str | None
+    last_used_at: str | None
     is_active: bool
 
 
@@ -56,14 +56,14 @@ class IPAddRequest(BaseModel):
     """Request model for adding IP to list."""
 
     ip: str = Field(..., description="IP address or CIDR network (e.g., 192.168.1.0/24)")
-    reason: Optional[str] = Field(None, description="Reason for adding (for blocklist)")
+    reason: str | None = Field(None, description="Reason for adding (for blocklist)")
 
 
 class IPListResponse(BaseModel):
     """Response model for IP lists."""
 
-    allowlist: List[str]
-    blocklist: List[str]
+    allowlist: list[str]
+    blocklist: list[str]
 
 
 class ThreatStatsResponse(BaseModel):
@@ -71,7 +71,7 @@ class ThreatStatsResponse(BaseModel):
 
     ip: str
     threat_count: int
-    recent_threats: List[str]
+    recent_threats: list[str]
 
 
 class RateLimitQuotaResponse(BaseModel):
@@ -93,7 +93,7 @@ async def create_api_key(
 ):
     """
     Create a new API key.
-    
+
     The API key will be returned only once. Store it securely.
     """
     try:
@@ -103,7 +103,7 @@ async def create_api_key(
             name=key_data.name,
             expires_days=key_data.expires_days,
         )
-        
+
         # Log event
         audit_logger.log_api_key_event(
             SecurityEventType.API_KEY_CREATED,
@@ -112,7 +112,7 @@ async def create_api_key(
             key_id=api_key_record.id,
             details={"name": key_data.name, "expires_days": key_data.expires_days},
         )
-        
+
         return APIKeyCreateResponse(
             api_key=plain_key,
             key_info=APIKeyResponse(
@@ -133,7 +133,7 @@ async def create_api_key(
         )
 
 
-@router.get("/api-keys", response_model=List[APIKeyResponse])
+@router.get("/api-keys", response_model=list[APIKeyResponse])
 async def list_api_keys(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
@@ -143,7 +143,7 @@ async def list_api_keys(
     try:
         manager = APIKeyManager(db)
         keys = manager.list_user_keys(current_user.id, include_inactive=include_inactive)
-        
+
         return [
             APIKeyResponse(
                 id=key.id,
@@ -172,12 +172,12 @@ async def rotate_api_key(
 ):
     """
     Rotate an API key.
-    
+
     Creates a new key and deactivates the old one.
     """
     try:
         manager = APIKeyManager(db)
-        
+
         # Verify key belongs to user
         old_key = manager.get_key_by_id(key_id)
         if not old_key or old_key.user_id != current_user.id:
@@ -185,15 +185,15 @@ async def rotate_api_key(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="API key not found",
             )
-        
+
         new_key, plain_key = manager.rotate_key(key_id)
-        
+
         if not new_key:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to rotate API key",
             )
-        
+
         # Log event
         audit_logger.log_api_key_event(
             SecurityEventType.API_KEY_ROTATED,
@@ -202,7 +202,7 @@ async def rotate_api_key(
             key_id=new_key.id,
             details={"old_key_id": key_id},
         )
-        
+
         return APIKeyCreateResponse(
             api_key=plain_key,
             key_info=APIKeyResponse(
@@ -234,7 +234,7 @@ async def revoke_api_key(
     """Revoke (delete) an API key."""
     try:
         manager = APIKeyManager(db)
-        
+
         # Verify key belongs to user
         key = manager.get_key_by_id(key_id)
         if not key or key.user_id != current_user.id:
@@ -242,15 +242,15 @@ async def revoke_api_key(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="API key not found",
             )
-        
+
         success = manager.revoke_key(key_id, reason="Revoked by user")
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to revoke API key",
             )
-        
+
         # Log event
         audit_logger.log_api_key_event(
             SecurityEventType.API_KEY_REVOKED,
@@ -258,7 +258,7 @@ async def revoke_api_key(
             username=current_user.username,
             key_id=key_id,
         )
-        
+
         return None
     except HTTPException:
         raise
@@ -280,7 +280,7 @@ async def get_ip_lists(
     """Get current IP allowlist and blocklist (Admin only)."""
     try:
         ip_manager = get_ip_manager()
-        
+
         return IPListResponse(
             allowlist=list(ip_manager.get_allowlist()),
             blocklist=list(ip_manager.get_blocklist()),
@@ -302,20 +302,20 @@ async def add_to_allowlist(
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.add_to_allowlist(ip_data.ip)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to add IP to allowlist",
             )
-        
+
         audit_logger.log_event(
             SecurityEventType.CONFIG_CHANGE,
             user_id=admin_user.id,
             username=admin_user.username,
             details={"action": "add_to_allowlist", "ip": ip_data.ip},
         )
-        
+
         return None
     except HTTPException:
         raise
@@ -336,15 +336,15 @@ async def add_to_blocklist(
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.add_to_blocklist(ip_data.ip, reason=ip_data.reason)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to add IP to blocklist",
             )
-        
+
         audit_logger.log_ip_blocked(ip_data.ip, ip_data.reason or "Manually blocked by admin")
-        
+
         return None
     except HTTPException:
         raise
@@ -365,20 +365,20 @@ async def remove_from_allowlist(
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.remove_from_allowlist(ip)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to remove IP from allowlist",
             )
-        
+
         audit_logger.log_event(
             SecurityEventType.CONFIG_CHANGE,
             user_id=admin_user.id,
             username=admin_user.username,
             details={"action": "remove_from_allowlist", "ip": ip},
         )
-        
+
         return None
     except HTTPException:
         raise
@@ -399,18 +399,18 @@ async def remove_from_blocklist(
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.remove_from_blocklist(ip)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to remove IP from blocklist",
             )
-        
+
         audit_logger.log_event(
             SecurityEventType.IP_UNBLOCKED,
             details={"ip": ip},
         )
-        
+
         return None
     except HTTPException:
         raise
@@ -434,7 +434,7 @@ async def get_threat_stats(
     try:
         threat_detector = get_threat_detector()
         stats = threat_detector.get_threat_stats(ip)
-        
+
         return ThreatStatsResponse(
             ip=ip,
             threat_count=stats["threat_count"],
@@ -459,10 +459,10 @@ async def get_rate_limit_quota(
     try:
         rate_limiter = get_rate_limiter()
         identifier = str(current_user.id)
-        
+
         # Get quota for generic endpoint
         quota = rate_limiter.get_remaining_quota(identifier, "/api/v1")
-        
+
         return RateLimitQuotaResponse(**quota)
     except Exception as e:
         logger.error(f"Failed to get rate limit quota: {e}", exc_info=True)
@@ -481,14 +481,14 @@ async def reset_rate_limit(
     try:
         rate_limiter = get_rate_limiter()
         rate_limiter.reset_limits(identifier, endpoint="*")
-        
+
         audit_logger.log_event(
             SecurityEventType.RATE_LIMIT_RESET,
             user_id=admin_user.id,
             username=admin_user.username,
             details={"identifier": identifier},
         )
-        
+
         return None
     except Exception as e:
         logger.error(f"Failed to reset rate limit: {e}", exc_info=True)

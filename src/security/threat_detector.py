@@ -4,7 +4,6 @@ import logging
 import re
 import time
 from collections import defaultdict
-from typing import Dict, List, Optional, Set
 
 from config.settings import Config
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ThreatDetector:
     """
     Automated threat detection and blocking system.
-    
+
     Detects:
     - SQL injection attempts
     - XSS attempts
@@ -29,14 +28,14 @@ class ThreatDetector:
         self.redis_client = redis_client
         self.ip_manager = ip_manager
         self.use_redis = redis_client is not None and Config.REDIS_ENABLED
-        
+
         # In-memory tracking
-        self.failed_attempts: Dict[str, List[float]] = defaultdict(list)
-        self.suspicious_patterns: Dict[str, int] = defaultdict(int)
-        
+        self.failed_attempts: dict[str, list[float]] = defaultdict(list)
+        self.suspicious_patterns: dict[str, int] = defaultdict(int)
+
         # Threat patterns
         self._init_threat_patterns()
-        
+
         logger.info(
             f"Threat detector initialized with {'Redis' if self.use_redis else 'in-memory'} backend"
         )
@@ -58,7 +57,7 @@ class ThreatDetector:
             r"(\bor\b.*\b1\s*=\s*1)",
             r"(\'\s*or\s*\'.*=)",
         ]
-        
+
         # XSS patterns
         self.xss_patterns = [
             r"<script[^>]*>.*?</script>",
@@ -70,7 +69,7 @@ class ThreatDetector:
             r"<embed[^>]*>",
             r"<object[^>]*>",
         ]
-        
+
         # Path traversal patterns
         self.path_traversal_patterns = [
             r"\.\./",
@@ -80,7 +79,7 @@ class ThreatDetector:
             r"c:\\windows",
             r"c:/windows",
         ]
-        
+
         # Suspicious user agents
         self.suspicious_user_agents = [
             "sqlmap",
@@ -94,28 +93,28 @@ class ThreatDetector:
             "metasploit",
             "havij",
         ]
-        
+
         # Compile regex patterns for performance
         self.sql_regex = [re.compile(p, re.IGNORECASE) for p in self.sql_injection_patterns]
         self.xss_regex = [re.compile(p, re.IGNORECASE) for p in self.xss_patterns]
         self.path_regex = [re.compile(p, re.IGNORECASE) for p in self.path_traversal_patterns]
 
-    def _check_patterns(self, text: str, patterns: List[re.Pattern]) -> Optional[str]:
+    def _check_patterns(self, text: str, patterns: list[re.Pattern]) -> str | None:
         """Check if text matches any threat pattern."""
         for pattern in patterns:
             if pattern.search(text):
                 return pattern.pattern
         return None
 
-    def detect_sql_injection(self, text: str) -> Optional[str]:
+    def detect_sql_injection(self, text: str) -> str | None:
         """Detect SQL injection attempt."""
         return self._check_patterns(text, self.sql_regex)
 
-    def detect_xss(self, text: str) -> Optional[str]:
+    def detect_xss(self, text: str) -> str | None:
         """Detect XSS attempt."""
         return self._check_patterns(text, self.xss_regex)
 
-    def detect_path_traversal(self, text: str) -> Optional[str]:
+    def detect_path_traversal(self, text: str) -> str | None:
         """Detect path traversal attempt."""
         return self._check_patterns(text, self.path_regex)
 
@@ -123,7 +122,7 @@ class ThreatDetector:
         """Detect suspicious user agent."""
         if not user_agent:
             return True  # No user agent is suspicious
-        
+
         user_agent_lower = user_agent.lower()
         return any(sus in user_agent_lower for sus in self.suspicious_user_agents)
 
@@ -132,13 +131,13 @@ class ThreatDetector:
         ip: str,
         method: str,
         path: str,
-        query_params: Dict[str, str],
-        headers: Dict[str, str],
-        body: Optional[str] = None,
-    ) -> tuple[bool, List[str]]:
+        query_params: dict[str, str],
+        headers: dict[str, str],
+        body: str | None = None,
+    ) -> tuple[bool, list[str]]:
         """
         Check request for threats.
-        
+
         Args:
             ip: Client IP address
             method: HTTP method
@@ -146,16 +145,16 @@ class ThreatDetector:
             query_params: Query parameters
             headers: Request headers
             body: Request body
-        
+
         Returns:
             Tuple of (is_safe, threat_reasons)
         """
         threats = []
-        
+
         # Check path
         if self.detect_path_traversal(path):
             threats.append("Path traversal attempt detected in path")
-        
+
         # Check query parameters
         for key, value in query_params.items():
             if sql_pattern := self.detect_sql_injection(f"{key}={value}"):
@@ -164,43 +163,43 @@ class ThreatDetector:
                 threats.append(f"XSS attempt detected in query: {xss_pattern}")
             if self.detect_path_traversal(value):
                 threats.append("Path traversal attempt detected in query parameters")
-        
+
         # Check user agent
         user_agent = headers.get("User-Agent", "")
         if self.detect_suspicious_user_agent(user_agent):
             threats.append(f"Suspicious user agent detected: {user_agent[:50]}")
-        
+
         # Check body
         if body:
             if sql_pattern := self.detect_sql_injection(body):
                 threats.append(f"SQL injection attempt detected in body: {sql_pattern}")
             if xss_pattern := self.detect_xss(body):
                 threats.append(f"XSS attempt detected in body: {xss_pattern}")
-        
+
         # Check for excessive header size (potential DoS)
         total_header_size = sum(len(k) + len(v) for k, v in headers.items())
         if total_header_size > Config.MAX_HEADER_SIZE:
             threats.append(f"Excessive header size: {total_header_size} bytes")
-        
+
         # Log threats
         if threats:
             logger.warning(
                 f"Threats detected from {ip} on {method} {path}: {', '.join(threats)}"
             )
             self._record_threat(ip, threats)
-        
+
         return len(threats) == 0, threats
 
-    def _record_threat(self, ip: str, threats: List[str]):
+    def _record_threat(self, ip: str, threats: list[str]):
         """Record threat for future analysis and auto-blocking."""
         now = time.time()
-        
+
         if self.use_redis:
             # Increment threat counter
             threat_key = f"threat:{ip}"
             count = self.redis_client.incr(threat_key)
             self.redis_client.expire(threat_key, 3600)  # 1 hour window
-            
+
             # Store threat details
             self.redis_client.lpush(f"threat:details:{ip}", f"{now}|{','.join(threats)}")
             self.redis_client.ltrim(f"threat:details:{ip}", 0, 99)  # Keep last 100
@@ -208,7 +207,7 @@ class ThreatDetector:
         else:
             count = self.suspicious_patterns[ip] + 1
             self.suspicious_patterns[ip] = count
-        
+
         # Auto-block after threshold
         if count >= Config.THREAT_AUTO_BLOCK_THRESHOLD:
             logger.warning(
@@ -223,19 +222,19 @@ class ThreatDetector:
     def track_failed_login(self, ip: str, username: str) -> bool:
         """
         Track failed login attempts.
-        
+
         Returns:
             True if should block (brute force detected)
         """
         now = time.time()
         key = f"{ip}:{username}"
-        
+
         if self.use_redis:
             redis_key = f"failed_login:{key}"
             count = self.redis_client.incr(redis_key)
             if count == 1:
                 self.redis_client.expire(redis_key, Config.FAILED_LOGIN_WINDOW)
-            
+
             if count >= Config.FAILED_LOGIN_THRESHOLD:
                 logger.warning(
                     f"Brute force attack detected from {ip} for user {username} "
@@ -253,9 +252,9 @@ class ThreatDetector:
                 ts for ts in self.failed_attempts[key]
                 if now - ts < Config.FAILED_LOGIN_WINDOW
             ]
-            
+
             self.failed_attempts[key].append(now)
-            
+
             if len(self.failed_attempts[key]) >= Config.FAILED_LOGIN_THRESHOLD:
                 logger.warning(
                     f"Brute force attack detected from {ip} for user {username}"
@@ -266,18 +265,18 @@ class ThreatDetector:
                         reason=f"Brute force attack: failed login attempts for {username}"
                     )
                 return True
-        
+
         return False
 
-    def get_threat_stats(self, ip: str) -> Dict:
+    def get_threat_stats(self, ip: str) -> dict:
         """Get threat statistics for an IP."""
         if self.use_redis:
             threat_key = f"threat:{ip}"
             count = int(self.redis_client.get(threat_key) or 0)
-            
+
             details_key = f"threat:details:{ip}"
             details = self.redis_client.lrange(details_key, 0, 9)  # Last 10
-            
+
             return {
                 "threat_count": count,
                 "recent_threats": [d.split("|", 1)[1] for d in details] if details else [],
@@ -290,16 +289,16 @@ class ThreatDetector:
 
 
 # Singleton instance
-_threat_detector_instance: Optional[ThreatDetector] = None
+_threat_detector_instance: ThreatDetector | None = None
 
 
 def get_threat_detector(ip_manager=None) -> ThreatDetector:
     """Get or create threat detector instance."""
     global _threat_detector_instance
-    
+
     if _threat_detector_instance is None:
         redis_client = None
-        
+
         if Config.REDIS_ENABLED:
             try:
                 import redis
@@ -318,7 +317,7 @@ def get_threat_detector(ip_manager=None) -> ThreatDetector:
                     f"Failed to connect to Redis, using in-memory threat detection: {e}"
                 )
                 redis_client = None
-        
+
         _threat_detector_instance = ThreatDetector(redis_client, ip_manager)
-    
+
     return _threat_detector_instance
