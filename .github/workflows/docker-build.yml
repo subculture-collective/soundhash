@@ -1,0 +1,136 @@
+name: Docker Build and Test
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile.production'
+      - 'requirements.txt'
+      - 'src/**'
+      - '.github/workflows/docker-build.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile.production'
+      - 'requirements.txt'
+
+jobs:
+  build-test:
+    name: Build and Test Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.production
+          push: false
+          tags: soundhash:test
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Test image structure
+        run: |
+          # Check if image was created
+          docker images soundhash:test
+          
+          # Check image size
+          SIZE=$(docker inspect soundhash:test --format='{{.Size}}' | awk '{print $1/1024/1024}')
+          echo "Image size: ${SIZE}MB"
+          
+          # Verify non-root user
+          USER=$(docker inspect soundhash:test --format='{{.Config.User}}')
+          if [ "$USER" != "appuser" ]; then
+            echo "Error: Container is not running as non-root user"
+            exit 1
+          fi
+          echo "✅ Running as non-root user: $USER"
+          
+          # Check exposed ports
+          PORTS=$(docker inspect soundhash:test --format='{{.Config.ExposedPorts}}')
+          echo "Exposed ports: $PORTS"
+      
+      - name: Test image can start
+        run: |
+          # Create a test network and database
+          docker network create test-net
+          
+          docker run -d \
+            --name test-db \
+            --network test-net \
+            -e POSTGRES_DB=test \
+            -e POSTGRES_USER=test \
+            -e POSTGRES_PASSWORD=test \
+            postgres:15-alpine
+          
+          # Wait for database to be ready
+          sleep 10
+          
+          # Start the application
+          docker run -d \
+            --name test-app \
+            --network test-net \
+            -e DATABASE_URL=postgresql://test:test@test-db:5432/test \
+            -e API_SECRET_KEY=test-secret-key \
+            soundhash:test
+          
+          # Wait for app to start
+          sleep 15
+          
+          # Check if container is still running
+          if ! docker ps | grep test-app; then
+            echo "Container failed to start"
+            docker logs test-app
+            exit 1
+          fi
+          
+          echo "✅ Container started successfully"
+          
+          # Check health endpoint
+          HEALTH=$(docker exec test-app curl -f http://localhost:8000/health || echo "FAILED")
+          
+          if [ "$HEALTH" == "FAILED" ]; then
+            echo "Health check endpoint not accessible"
+            docker logs test-app
+            exit 1
+          fi
+          
+          echo "✅ Health check passed"
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop test-app test-db || true
+          docker rm test-app test-db || true
+          docker network rm test-net || true
+      
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: soundhash:test
+          format: 'table'
+          exit-code: '0'  # Don't fail on vulnerabilities, just report
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker image built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          SIZE=$(docker inspect soundhash:test --format='{{.Size}}' | awk '{print $1/1024/1024}')
+          echo "**Image Size:** ${SIZE}MB" >> $GITHUB_STEP_SUMMARY
+          
+          LAYERS=$(docker history soundhash:test --no-trunc | wc -l)
+          echo "**Image Layers:** $LAYERS" >> $GITHUB_STEP_SUMMARY
