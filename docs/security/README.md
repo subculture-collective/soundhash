@@ -469,8 +469,9 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ## Support
 
 For security vulnerabilities:
-- **Email**: security@soundhash.io
-- **PGP Key**: [Link to public key]
+- **GitHub Security Advisories**: https://github.com/subculture-collective/soundhash/security/advisories/new
+- **Email**: Configure your security contact email in production deployment
+- **PGP Key**: [Configure your PGP key for encrypted communications]
 
 For questions:
 - **Documentation**: `/docs/security/`

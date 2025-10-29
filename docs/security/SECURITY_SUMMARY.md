@@ -189,7 +189,7 @@ The implementation supports multiple compliance frameworks:
 - ✅ Access controls
 - ✅ Audit trails
 - ✅ Encryption support
-- ⚠️ Requires BAA with cloud provider
+- ⚠️ Requires BAA (Business Associate Agreement) with cloud provider
 - ⚠️ Configure 7-year retention
 
 ## Performance
@@ -251,10 +251,11 @@ Total security middleware overhead: **< 5ms per request**
 
 ## Support
 
-For security issues:
-- **Email**: security@soundhash.io
+For security vulnerabilities and issues:
+- **GitHub Security Advisories**: https://github.com/subculture-collective/soundhash/security/advisories/new
+- **Email**: Configure your security contact email in production deployment
 - **Documentation**: `/docs/security/`
-- **Issues**: https://github.com/subculture-collective/soundhash/issues
+- **General Issues**: https://github.com/subculture-collective/soundhash/issues
 
 ## Conclusion
 
