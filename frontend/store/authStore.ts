@@ -26,6 +26,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       setAuth: (user, accessToken, refreshToken) => {
         // Store in localStorage for API client
+        // NOTE: Storing refresh tokens in localStorage is a security risk (XSS vulnerability)
+        // Consider using httpOnly cookies for refresh tokens in production
         localStorage.setItem('access_token', accessToken)
         localStorage.setItem('refresh_token', refreshToken)
         

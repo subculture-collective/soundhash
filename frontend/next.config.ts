@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
   
   // Image optimization
   images: {
-    domains: ['i.ytimg.com', 'yt3.ggpht.com'], // YouTube thumbnails
+    remotePatterns: [
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'yt3.ggpht.com' }
+    ], // YouTube thumbnails
     formats: ['image/avif', 'image/webp'],
   },
   
