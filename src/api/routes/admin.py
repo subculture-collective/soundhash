@@ -1,11 +1,11 @@
 """Admin routes."""
 
 import math
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, text
 from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_admin_user, get_db
@@ -289,8 +289,6 @@ async def admin_health_check(
     db: Annotated[Session, Depends(get_db)],
 ):
     """Get detailed health check information (admin only)."""
-    from sqlalchemy import text
-    
     # Check database
     try:
         db.execute(text("SELECT 1"))
@@ -301,14 +299,14 @@ async def admin_health_check(
     # Check job queue health
     stuck_jobs = db.query(func.count(ProcessingJob.id)).filter(
         ProcessingJob.status == 'running',
-        ProcessingJob.started_at < datetime.utcnow() - timedelta(hours=2)
+        ProcessingJob.started_at < datetime.now(UTC) - timedelta(hours=2)
     ).scalar() or 0
 
     return {
         "status": "healthy" if db_status == "healthy" and stuck_jobs == 0 else "degraded",
         "database": db_status,
         "stuck_jobs": stuck_jobs,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -322,30 +320,55 @@ async def get_analytics(
     """Get analytics data with optional date filtering (admin only)."""
     # Default to last 30 days
     if not start_date:
-        start_dt = datetime.utcnow() - timedelta(days=30)
+        start_dt = datetime.now(UTC) - timedelta(days=30)
     else:
-        start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid start_date format: '{start_date}'. Expected ISO format.",
+            )
     
     if not end_date:
-        end_dt = datetime.utcnow()
+        end_dt = datetime.now(UTC)
     else:
-        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        try:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid end_date format: '{end_date}'. Expected ISO format.",
+            )
 
-    # User growth over time
+    # User growth over time - optimized with GROUP BY
+    user_counts = db.query(
+        func.date_trunc('day', User.created_at).label('day'),
+        func.count(User.id).label('count')
+    ).filter(
+        User.created_at >= start_dt,
+        User.created_at <= end_dt
+    ).group_by(
+        func.date_trunc('day', User.created_at)
+    ).order_by(
+        func.date_trunc('day', User.created_at)
+    ).all()
+
+    # Build a dict for fast lookup
+    user_counts_by_day = {
+        day.strftime('%Y-%m-%d'): count for day, count in user_counts
+    }
+
     user_growth = []
     current_date = start_dt
     while current_date <= end_dt:
-        next_date = current_date + timedelta(days=1)
-        count = db.query(func.count(User.id)).filter(
-            User.created_at >= current_date,
-            User.created_at < next_date
-        ).scalar() or 0
-        
+        date_str = current_date.strftime('%Y-%m-%d')
+        count = user_counts_by_day.get(date_str, 0)
         user_growth.append({
-            "date": current_date.strftime('%Y-%m-%d'),
+            "date": date_str,
             "count": count
         })
-        current_date = next_date
+        current_date += timedelta(days=1)
 
     # Job status distribution
     job_status = []
@@ -363,7 +386,7 @@ async def get_analytics(
 
     # Video processing stats
     videos_processed = db.query(func.count(Video.id)).filter(
-        Video.processed == True,
+        Video.processed,
         Video.created_at >= start_dt,
         Video.created_at <= end_dt
     ).scalar() or 0

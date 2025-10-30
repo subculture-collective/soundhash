@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,7 +33,6 @@ interface Job {
 }
 
 export default function JobsPage() {
-  const queryClient = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
 
   const { data, refetch, isLoading } = useQuery({

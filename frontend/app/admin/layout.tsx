@@ -12,16 +12,18 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   useEffect(() => {
-    // Check authentication on mount
+    // Check authentication and admin privileges on mount
     if (!isAuthenticated) {
       router.push('/auth/login')
+    } else if (!user?.is_admin) {
+      router.push('/')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user?.is_admin) {
     return null
   }
 
