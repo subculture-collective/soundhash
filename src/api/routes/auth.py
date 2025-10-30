@@ -72,6 +72,20 @@ async def register(
     db.commit()
     db.refresh(new_user)
 
+    # Emit webhook event for user creation
+    try:
+        from src.webhooks import emit_user_created
+        emit_user_created(
+            user_id=new_user.id,
+            username=new_user.username,
+            email=new_user.email,
+            tenant_id=new_user.tenant_id,
+        )
+    except Exception as e:
+        # Log but don't fail registration if webhook emission fails
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to emit user.created webhook: {e}")
+
     return new_user
 
 
