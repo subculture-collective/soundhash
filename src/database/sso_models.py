@@ -84,7 +84,7 @@ class SSOProvider(Base):  # type: ignore[misc,valid-type]
     )  # Map IdP groups to roles: {"admin-group": "admin", "dev-group": "member"}
 
     # Metadata
-    metadata = Column(JSON)  # Additional provider-specific settings
+    config_metadata = Column(JSON)  # Additional provider-specific settings
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
@@ -176,7 +176,7 @@ class SSOAuditLog(Base):  # type: ignore[misc,valid-type]
     error_details = Column(Text)
 
     # Metadata
-    metadata = Column(JSON)  # Additional context
+    event_metadata = Column(JSON)  # Additional context
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships

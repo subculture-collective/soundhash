@@ -121,6 +121,43 @@ class SSOSessionManager:
 
         return session
 
+    def get_session_by_id(
+        self,
+        session_id: int,
+        check_expiration: bool = True,
+    ) -> Optional[SSOSession]:
+        """Get session by ID.
+
+        Args:
+            session_id: Session ID to look up
+            check_expiration: Whether to check if session is expired
+
+        Returns:
+            SSOSession object or None if not found/expired
+        """
+        session = (
+            self.db.query(SSOSession)
+            .filter(
+                SSOSession.id == session_id,
+                SSOSession.is_active == True,
+            )
+            .first()
+        )
+
+        if not session:
+            return None
+
+        if check_expiration and session.expires_at < datetime.utcnow():
+            logger.info(f"Session {session.id} has expired")
+            self.terminate_session(session.id)
+            return None
+
+        # Update last activity
+        session.last_activity = datetime.utcnow()
+        self.db.commit()
+
+        return session
+
     def get_user_sessions(
         self,
         user: User,

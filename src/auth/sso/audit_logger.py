@@ -38,7 +38,7 @@ class SSOAuditLogger:
         idp_response_data: Optional[Dict[str, Any]] = None,
         error_code: Optional[str] = None,
         error_details: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        event_metadata: Optional[Dict[str, Any]] = None,
     ) -> SSOAuditLog:
         """Log an SSO event.
 
@@ -75,7 +75,7 @@ class SSOAuditLogger:
             idp_response_data=idp_response_data,
             error_code=error_code,
             error_details=error_details,
-            metadata=metadata,
+            event_metadata=event_metadata,
         )
 
         self.db.add(audit_log)
@@ -124,7 +124,7 @@ class SSOAuditLogger:
             ip_address=ip_address,
             user_agent=user_agent,
             device_id=device_id,
-            metadata=metadata,
+            event_metadata=event_metadata,
         )
 
     def log_login_failure(
@@ -223,7 +223,7 @@ class SSOAuditLogger:
             user_id=user.id,
             ip_address=ip_address,
             user_agent=user_agent,
-            metadata={"mfa_method": mfa_method},
+            event_metadata={"mfa_method": mfa_method},
         )
 
     def log_mfa_success(
@@ -254,7 +254,7 @@ class SSOAuditLogger:
             user_id=user.id,
             ip_address=ip_address,
             user_agent=user_agent,
-            metadata={"mfa_method": mfa_method},
+            event_metadata={"mfa_method": mfa_method},
         )
 
     def log_mfa_failure(
@@ -288,7 +288,7 @@ class SSOAuditLogger:
             ip_address=ip_address,
             user_agent=user_agent,
             error_details=reason,
-            metadata={"mfa_method": mfa_method},
+            event_metadata={"mfa_method": mfa_method},
         )
 
     def log_session_terminated(
@@ -315,7 +315,7 @@ class SSOAuditLogger:
             event_status="success",
             event_message=f"Session {session_id} terminated for {user.email}: {reason}",
             user_id=user.id,
-            metadata={"session_id": session_id, "reason": reason},
+            event_metadata={"session_id": session_id, "reason": reason},
         )
 
     def get_user_audit_logs(

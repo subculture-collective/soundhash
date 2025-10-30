@@ -243,6 +243,10 @@ class MFAService:
         if hashed in device.backup_codes:
             # Remove the used code
             device.backup_codes.remove(hashed)
+            
+            # Mark the JSON field as modified so SQLAlchemy tracks the change
+            from sqlalchemy.orm import attributes
+            attributes.flag_modified(device, "backup_codes")
 
             # Update usage tracking
             device.last_used_at = datetime.utcnow()

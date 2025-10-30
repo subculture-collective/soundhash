@@ -58,7 +58,7 @@ class SSOProviderBase(BaseModel):
     role_mappings: Optional[Dict[str, str]] = None
 
     # Metadata
-    metadata: Optional[Dict[str, Any]] = None
+    config_metadata: Optional[Dict[str, Any]] = None
 
 
 class SSOProviderCreate(SSOProviderBase):
@@ -115,7 +115,7 @@ class SSOProviderUpdate(BaseModel):
     role_mappings: Optional[Dict[str, str]] = None
 
     # Metadata
-    metadata: Optional[Dict[str, Any]] = None
+    config_metadata: Optional[Dict[str, Any]] = None
 
 
 class SSOProviderResponse(SSOProviderBase):
@@ -204,7 +204,7 @@ class SSOAuditLogResponse(BaseModel):
     device_id: Optional[str] = None
     error_code: Optional[str] = None
     error_details: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    event_metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     class Config:

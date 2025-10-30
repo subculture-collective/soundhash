@@ -70,7 +70,7 @@ def upgrade() -> None:
         sa.Column("enable_role_mapping", sa.Boolean(), nullable=False, server_default="true"),
         sa.Column("role_mappings", sa.JSON(), nullable=True),
         # Metadata
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("config_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
         sa.Column(
             "updated_at",
@@ -135,7 +135,7 @@ def upgrade() -> None:
         sa.Column("idp_response_data", sa.JSON(), nullable=True),
         sa.Column("error_code", sa.String(100), nullable=True),
         sa.Column("error_details", sa.Text(), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("event_metadata", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"]),

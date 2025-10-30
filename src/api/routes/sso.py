@@ -121,7 +121,7 @@ async def create_sso_provider(
         default_role=provider_data.default_role,
         enable_role_mapping=provider_data.enable_role_mapping,
         role_mappings=provider_data.role_mappings,
-        metadata=provider_data.metadata,
+        config_metadata=provider_data.config_metadata,
         created_by=current_user.id,
     )
 
