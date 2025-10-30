@@ -150,7 +150,7 @@ class DataExportService:
                 resource_type="data_export",
                 resource_id=str(request_id),
                 status="success",
-                extra_metadata={"file_size": export_request.file_size_bytes},
+                metadata={"file_size": export_request.file_size_bytes},
                 session=session,
             )
 

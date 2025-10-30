@@ -81,7 +81,7 @@ class DataDeletionService:
                 resource_id=str(deletion_request.id),
                 ip_address=ip_address,
                 status="success",
-                extra_metadata={"deletion_type": deletion_type},
+                metadata={"deletion_type": deletion_type},
                 session=session,
             )
 

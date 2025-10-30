@@ -76,7 +76,7 @@ class AuditLogger:
                 new_values=new_values,
                 status=status,
                 error_message=error_message,
-                metadata=metadata,
+                extra_metadata=metadata,
                 created_at=datetime.utcnow(),
             )
             session.add(audit_entry)

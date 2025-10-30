@@ -75,7 +75,7 @@ class ConsentManager:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 status="success",
-                extra_metadata={
+                metadata={
                     "consent_type": consent_type,
                     "consent_version": consent_version,
                     "given": given,
