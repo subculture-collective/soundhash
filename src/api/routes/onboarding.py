@@ -323,21 +323,20 @@ async def get_onboarding_stats(
     completion_rate = (completed_users / total_users * 100) if total_users > 0 else 0
 
     # Average completion time
-    completed_progress = (
-        db.query(OnboardingProgress)
+    avg_seconds = (
+        db.query(
+            func.avg(
+                func.extract('epoch', OnboardingProgress.completed_at) - func.extract('epoch', OnboardingProgress.started_at)
+            )
+        )
         .filter(
             OnboardingProgress.is_completed.is_(True),
             OnboardingProgress.completed_at.isnot(None),
+            OnboardingProgress.started_at.isnot(None),
         )
-        .all()
+        .scalar()
     )
-
-    avg_time = None
-    if completed_progress:
-        total_seconds = sum(
-            [(p.completed_at - p.started_at).total_seconds() for p in completed_progress if p.completed_at]
-        )
-        avg_time = total_seconds / len(completed_progress) / 60  # Convert to minutes
+    avg_time = avg_seconds / 60 if avg_seconds is not None else None
 
     # Step completion rates
     step_fields = [

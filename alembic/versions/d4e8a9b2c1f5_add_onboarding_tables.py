@@ -7,7 +7,6 @@ Create Date: 2025-10-30 18:30:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'd4e8a9b2c1f5'
@@ -38,7 +37,7 @@ def upgrade():
         sa.Column('started_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
         sa.Column('completed_at', sa.DateTime(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.text('now()')),
+        sa.Column('updated_at', sa.DateTime(), nullable=True, server_onupdate=sa.text('now()')),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('user_id')
@@ -81,7 +80,7 @@ def upgrade():
         sa.Column('beta_features_enabled', sa.Boolean(), nullable=False, server_default='false'),
         sa.Column('preferences_data', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
-        sa.Column('updated_at', sa.DateTime(), nullable=True, onupdate=sa.text('now()')),
+        sa.Column('updated_at', sa.DateTime(), nullable=True, server_onupdate=sa.text('now()')),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('user_id')

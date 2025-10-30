@@ -11,7 +11,7 @@ interface IntegrationStepProps {
   onNext: () => void
 }
 
-export default function IntegrationStep({}: IntegrationStepProps) {
+export default function IntegrationStep(_props: IntegrationStepProps) {
   const [selectedSdk, setSelectedSdk] = useState<string | null>(null)
 
   const sdks = [

@@ -12,7 +12,7 @@ interface ApiKeyStepProps {
   onNext: () => void
 }
 
-export default function ApiKeyStep({}: ApiKeyStepProps) {
+export default function ApiKeyStep(_props: ApiKeyStepProps) {
   const [apiKey, setApiKey] = useState<string>('')
   const [showKey, setShowKey] = useState(false)
   const [copied, setCopied] = useState(false)

@@ -72,8 +72,10 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
     })
 
     return () => {
-      element.style.position = ''
-      element.style.zIndex = ''
+      if (element) {
+        element.style.position = ''
+        element.style.zIndex = ''
+      }
     }
   }, [currentStep, steps])
 
