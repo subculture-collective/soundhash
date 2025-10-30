@@ -59,7 +59,7 @@ curl -X POST https://api.soundhash.io/api/v1/sso/providers \
     "is_enabled": true,
     "oauth_client_id": "YOUR_CLIENT_ID",
     "oauth_client_secret": "YOUR_CLIENT_SECRET",
-    "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/1",
+    "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/{provider_id}",
     "enable_jit_provisioning": true,
     "default_role": "member",
     "enable_role_mapping": true,
@@ -98,7 +98,7 @@ https://api.soundhash.io/api/v1/sso/login/{provider_id}
 
 1. Create a new SAML 2.0 app in Okta
 2. Configure SAML settings:
-   - Single Sign-On URL: `https://api.soundhash.io/api/v1/sso/callback/saml/1`
+   - Single Sign-On URL: `https://api.soundhash.io/api/v1/sso/callback/saml/{provider_id}`
    - Audience URI: `https://api.soundhash.io`
    - Name ID format: `EmailAddress`
 3. Configure attribute statements:
@@ -120,7 +120,7 @@ https://api.soundhash.io/api/v1/sso/login/{provider_id}
      "provider_type": "oauth2_google",
      "oauth_client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
      "oauth_client_secret": "YOUR_CLIENT_SECRET",
-     "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/1"
+     "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/{provider_id}"
    }
    ```
 
@@ -135,7 +135,7 @@ https://api.soundhash.io/api/v1/sso/login/{provider_id}
      "provider_type": "oauth2_microsoft",
      "oauth_client_id": "YOUR_CLIENT_ID",
      "oauth_client_secret": "YOUR_CLIENT_SECRET",
-     "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/1"
+     "oauth_redirect_uri": "https://api.soundhash.io/api/v1/sso/callback/oauth/{provider_id}"
    }
    ```
 
