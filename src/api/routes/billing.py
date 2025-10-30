@@ -75,7 +75,7 @@ async def get_plans():
                 price_monthly=plan.price_monthly,
                 price_yearly=plan.price_yearly,
                 features=plan.features,
-                limits=plan.limits
+                limits=plan.limits,
             ).dict()
             for plan in PLANS.values()
         ]
@@ -84,8 +84,7 @@ async def get_plans():
 
 @router.post("/checkout")
 async def create_checkout_session(
-    request: CheckoutRequest,
-    current_user: User = Depends(get_current_user)
+    request: CheckoutRequest, current_user: User = Depends(get_current_user)
 ):
     """
     Create a Stripe Checkout session for subscription.
@@ -104,24 +103,25 @@ async def create_checkout_session(
 
         # Check if user already has a subscription
         session = db_manager.get_session()
-        existing_subscription = session.query(Subscription).filter_by(
-            user_id=current_user.id
-        ).first()
+        existing_subscription = (
+            session.query(Subscription).filter_by(user_id=current_user.id).first()
+        )
 
         if existing_subscription and existing_subscription.status in ["active", "trialing"]:
             session.close()
             raise HTTPException(
                 status_code=400,
-                detail="User already has an active subscription. Please cancel it first or use the billing portal to upgrade."
+                detail=(
+                    "User already has an active subscription. "
+                    "Please cancel it first or use the billing portal to upgrade."
+                ),
             )
         session.close()
 
         # Create or get Stripe customer
         if not current_user.stripe_customer_id:
             customer_id = stripe_service.create_customer(
-                email=current_user.email,
-                name=current_user.full_name,
-                user_id=current_user.id
+                email=current_user.email, name=current_user.full_name, user_id=current_user.id
             )
 
             # Update user with Stripe customer ID
@@ -138,7 +138,7 @@ async def create_checkout_session(
             customer_id=customer_id,
             plan=plan,
             billing_period=request.billing_period,
-            user_id=current_user.id
+            user_id=current_user.id,
         )
 
         return {"checkout_url": checkout_url}
@@ -151,9 +151,7 @@ async def create_checkout_session(
 
 
 @router.post("/portal")
-async def create_portal_session(
-    current_user: User = Depends(get_current_user)
-):
+async def create_portal_session(current_user: User = Depends(get_current_user)):
     """
     Create a Stripe Billing Portal session.
 
@@ -168,8 +166,7 @@ async def create_portal_session(
     try:
         if not current_user.stripe_customer_id:
             raise HTTPException(
-                status_code=400,
-                detail="No subscription found. Please subscribe to a plan first."
+                status_code=400, detail="No subscription found. Please subscribe to a plan first."
             )
 
         portal_url = stripe_service.create_billing_portal_session(
@@ -186,9 +183,7 @@ async def create_portal_session(
 
 
 @router.get("/subscription")
-async def get_subscription(
-    current_user: User = Depends(get_current_user)
-):
+async def get_subscription(current_user: User = Depends(get_current_user)):
     """
     Get current user's subscription details.
 
@@ -200,9 +195,7 @@ async def get_subscription(
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(
-            user_id=current_user.id
-        ).first()
+        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
         if not subscription:
             session.close()
@@ -211,15 +204,19 @@ async def get_subscription(
                 "status": "active",
                 "current_period_end": None,
                 "cancel_at_period_end": False,
-                "trial_end": None
+                "trial_end": None,
             }
 
         response = SubscriptionResponse(
             plan=subscription.plan_tier,
             status=subscription.status,
-            current_period_end=subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+            current_period_end=(
+                subscription.current_period_end.isoformat()
+                if subscription.current_period_end
+                else None
+            ),
             cancel_at_period_end=subscription.cancel_at_period_end,
-            trial_end=subscription.trial_end.isoformat() if subscription.trial_end else None
+            trial_end=subscription.trial_end.isoformat() if subscription.trial_end else None,
         )
 
         session.close()
@@ -232,8 +229,7 @@ async def get_subscription(
 
 @router.post("/subscription/cancel")
 async def cancel_subscription(
-    at_period_end: bool = True,
-    current_user: User = Depends(get_current_user)
+    at_period_end: bool = True, current_user: User = Depends(get_current_user)
 ):
     """
     Cancel user's subscription.
@@ -247,30 +243,24 @@ async def cancel_subscription(
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(
-            user_id=current_user.id
-        ).first()
+        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
         if not subscription or not subscription.stripe_subscription_id:
             session.close()
-            raise HTTPException(
-                status_code=400,
-                detail="No active subscription found"
-            )
+            raise HTTPException(status_code=400, detail="No active subscription found")
 
         if subscription.status not in ["active", "trialing"]:
             session.close()
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot cancel subscription with status: {subscription.status}"
+                detail=f"Cannot cancel subscription with status: {subscription.status}",
             )
 
         session.close()
 
         # Cancel in Stripe
         stripe_service.cancel_subscription(
-            subscription_id=subscription.stripe_subscription_id,
-            at_period_end=at_period_end
+            subscription_id=subscription.stripe_subscription_id, at_period_end=at_period_end
         )
 
         message = (
@@ -289,9 +279,7 @@ async def cancel_subscription(
 
 
 @router.get("/usage")
-async def get_usage(
-    current_user: User = Depends(get_current_user)
-):
+async def get_usage(current_user: User = Depends(get_current_user)):
     """
     Get current billing period usage.
 
@@ -303,9 +291,7 @@ async def get_usage(
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(
-            user_id=current_user.id
-        ).first()
+        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
         if not subscription:
             # Free tier user
@@ -317,17 +303,21 @@ async def get_usage(
                     "api_calls": 0,
                     "videos_processed": 0,
                     "matches_performed": 0,
-                    "storage_used_mb": 0
+                    "storage_used_mb": 0,
                 },
-                limits=plan.features
+                limits=plan.features,
             ).dict()
 
         # Get current period usage
-        usage_record = session.query(UsageRecord).filter(
-            UsageRecord.subscription_id == subscription.id,
-            UsageRecord.period_start == subscription.current_period_start,
-            UsageRecord.period_end == subscription.current_period_end
-        ).first()
+        usage_record = (
+            session.query(UsageRecord)
+            .filter(
+                UsageRecord.subscription_id == subscription.id,
+                UsageRecord.period_start == subscription.current_period_start,
+                UsageRecord.period_end == subscription.current_period_end,
+            )
+            .first()
+        )
 
         plan = get_plan(PlanTier(subscription.plan_tier))
 
@@ -336,23 +326,31 @@ async def get_usage(
                 "api_calls": 0,
                 "videos_processed": 0,
                 "matches_performed": 0,
-                "storage_used_mb": 0
+                "storage_used_mb": 0,
             }
         else:
             usage = {
                 "api_calls": usage_record.api_calls,
                 "videos_processed": usage_record.videos_processed,
                 "matches_performed": usage_record.matches_performed,
-                "storage_used_mb": usage_record.storage_used_mb
+                "storage_used_mb": usage_record.storage_used_mb,
             }
 
         response = UsageResponse(
             plan=subscription.plan_tier,
             billing_period=subscription.billing_period,
-            period_start=subscription.current_period_start.isoformat() if subscription.current_period_start else None,
-            period_end=subscription.current_period_end.isoformat() if subscription.current_period_end else None,
+            period_start=(
+                subscription.current_period_start.isoformat()
+                if subscription.current_period_start
+                else None
+            ),
+            period_end=(
+                subscription.current_period_end.isoformat()
+                if subscription.current_period_end
+                else None
+            ),
             usage=usage,
-            limits=plan.features
+            limits=plan.features,
         )
 
         session.close()

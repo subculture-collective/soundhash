@@ -50,9 +50,9 @@ class WebhookHandler:
             session = db_manager.get_session()
 
             # Get user by Stripe customer ID
-            user = session.query(User).filter_by(
-                stripe_customer_id=subscription["customer"]
-            ).first()
+            user = (
+                session.query(User).filter_by(stripe_customer_id=subscription["customer"]).first()
+            )
 
             if not user:
                 logger.error(f"User not found for Stripe customer {subscription['customer']}")
@@ -66,12 +66,20 @@ class WebhookHandler:
                 stripe_customer_id=subscription["customer"],
                 stripe_price_id=subscription["items"]["data"][0]["price"]["id"],
                 plan_tier=subscription.get("metadata", {}).get("plan_tier", "pro"),
-                billing_period="yearly" if subscription["items"]["data"][0]["price"]["recurring"]["interval"] == "year" else "monthly",
+                billing_period=(
+                    "yearly"
+                    if subscription["items"]["data"][0]["price"]["recurring"]["interval"] == "year"
+                    else "monthly"
+                ),
                 status=subscription["status"],
-                trial_end=datetime.fromtimestamp(subscription["trial_end"]) if subscription.get("trial_end") else None,
+                trial_end=(
+                    datetime.fromtimestamp(subscription["trial_end"])
+                    if subscription.get("trial_end")
+                    else None
+                ),
                 current_period_start=datetime.fromtimestamp(subscription["current_period_start"]),
                 current_period_end=datetime.fromtimestamp(subscription["current_period_end"]),
-                cancel_at_period_end=subscription.get("cancel_at_period_end", False)
+                cancel_at_period_end=subscription.get("cancel_at_period_end", False),
             )
 
             session.add(db_subscription)
@@ -91,9 +99,11 @@ class WebhookHandler:
         try:
             session = db_manager.get_session()
 
-            db_subscription = session.query(Subscription).filter_by(
-                stripe_subscription_id=subscription["id"]
-            ).first()
+            db_subscription = (
+                session.query(Subscription)
+                .filter_by(stripe_subscription_id=subscription["id"])
+                .first()
+            )
 
             if not db_subscription:
                 logger.error(f"Subscription not found for Stripe subscription {subscription['id']}")
@@ -102,8 +112,12 @@ class WebhookHandler:
 
             # Update subscription details
             db_subscription.status = subscription["status"]
-            db_subscription.current_period_start = datetime.fromtimestamp(subscription["current_period_start"])
-            db_subscription.current_period_end = datetime.fromtimestamp(subscription["current_period_end"])
+            db_subscription.current_period_start = datetime.fromtimestamp(
+                subscription["current_period_start"]
+            )
+            db_subscription.current_period_end = datetime.fromtimestamp(
+                subscription["current_period_end"]
+            )
             db_subscription.cancel_at_period_end = subscription.get("cancel_at_period_end", False)
 
             if subscription.get("canceled_at"):
@@ -129,9 +143,11 @@ class WebhookHandler:
         try:
             session = db_manager.get_session()
 
-            db_subscription = session.query(Subscription).filter_by(
-                stripe_subscription_id=subscription["id"]
-            ).first()
+            db_subscription = (
+                session.query(Subscription)
+                .filter_by(stripe_subscription_id=subscription["id"])
+                .first()
+            )
 
             if not db_subscription:
                 logger.error(f"Subscription not found for Stripe subscription {subscription['id']}")
@@ -140,7 +156,9 @@ class WebhookHandler:
 
             # Update subscription status
             db_subscription.status = "cancelled"
-            db_subscription.cancelled_at = datetime.fromtimestamp(subscription.get("canceled_at", int(datetime.utcnow().timestamp())))
+            db_subscription.cancelled_at = datetime.fromtimestamp(
+                subscription.get("canceled_at", int(datetime.utcnow().timestamp()))
+            )
 
             session.commit()
             session.close()
@@ -159,9 +177,7 @@ class WebhookHandler:
             session = db_manager.get_session()
 
             # Get user by Stripe customer ID
-            user = session.query(User).filter_by(
-                stripe_customer_id=invoice["customer"]
-            ).first()
+            user = session.query(User).filter_by(stripe_customer_id=invoice["customer"]).first()
 
             if not user:
                 logger.error(f"User not found for Stripe customer {invoice['customer']}")
@@ -171,9 +187,11 @@ class WebhookHandler:
             # Get subscription if exists
             subscription_id = None
             if invoice.get("subscription"):
-                db_subscription = session.query(Subscription).filter_by(
-                    stripe_subscription_id=invoice["subscription"]
-                ).first()
+                db_subscription = (
+                    session.query(Subscription)
+                    .filter_by(stripe_subscription_id=invoice["subscription"])
+                    .first()
+                )
                 if db_subscription:
                     subscription_id = db_subscription.id
 
@@ -192,7 +210,9 @@ class WebhookHandler:
                 invoice_pdf=invoice.get("invoice_pdf"),
                 hosted_invoice_url=invoice.get("hosted_invoice_url"),
                 created=datetime.fromtimestamp(invoice["created"]),
-                due_date=datetime.fromtimestamp(invoice["due_date"]) if invoice.get("due_date") else None
+                due_date=(
+                    datetime.fromtimestamp(invoice["due_date"]) if invoice.get("due_date") else None
+                ),
             )
 
             session.add(db_invoice)
@@ -212,9 +232,7 @@ class WebhookHandler:
         try:
             session = db_manager.get_session()
 
-            db_invoice = session.query(Invoice).filter_by(
-                stripe_invoice_id=invoice["id"]
-            ).first()
+            db_invoice = session.query(Invoice).filter_by(stripe_invoice_id=invoice["id"]).first()
 
             if not db_invoice:
                 # If invoice doesn't exist, create it
@@ -243,9 +261,7 @@ class WebhookHandler:
         try:
             session = db_manager.get_session()
 
-            db_invoice = session.query(Invoice).filter_by(
-                stripe_invoice_id=invoice["id"]
-            ).first()
+            db_invoice = session.query(Invoice).filter_by(stripe_invoice_id=invoice["id"]).first()
 
             if not db_invoice:
                 logger.error(f"Invoice not found for Stripe invoice {invoice['id']}")
@@ -257,7 +273,11 @@ class WebhookHandler:
             db_invoice.paid = True
             db_invoice.amount_paid = invoice.get("amount_paid", 0)
             db_invoice.amount_remaining = invoice.get("amount_remaining", 0)
-            db_invoice.paid_at = datetime.fromtimestamp(invoice.get("status_transitions", {}).get("paid_at", int(datetime.utcnow().timestamp())))
+            db_invoice.paid_at = datetime.fromtimestamp(
+                invoice.get("status_transitions", {}).get(
+                    "paid_at", int(datetime.utcnow().timestamp())
+                )
+            )
 
             session.commit()
             session.close()
@@ -278,9 +298,7 @@ class WebhookHandler:
         try:
             session = db_manager.get_session()
 
-            db_invoice = session.query(Invoice).filter_by(
-                stripe_invoice_id=invoice["id"]
-            ).first()
+            db_invoice = session.query(Invoice).filter_by(stripe_invoice_id=invoice["id"]).first()
 
             if db_invoice:
                 db_invoice.status = invoice.get("status")
@@ -302,7 +320,9 @@ class WebhookHandler:
     async def handle_checkout_completed(self, session_data: Dict[str, Any]):
         """Handle successful checkout session completion."""
         try:
-            logger.info(f"Checkout session {session_data['id']} completed for customer {session_data.get('customer')}")
+            logger.info(
+                f"Checkout session {session_data['id']} completed for customer {session_data.get('customer')}"
+            )
 
             # The actual subscription creation will be handled by customer.subscription.created event
             # This is just for logging and potential additional actions

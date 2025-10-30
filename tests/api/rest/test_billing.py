@@ -1,15 +1,11 @@
 """Tests for billing endpoints."""
 
-import json
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
-import stripe
 from fastapi.testclient import TestClient
 
-from src.billing.plans import PLANS, PlanTier
-from src.database.models import Invoice, Subscription, User
+from src.database.models import Subscription, User
 
 
 class TestBillingPlans:
@@ -59,23 +55,21 @@ class TestCheckoutSession:
     @patch("src.billing.stripe_service.stripe.checkout.Session.create")
     @patch("src.billing.stripe_service.stripe.Customer.create")
     def test_create_checkout_session_new_customer(
-        self, mock_customer_create, mock_session_create, client: TestClient, auth_headers: dict, test_db
+        self,
+        mock_customer_create,
+        mock_session_create,
+        client: TestClient,
+        auth_headers: dict,
+        test_db,
     ):
         """Test creating checkout session for new customer."""
         # Mock Stripe responses
         mock_customer_create.return_value = MagicMock(id="cus_test123")
         mock_session_create.return_value = MagicMock(url="https://checkout.stripe.com/test")
 
-        request_data = {
-            "plan_tier": "pro",
-            "billing_period": "monthly"
-        }
+        request_data = {"plan_tier": "pro", "billing_period": "monthly"}
 
-        response = client.post(
-            "/api/v1/billing/checkout",
-            json=request_data,
-            headers=auth_headers
-        )
+        response = client.post("/api/v1/billing/checkout", json=request_data, headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -101,16 +95,9 @@ class TestCheckoutSession:
         # Mock Stripe response
         mock_session_create.return_value = MagicMock(url="https://checkout.stripe.com/test")
 
-        request_data = {
-            "plan_tier": "pro",
-            "billing_period": "yearly"
-        }
+        request_data = {"plan_tier": "pro", "billing_period": "yearly"}
 
-        response = client.post(
-            "/api/v1/billing/checkout",
-            json=request_data,
-            headers=auth_headers
-        )
+        response = client.post("/api/v1/billing/checkout", json=request_data, headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -122,16 +109,9 @@ class TestCheckoutSession:
 
     def test_checkout_invalid_plan(self, client: TestClient, auth_headers: dict):
         """Test checkout with invalid plan tier."""
-        request_data = {
-            "plan_tier": "invalid_plan",
-            "billing_period": "monthly"
-        }
+        request_data = {"plan_tier": "invalid_plan", "billing_period": "monthly"}
 
-        response = client.post(
-            "/api/v1/billing/checkout",
-            json=request_data,
-            headers=auth_headers
-        )
+        response = client.post("/api/v1/billing/checkout", json=request_data, headers=auth_headers)
 
         assert response.status_code == 422  # Validation error
 
@@ -148,31 +128,21 @@ class TestCheckoutSession:
             billing_period="monthly",
             status="active",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
 
-        request_data = {
-            "plan_tier": "enterprise",
-            "billing_period": "monthly"
-        }
+        request_data = {"plan_tier": "enterprise", "billing_period": "monthly"}
 
-        response = client.post(
-            "/api/v1/billing/checkout",
-            json=request_data,
-            headers=auth_headers
-        )
+        response = client.post("/api/v1/billing/checkout", json=request_data, headers=auth_headers)
 
         assert response.status_code == 400
         assert "already has an active subscription" in response.json()["detail"]
 
     def test_checkout_requires_authentication(self, client: TestClient):
         """Test that checkout requires authentication."""
-        request_data = {
-            "plan_tier": "pro",
-            "billing_period": "monthly"
-        }
+        request_data = {"plan_tier": "pro", "billing_period": "monthly"}
 
         response = client.post("/api/v1/billing/checkout", json=request_data)
         assert response.status_code == 401
@@ -243,7 +213,7 @@ class TestSubscriptionManagement:
             status="active",
             current_period_start=datetime.utcnow(),
             current_period_end=datetime.utcnow() + timedelta(days=30),
-            cancel_at_period_end=False
+            cancel_at_period_end=False,
         )
         test_db.add(subscription)
         test_db.commit()
@@ -271,7 +241,7 @@ class TestSubscriptionManagement:
             billing_period="monthly",
             status="active",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -280,8 +250,7 @@ class TestSubscriptionManagement:
         mock_subscription_modify.return_value = MagicMock()
 
         response = client.post(
-            "/api/v1/billing/subscription/cancel?at_period_end=true",
-            headers=auth_headers
+            "/api/v1/billing/subscription/cancel?at_period_end=true", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -304,7 +273,7 @@ class TestSubscriptionManagement:
             billing_period="monthly",
             status="active",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -313,8 +282,7 @@ class TestSubscriptionManagement:
         mock_subscription_delete.return_value = MagicMock()
 
         response = client.post(
-            "/api/v1/billing/subscription/cancel?at_period_end=false",
-            headers=auth_headers
+            "/api/v1/billing/subscription/cancel?at_period_end=false", headers=auth_headers
         )
 
         assert response.status_code == 200
@@ -323,14 +291,9 @@ class TestSubscriptionManagement:
 
         mock_subscription_delete.assert_called_once()
 
-    def test_cancel_nonexistent_subscription(
-        self, client: TestClient, auth_headers: dict
-    ):
+    def test_cancel_nonexistent_subscription(self, client: TestClient, auth_headers: dict):
         """Test cancelling when no subscription exists."""
-        response = client.post(
-            "/api/v1/billing/subscription/cancel",
-            headers=auth_headers
-        )
+        response = client.post("/api/v1/billing/subscription/cancel", headers=auth_headers)
 
         assert response.status_code == 400
         assert "No active subscription found" in response.json()["detail"]
@@ -364,7 +327,7 @@ class TestUsageTracking:
             billing_period="monthly",
             status="active",
             current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30)
+            current_period_end=datetime.utcnow() + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -384,18 +347,17 @@ class TestWebhookHandling:
     """Tests for webhook handling."""
 
     @patch("src.billing.stripe_service.stripe.Webhook.construct_event")
-    def test_webhook_subscription_created(
-        self, mock_construct_event, client: TestClient, test_db
-    ):
+    def test_webhook_subscription_created(self, mock_construct_event, client: TestClient, test_db):
         """Test webhook for subscription created event."""
         # Create a test user with Stripe customer ID
         from src.api.auth import get_password_hash
+
         user = User(
             username="webhook_user",
             email="webhook@example.com",
             hashed_password=get_password_hash("Password123!"),
             stripe_customer_id="cus_webhook123",
-            is_active=True
+            is_active=True,
         )
         test_db.add(user)
         test_db.commit()
@@ -409,27 +371,18 @@ class TestWebhookHandling:
             "customer": "cus_webhook123",
             "status": "active",
             "items": {
-                "data": [{
-                    "price": {
-                        "id": "price_pro_monthly",
-                        "recurring": {"interval": "month"}
-                    }
-                }]
+                "data": [{"price": {"id": "price_pro_monthly", "recurring": {"interval": "month"}}}]
             },
             "metadata": {"plan_tier": "pro"},
             "current_period_start": int(datetime.utcnow().timestamp()),
             "current_period_end": int((datetime.utcnow() + timedelta(days=30)).timestamp()),
-            "trial_end": None
+            "trial_end": None,
         }
         mock_construct_event.return_value = mock_event
 
         # Send webhook
         headers = {"stripe-signature": "test_signature"}
-        response = client.post(
-            "/api/v1/billing/webhook",
-            content=b"test_payload",
-            headers=headers
-        )
+        response = client.post("/api/v1/billing/webhook", content=b"test_payload", headers=headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -448,10 +401,6 @@ class TestWebhookHandling:
         mock_construct_event.side_effect = ValueError("Invalid signature")
 
         headers = {"stripe-signature": "invalid_signature"}
-        response = client.post(
-            "/api/v1/billing/webhook",
-            content=b"test_payload",
-            headers=headers
-        )
+        response = client.post("/api/v1/billing/webhook", content=b"test_payload", headers=headers)
 
         assert response.status_code == 400

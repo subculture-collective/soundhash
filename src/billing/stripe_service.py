@@ -20,7 +20,9 @@ class StripeService:
         stripe.api_key = Config.STRIPE_SECRET_KEY
         self.webhook_secret = Config.STRIPE_WEBHOOK_SECRET
 
-    def create_customer(self, email: str, name: Optional[str] = None, user_id: Optional[int] = None) -> str:
+    def create_customer(
+        self, email: str, name: Optional[str] = None, user_id: Optional[int] = None
+    ) -> str:
         """
         Create a Stripe customer.
 
@@ -37,11 +39,7 @@ class StripeService:
             if user_id is not None:
                 metadata["user_id"] = str(user_id)
 
-            customer = stripe.Customer.create(
-                email=email,
-                name=name,
-                metadata=metadata
-            )
+            customer = stripe.Customer.create(email=email, name=name, metadata=metadata)
             logger.info(f"Created Stripe customer {customer.id} for email {email}")
             return customer.id
         except stripe.error.StripeError as e:
@@ -56,7 +54,7 @@ class StripeService:
         user_id: Optional[int] = None,
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
-        trial_period_days: Optional[int] = None
+        trial_period_days: Optional[int] = None,
     ) -> str:
         """
         Create a Stripe Checkout session.
@@ -89,7 +87,9 @@ class StripeService:
 
             # Set default URLs if not provided
             if not success_url:
-                success_url = f"{Config.FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+                success_url = (
+                    f"{Config.FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+                )
             if not cancel_url:
                 cancel_url = f"{Config.FRONTEND_URL}/pricing"
 
@@ -100,18 +100,21 @@ class StripeService:
             session = stripe.checkout.Session.create(
                 customer=customer_id,
                 payment_method_types=["card"],
-                line_items=[{
-                    "price": price_id,
-                    "quantity": 1,
-                }],
+                line_items=[
+                    {
+                        "price": price_id,
+                        "quantity": 1,
+                    }
+                ],
                 mode="subscription",
                 success_url=success_url,
                 cancel_url=cancel_url,
-                subscription_data={
-                    "trial_period_days": trial_period_days,
-                    "metadata": metadata
-                } if trial_period_days else {"metadata": metadata},
-                metadata=metadata
+                subscription_data=(
+                    {"trial_period_days": trial_period_days, "metadata": metadata}
+                    if trial_period_days
+                    else {"metadata": metadata}
+                ),
+                metadata=metadata,
             )
 
             logger.info(f"Created checkout session {session.id} for customer {customer_id}")
@@ -120,7 +123,9 @@ class StripeService:
             logger.error(f"Failed to create checkout session: {e}")
             raise
 
-    def create_billing_portal_session(self, customer_id: str, return_url: Optional[str] = None) -> str:
+    def create_billing_portal_session(
+        self, customer_id: str, return_url: Optional[str] = None
+    ) -> str:
         """
         Create a Stripe Billing Portal session.
 
@@ -136,8 +141,7 @@ class StripeService:
                 return_url = f"{Config.FRONTEND_URL}/billing"
 
             session = stripe.billing_portal.Session.create(
-                customer=customer_id,
-                return_url=return_url
+                customer=customer_id, return_url=return_url
             )
 
             logger.info(f"Created billing portal session for customer {customer_id}")
@@ -160,10 +164,11 @@ class StripeService:
         try:
             if at_period_end:
                 subscription = stripe.Subscription.modify(
-                    subscription_id,
-                    cancel_at_period_end=True
+                    subscription_id, cancel_at_period_end=True
                 )
-                logger.info(f"Scheduled cancellation for subscription {subscription_id} at period end")
+                logger.info(
+                    f"Scheduled cancellation for subscription {subscription_id} at period end"
+                )
             else:
                 subscription = stripe.Subscription.delete(subscription_id)
                 logger.info(f"Immediately cancelled subscription {subscription_id}")
@@ -189,11 +194,13 @@ class StripeService:
 
             updated_subscription = stripe.Subscription.modify(
                 subscription_id,
-                items=[{
-                    "id": subscription["items"]["data"][0].id,
-                    "price": new_price_id,
-                }],
-                proration_behavior="always_invoice"
+                items=[
+                    {
+                        "id": subscription["items"]["data"][0].id,
+                        "price": new_price_id,
+                    }
+                ],
+                proration_behavior="always_invoice",
             )
 
             logger.info(f"Updated subscription {subscription_id} to price {new_price_id}")
@@ -207,7 +214,7 @@ class StripeService:
         subscription_item_id: str,
         quantity: int,
         timestamp: Optional[int] = None,
-        action: str = "increment"
+        action: str = "increment",
     ):
         """
         Record metered usage for subscription.
@@ -226,10 +233,7 @@ class StripeService:
                 timestamp = int(time.time())
 
             usage_record = stripe.SubscriptionItem.create_usage_record(
-                subscription_item_id,
-                quantity=quantity,
-                timestamp=timestamp,
-                action=action
+                subscription_item_id, quantity=quantity, timestamp=timestamp, action=action
             )
 
             logger.info(f"Recorded usage {quantity} for subscription item {subscription_item_id}")
@@ -253,9 +257,7 @@ class StripeService:
             ValueError: If signature verification fails
         """
         try:
-            event = stripe.Webhook.construct_event(
-                payload, signature, self.webhook_secret
-            )
+            event = stripe.Webhook.construct_event(payload, signature, self.webhook_secret)
             logger.info(f"Verified webhook event {event.id} of type {event.type}")
             return event
         except ValueError as e:

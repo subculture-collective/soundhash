@@ -67,9 +67,7 @@ class BillingClient:
 
     def get_usage(self):
         """Get current billing period usage."""
-        response = requests.get(
-            f"{self.base_url}/api/v1/billing/usage", headers=self.headers
-        )
+        response = requests.get(f"{self.base_url}/api/v1/billing/usage", headers=self.headers)
         response.raise_for_status()
         return response.json()
 
@@ -90,9 +88,7 @@ class BillingClient:
 
     def create_portal_session(self):
         """Create a billing portal session."""
-        response = requests.post(
-            f"{self.base_url}/api/v1/billing/portal", headers=self.headers
-        )
+        response = requests.post(f"{self.base_url}/api/v1/billing/portal", headers=self.headers)
         response.raise_for_status()
         return response.json()
 
