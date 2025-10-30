@@ -1,11 +1,10 @@
 """Tests for webhook repository."""
 
 import pytest
-from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.database.models import Base, User, Webhook, WebhookEvent, WebhookDelivery
+from src.database.models import Base, User
 from src.database.repositories import WebhookRepository
 
 
@@ -257,11 +256,9 @@ def test_mark_event_processed(webhook_repo):
     
     webhook_repo.mark_event_processed(event.id)
     
-    # Verify updated
-    from src.database.models import WebhookEvent
-    updated = webhook_repo.session.query(WebhookEvent).filter(
-        WebhookEvent.id == event.id
-    ).first()
+    # Verify updated by creating a new query
+    from src.database.models import WebhookEvent as WE
+    updated = webhook_repo.session.query(WE).filter(WE.id == event.id).first()
     assert updated.processed is True
     assert updated.processed_at is not None
 

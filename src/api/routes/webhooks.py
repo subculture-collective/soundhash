@@ -3,7 +3,6 @@
 import json
 import logging
 import time
-from typing import Any
 
 import aiohttp
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +12,6 @@ from src.api.dependencies import get_current_user, get_db
 from src.api.models.webhooks import (
     WebhookCreate,
     WebhookDeliveryResponse,
-    WebhookEventResponse,
     WebhookEventsListResponse,
     WebhookResponse,
     WebhookSecretResponse,
@@ -24,7 +22,6 @@ from src.api.models.webhooks import (
 )
 from src.database.models import User
 from src.database.repositories import WebhookRepository
-from src.webhooks.dispatcher import emit_webhook_event
 from src.webhooks.service import WebhookService
 
 router = APIRouter()

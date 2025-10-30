@@ -70,49 +70,52 @@ class WebhookDispatcher:
             resource_type: Optional resource type
             tenant_id: Optional tenant ID for filtering
         """
-        # Create event record
-        webhook_repo = get_webhook_repository()
+        # Create event record using context manager
+        from src.database.repositories import get_webhook_repo_session
+        
         try:
-            event = webhook_repo.create_webhook_event(
-                event_type=event_type,
-                event_data=event_data,
-                resource_id=resource_id,
-                resource_type=resource_type,
-                tenant_id=tenant_id,
-            )
+            with get_webhook_repo_session() as webhook_repo:
+                event = webhook_repo.create_webhook_event(
+                    event_type=event_type,
+                    event_data=event_data,
+                    resource_id=resource_id,
+                    resource_type=resource_type,
+                    tenant_id=tenant_id,
+                )
 
-            # Get active webhooks for this event
-            webhooks = webhook_repo.get_active_webhooks_for_event(event_type, tenant_id)
+                # Get active webhooks for this event
+                webhooks = webhook_repo.get_active_webhooks_for_event(event_type, tenant_id)
 
-            if not webhooks:
-                logger.info(f"No active webhooks for event {event_type}")
-                webhook_repo.mark_event_processed(event.id)
-                return
+                if not webhooks:
+                    logger.info(f"No active webhooks for event {event_type}")
+                    webhook_repo.mark_event_processed(event.id)
+                    return
 
-            # Build event payload
-            payload = self.service.build_event_payload(
-                event_type=event_type,
-                data=event_data,
-                resource_id=resource_id,
-                resource_type=resource_type,
-            )
+                # Build event payload
+                payload = self.service.build_event_payload(
+                    event_type=event_type,
+                    data=event_data,
+                    resource_id=resource_id,
+                    resource_type=resource_type,
+                )
 
-            # Dispatch to all webhooks
+                event_id = event.id
+
+            # Dispatch to all webhooks (outside the session context)
             tasks = []
             for webhook in webhooks:
-                task = self.deliver_to_webhook(webhook, event.id, payload)
+                task = self.deliver_to_webhook(webhook, event_id, payload)
                 tasks.append(task)
 
             # Wait for all deliveries
             await asyncio.gather(*tasks, return_exceptions=True)
 
             # Mark event as processed
-            webhook_repo.mark_event_processed(event.id)
+            with get_webhook_repo_session() as webhook_repo:
+                webhook_repo.mark_event_processed(event_id)
 
         except Exception as e:
             logger.error(f"Error dispatching event {event_type}: {e}")
-        finally:
-            webhook_repo.session.close()
 
     async def deliver_to_webhook(
         self,
@@ -129,7 +132,8 @@ class WebhookDispatcher:
             payload: Event payload
             attempt: Current attempt number (0-indexed)
         """
-        webhook_repo = get_webhook_repository()
+        from src.database.repositories import get_webhook_repo_session
+        
         try:
             # Serialize payload
             payload_str = json.dumps(payload)
@@ -150,14 +154,16 @@ class WebhookDispatcher:
                 headers.update(webhook.custom_headers)
 
             # Create delivery record
-            delivery = webhook_repo.create_webhook_delivery(
-                webhook_id=webhook.id,
-                event_id=event_id,
-                status="pending",
-                attempt_number=attempt + 1,
-                request_headers=headers,
-                request_body=payload_str,
-            )
+            with get_webhook_repo_session() as webhook_repo:
+                delivery = webhook_repo.create_webhook_delivery(
+                    webhook_id=webhook.id,
+                    event_id=event_id,
+                    status="pending",
+                    attempt_number=attempt + 1,
+                    request_headers=headers,
+                    request_body=payload_str,
+                )
+                delivery_id = delivery.id
 
             # Make HTTP request
             start_time = time.time()
@@ -176,22 +182,23 @@ class WebhookDispatcher:
                         success = 200 <= response.status < 300
 
                         # Update delivery record
-                        webhook_repo.update_webhook_delivery(
-                            delivery_id=delivery.id,
-                            status="success" if success else "failed",
-                            response_status_code=response.status,
-                            response_headers=dict(response.headers),
-                            response_body=response_body[:10000],  # Limit size
-                            duration_ms=duration_ms,
-                            delivered_at=datetime.utcnow(),
-                        )
+                        with get_webhook_repo_session() as webhook_repo:
+                            webhook_repo.update_webhook_delivery(
+                                delivery_id=delivery_id,
+                                status="success" if success else "failed",
+                                response_status_code=response.status,
+                                response_headers=dict(response.headers),
+                                response_body=response_body[:10000],  # Limit size
+                                duration_ms=duration_ms,
+                                delivered_at=datetime.utcnow(),
+                            )
 
-                        # Update webhook stats
-                        webhook_repo.update_webhook_stats(
-                            webhook_id=webhook.id,
-                            success=success,
-                            delivery_time=datetime.utcnow(),
-                        )
+                            # Update webhook stats
+                            webhook_repo.update_webhook_stats(
+                                webhook_id=webhook.id,
+                                success=success,
+                                delivery_time=datetime.utcnow(),
+                            )
 
                         if success:
                             logger.info(
@@ -205,7 +212,7 @@ class WebhookDispatcher:
                             # Schedule retry if not at max attempts
                             if attempt < self.max_retries:
                                 await self.schedule_retry(
-                                    webhook, event_id, payload, attempt, delivery.id
+                                    webhook, event_id, payload, attempt, delivery_id
                                 )
 
             except asyncio.TimeoutError:
@@ -213,51 +220,51 @@ class WebhookDispatcher:
                 error_msg = f"Request timeout after {duration_ms}ms"
                 logger.error(f"Webhook {webhook.id} timeout: {error_msg}")
 
-                webhook_repo.update_webhook_delivery(
-                    delivery_id=delivery.id,
-                    status="failed",
-                    error_message=error_msg,
-                    duration_ms=duration_ms,
-                    delivered_at=datetime.utcnow(),
-                )
+                with get_webhook_repo_session() as webhook_repo:
+                    webhook_repo.update_webhook_delivery(
+                        delivery_id=delivery_id,
+                        status="failed",
+                        error_message=error_msg,
+                        duration_ms=duration_ms,
+                        delivered_at=datetime.utcnow(),
+                    )
 
-                webhook_repo.update_webhook_stats(
-                    webhook_id=webhook.id,
-                    success=False,
-                    delivery_time=datetime.utcnow(),
-                )
+                    webhook_repo.update_webhook_stats(
+                        webhook_id=webhook.id,
+                        success=False,
+                        delivery_time=datetime.utcnow(),
+                    )
 
                 # Schedule retry
                 if attempt < self.max_retries:
-                    await self.schedule_retry(webhook, event_id, payload, attempt, delivery.id)
+                    await self.schedule_retry(webhook, event_id, payload, attempt, delivery_id)
 
             except Exception as e:
                 duration_ms = int((time.time() - start_time) * 1000)
                 error_msg = str(e)
                 logger.error(f"Webhook {webhook.id} delivery error: {error_msg}")
 
-                webhook_repo.update_webhook_delivery(
-                    delivery_id=delivery.id,
-                    status="failed",
-                    error_message=error_msg[:1000],
-                    duration_ms=duration_ms,
-                    delivered_at=datetime.utcnow(),
-                )
+                with get_webhook_repo_session() as webhook_repo:
+                    webhook_repo.update_webhook_delivery(
+                        delivery_id=delivery_id,
+                        status="failed",
+                        error_message=error_msg[:1000],
+                        duration_ms=duration_ms,
+                        delivered_at=datetime.utcnow(),
+                    )
 
-                webhook_repo.update_webhook_stats(
-                    webhook_id=webhook.id,
-                    success=False,
-                    delivery_time=datetime.utcnow(),
-                )
+                    webhook_repo.update_webhook_stats(
+                        webhook_id=webhook.id,
+                        success=False,
+                        delivery_time=datetime.utcnow(),
+                    )
 
                 # Schedule retry
                 if attempt < self.max_retries:
-                    await self.schedule_retry(webhook, event_id, payload, attempt, delivery.id)
+                    await self.schedule_retry(webhook, event_id, payload, attempt, delivery_id)
 
         except Exception as e:
             logger.error(f"Fatal error delivering to webhook {webhook.id}: {e}")
-        finally:
-            webhook_repo.session.close()
 
     async def schedule_retry(
         self,
@@ -285,61 +292,60 @@ class WebhookDispatcher:
         )
 
         # Update delivery to retrying status
-        webhook_repo = get_webhook_repository()
-        try:
+        from src.database.repositories import get_webhook_repo_session
+        
+        with get_webhook_repo_session() as webhook_repo:
             webhook_repo.update_webhook_delivery(
                 delivery_id=delivery_id,
                 status="retrying",
                 next_retry_at=next_retry_at,
             )
 
-            # Schedule actual retry
-            await asyncio.sleep(backoff_seconds)
-            await self.deliver_to_webhook(webhook, event_id, payload, attempt + 1)
-        finally:
-            webhook_repo.session.close()
+        # Schedule actual retry
+        await asyncio.sleep(backoff_seconds)
+        await self.deliver_to_webhook(webhook, event_id, payload, attempt + 1)
 
     async def process_pending_retries(self) -> None:
         """Process pending webhook retries.
 
         This should be called periodically by a background task.
         """
-        webhook_repo = get_webhook_repository()
+        from src.database.repositories import get_webhook_repo_session
+        
         try:
-            pending = webhook_repo.get_pending_retries(limit=100)
+            with get_webhook_repo_session() as webhook_repo:
+                pending = webhook_repo.get_pending_retries(limit=100)
 
-            if not pending:
-                return
+                if not pending:
+                    return
 
-            logger.info(f"Processing {len(pending)} pending webhook retries")
+                logger.info(f"Processing {len(pending)} pending webhook retries")
 
-            tasks = []
-            for delivery in pending:
-                # Get webhook and event
-                webhook = webhook_repo.get_webhook_by_id(delivery.webhook_id)
-                if not webhook or not webhook.is_active:
-                    continue
+                tasks = []
+                for delivery in pending:
+                    # Get webhook and event
+                    webhook = webhook_repo.get_webhook_by_id(delivery.webhook_id)
+                    if not webhook or not webhook.is_active:
+                        continue
 
-                # Parse payload from request body
-                try:
-                    payload = json.loads(delivery.request_body)
-                    task = self.deliver_to_webhook(
-                        webhook,
-                        delivery.event_id,
-                        payload,
-                        delivery.attempt_number,
-                    )
-                    tasks.append(task)
-                except Exception as e:
-                    logger.error(f"Error parsing delivery {delivery.id} payload: {e}")
+                    # Parse payload from request body
+                    try:
+                        payload = json.loads(delivery.request_body)
+                        task = self.deliver_to_webhook(
+                            webhook,
+                            delivery.event_id,
+                            payload,
+                            delivery.attempt_number,
+                        )
+                        tasks.append(task)
+                    except Exception as e:
+                        logger.error(f"Error parsing delivery {delivery.id} payload: {e}")
 
-            # Execute all retries
+            # Execute all retries (outside the session context)
             await asyncio.gather(*tasks, return_exceptions=True)
 
         except Exception as e:
             logger.error(f"Error processing pending retries: {e}")
-        finally:
-            webhook_repo.session.close()
 
 
 # Global dispatcher instance

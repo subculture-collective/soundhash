@@ -1,5 +1,6 @@
 """Authentication routes."""
 
+import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -32,6 +33,7 @@ from src.api.models.auth import (
 from src.database.models import APIKey, User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -83,8 +85,7 @@ async def register(
         )
     except Exception as e:
         # Log but don't fail registration if webhook emission fails
-        import logging
-        logging.getLogger(__name__).warning(f"Failed to emit user.created webhook: {e}")
+        logger.warning(f"Failed to emit user.created webhook: {e}")
 
     return new_user
 

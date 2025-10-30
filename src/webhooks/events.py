@@ -33,20 +33,22 @@ def emit_event_sync(
         
         # Create event loop or use existing one
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If loop is running, schedule as task
-                asyncio.create_task(
-                    emit_webhook_event(
-                        event_type=event_type,
-                        event_data=event_data,
-                        resource_id=resource_id,
-                        resource_type=resource_type,
-                        tenant_id=tenant_id,
-                    )
+            loop = asyncio.get_running_loop()
+            # If loop is running, schedule as task
+            asyncio.create_task(
+                emit_webhook_event(
+                    event_type=event_type,
+                    event_data=event_data,
+                    resource_id=resource_id,
+                    resource_type=resource_type,
+                    tenant_id=tenant_id,
                 )
-            else:
-                # If loop exists but not running, run until complete
+            )
+        except RuntimeError:
+            # No running event loop, create new one
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
                 loop.run_until_complete(
                     emit_webhook_event(
                         event_type=event_type,
@@ -56,20 +58,8 @@ def emit_event_sync(
                         tenant_id=tenant_id,
                     )
                 )
-        except RuntimeError:
-            # No event loop, create new one
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                emit_webhook_event(
-                    event_type=event_type,
-                    event_data=event_data,
-                    resource_id=resource_id,
-                    resource_type=resource_type,
-                    tenant_id=tenant_id,
-                )
-            )
-            loop.close()
+            finally:
+                loop.close()
     except Exception as e:
         # Log but don't fail the main operation if webhook emission fails
         logger.error(f"Failed to emit webhook event {event_type}: {e}")

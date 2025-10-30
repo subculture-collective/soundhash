@@ -1,7 +1,5 @@
 """Tests for webhook service."""
 
-import pytest
-
 from src.webhooks.service import WebhookService
 
 
