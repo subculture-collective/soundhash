@@ -7,7 +7,7 @@ import QuickStartTemplates from '@/components/onboarding/QuickStartTemplates'
 import HelpCenter from '@/components/onboarding/HelpCenter'
 
 export default function TutorialsPage() {
-  const [selectedTutorial, setSelectedTutorial] = useState<string | null>(null)
+  const [, setSelectedTutorial] = useState<string | null>(null)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">

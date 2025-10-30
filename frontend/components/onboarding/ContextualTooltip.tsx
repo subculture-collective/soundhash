@@ -75,15 +75,16 @@ export default function ContextualTooltip({
 // Hook for managing contextual help
 export function useContextualHelp() {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
-  const [dismissedTooltips, setDismissedTooltips] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    // Load dismissed tooltips from localStorage
-    const stored = localStorage.getItem('dismissedTooltips')
-    if (stored) {
-      setDismissedTooltips(new Set(JSON.parse(stored)))
+  const [dismissedTooltips, setDismissedTooltips] = useState<Set<string>>(() => {
+    // Load dismissed tooltips from localStorage on initialization
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('dismissedTooltips')
+      if (stored) {
+        return new Set(JSON.parse(stored))
+      }
     }
-  }, [])
+    return new Set()
+  })
 
   const showTooltip = (tooltipId: string) => {
     if (!dismissedTooltips.has(tooltipId)) {

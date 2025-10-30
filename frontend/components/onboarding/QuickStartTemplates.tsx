@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileCode, Sparkles, Zap, Copy, Check } from 'lucide-react'
+import { FileCode, Sparkles, Copy, Check } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

@@ -29,7 +29,10 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
     if (!step) return
 
     const element = document.querySelector(step.target) as HTMLElement
-    if (element) {
+    if (!element) return
+
+    // Use requestAnimationFrame to avoid synchronous state updates
+    requestAnimationFrame(() => {
       setTargetElement(element)
       
       // Scroll element into view
@@ -66,13 +69,11 @@ export default function ProductTour({ steps, onComplete, onSkip }: ProductTourPr
       }
       
       setPosition({ top, left })
-    }
+    })
 
     return () => {
-      if (element) {
-        element.style.position = ''
-        element.style.zIndex = ''
-      }
+      element.style.position = ''
+      element.style.zIndex = ''
     }
   }, [currentStep, steps])
 

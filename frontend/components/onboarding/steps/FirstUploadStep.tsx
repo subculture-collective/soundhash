@@ -1,6 +1,6 @@
 'use client'
 
-import { Upload, CheckCircle, Music } from 'lucide-react'
+import { Upload, Music } from 'lucide-react'
 import { AudioUploader } from '@/components/features/audio/AudioUploader'
 import { Card, CardContent } from '@/components/ui/card'
 import type { OnboardingProgress } from '@/lib/types/onboarding'
@@ -10,7 +10,7 @@ interface FirstUploadStepProps {
   onNext: () => void
 }
 
-export default function FirstUploadStep({ progress, onNext }: FirstUploadStepProps) {
+export default function FirstUploadStep({ onNext }: FirstUploadStepProps) {
   const handleUploadComplete = () => {
     // Mark step as complete
     onNext()

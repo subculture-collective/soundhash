@@ -9,7 +9,7 @@ interface DashboardTourStepProps {
   onNext: () => void
 }
 
-export default function DashboardTourStep({ progress, onNext }: DashboardTourStepProps) {
+export default function DashboardTourStep({}: DashboardTourStepProps) {
   const features = [
     {
       icon: FileAudio,
