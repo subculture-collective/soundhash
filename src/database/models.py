@@ -865,6 +865,103 @@ class Invoice(Base):  # type: ignore[misc,valid-type]
     user: Mapped["User"] = relationship("User", back_populates="invoices")  # type: ignore[assignment]
 
 
+class OnboardingProgress(Base):  # type: ignore[misc,valid-type]
+    """Track user onboarding progress and milestones."""
+
+    __tablename__ = "onboarding_progress"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Onboarding state
+    is_completed = Column(Boolean, default=False, nullable=False)
+    current_step = Column(Integer, default=0, nullable=False)  # 0-5 for 6-step flow
+    use_case = Column(String(50))  # content_creator, developer, enterprise
+
+    # Milestone tracking
+    welcome_completed = Column(Boolean, default=False, nullable=False)
+    use_case_selected = Column(Boolean, default=False, nullable=False)
+    api_key_generated = Column(Boolean, default=False, nullable=False)
+    first_upload_completed = Column(Boolean, default=False, nullable=False)
+    dashboard_explored = Column(Boolean, default=False, nullable=False)
+    integration_started = Column(Boolean, default=False, nullable=False)
+
+    # Tour tracking
+    tour_completed = Column(Boolean, default=False, nullable=False)
+    tour_dismissed = Column(Boolean, default=False, nullable=False)
+    tour_last_step = Column(Integer, default=0)
+
+    # Sample data
+    sample_data_generated = Column(Boolean, default=False, nullable=False)
+
+    # Metadata
+    custom_data = Column(JSON)  # Store additional progress data
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", backref="onboarding_progress")  # type: ignore[assignment]
+
+
+class TutorialProgress(Base):  # type: ignore[misc,valid-type]
+    """Track individual tutorial completions."""
+
+    __tablename__ = "tutorial_progress"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tutorial_id = Column(String(100), nullable=False)  # Unique identifier for tutorial
+
+    # Progress
+    is_completed = Column(Boolean, default=False, nullable=False)
+    progress_percent = Column(Integer, default=0)  # 0-100
+    current_step = Column(Integer, default=0)
+    total_steps = Column(Integer)
+
+    # Tracking
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime)
+    last_viewed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", backref="tutorial_progress")  # type: ignore[assignment]
+
+
+class UserPreference(Base):  # type: ignore[misc,valid-type]
+    """Store user preferences for UI and onboarding."""
+
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Help & onboarding
+    show_tooltips = Column(Boolean, default=True, nullable=False)
+    show_contextual_help = Column(Boolean, default=True, nullable=False)
+    auto_start_tours = Column(Boolean, default=True, nullable=False)
+
+    # Notifications
+    show_onboarding_tips = Column(Boolean, default=True, nullable=False)
+    daily_tips_enabled = Column(Boolean, default=True, nullable=False)
+
+    # Display preferences
+    theme = Column(String(20), default="system")  # light, dark, system
+    language = Column(String(10), default="en")
+    timezone = Column(String(50))
+
+    # Feature flags
+    beta_features_enabled = Column(Boolean, default=False, nullable=False)
+
+    # Metadata
+    preferences_data = Column(JSON)  # Store additional custom preferences
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", backref="preferences")  # type: ignore[assignment]
+
+
 # Indexes for billing tables
 Index("idx_subscriptions_user_id", Subscription.user_id)
 Index("idx_subscriptions_stripe_subscription_id", Subscription.stripe_subscription_id)
@@ -877,4 +974,13 @@ Index("idx_invoices_user_id", Invoice.user_id)
 Index("idx_invoices_subscription_id", Invoice.subscription_id)
 Index("idx_invoices_stripe_invoice_id", Invoice.stripe_invoice_id)
 Index("idx_invoices_status", Invoice.status)
+
+# Indexes for onboarding tables
+Index("idx_onboarding_progress_user_id", OnboardingProgress.user_id)
+Index("idx_onboarding_progress_is_completed", OnboardingProgress.is_completed)
+Index("idx_onboarding_progress_use_case", OnboardingProgress.use_case)
+Index("idx_tutorial_progress_user_id", TutorialProgress.user_id)
+Index("idx_tutorial_progress_tutorial_id", TutorialProgress.tutorial_id)
+Index("idx_tutorial_progress_user_tutorial", TutorialProgress.user_id, TutorialProgress.tutorial_id)
+Index("idx_user_preferences_user_id", UserPreference.user_id)
 
