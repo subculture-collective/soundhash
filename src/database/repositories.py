@@ -845,13 +845,14 @@ class WebhookRepository:
 
         query = self.session.query(Webhook).filter(
             Webhook.is_active == True,  # noqa: E712
-            Webhook.events.contains([event_type]),
         )
 
         if tenant_id is not None:
             query = query.filter(Webhook.tenant_id == tenant_id)
 
-        return query.all()
+        # Filter by event type in Python (SQLite JSON support is limited)
+        all_webhooks = query.all()
+        return [w for w in all_webhooks if event_type in w.events]
 
     @db_retry()
     def create_webhook_event(
