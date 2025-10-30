@@ -220,7 +220,7 @@ def test_user_registration():
 ## Event Types Reference
 
 | Function | Event Type | When to Use |
-|----------|-----------|-------------|
+| -------- | ---------- | ----------- |
 | `emit_match_found` | `match.found` | After saving a new match to database |
 | `emit_video_processed` | `video.processed` | After successfully processing a video |
 | `emit_job_failed` | `job.failed` | When a background job fails |
@@ -301,7 +301,7 @@ for delivery in stats:
 ### Performance Impact
 
 Webhook emission is designed to be non-blocking:
-- Events are queued and processed asynchronously
+- Events are dispatched asynchronously via background tasks
 - Failed webhooks don't affect main operations
 - Retries use exponential backoff
 
@@ -353,6 +353,7 @@ Full API documentation available at `/docs` when running the server:
 - `GET /api/v1/webhooks/events` - List supported events
 - `POST /api/v1/webhooks` - Create webhook
 - `GET /api/v1/webhooks` - List webhooks
+- `GET /api/v1/webhooks/{id}` - Get webhook details
 - `PATCH /api/v1/webhooks/{id}` - Update webhook
 - `DELETE /api/v1/webhooks/{id}` - Delete webhook
 - `POST /api/v1/webhooks/{id}/test` - Test webhook
