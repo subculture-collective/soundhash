@@ -1,0 +1,24 @@
+# GPU Acceleration Dependencies (Optional)
+# 
+# Install with: pip install -r requirements-gpu.txt
+#
+# For CUDA 11.x: pip install cupy-cuda11x
+# For CUDA 12.x: pip install cupy-cuda12x  
+# For ROCm: pip install cupy-rocm-5-0
+
+# Choose ONE of the following based on your GPU:
+
+# CUDA 12.x (most recent)
+# cupy-cuda12x>=12.0.0
+
+# CUDA 11.x
+# cupy-cuda11x>=11.0.0
+
+# ROCm (AMD GPUs)
+# cupy-rocm-5-0>=12.0.0
+
+# OpenCL (cross-platform, slower than CUDA/ROCm)
+# pyopencl>=2024.1
+
+# Note: CuPy installation requires matching CUDA toolkit to be installed
+# See: https://docs.cupy.dev/en/stable/install.html
