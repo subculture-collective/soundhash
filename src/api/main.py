@@ -152,6 +152,7 @@ from src.api.routes import (
     admin,
     auth,
     channels,
+    compliance,
     email,
     fingerprints,
     matches,
@@ -171,6 +172,7 @@ app.include_router(monitoring.router, prefix="/api/v1/monitoring", tags=["Monito
 app.include_router(email.router, prefix="/api/v1", tags=["Email"])
 app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
 app.include_router(security.router, prefix="/api/v1/security", tags=["Security"])
+app.include_router(compliance.router, prefix="/api/v1/compliance", tags=["Compliance"])
 
 
 # WebSocket endpoint for real-time audio streaming

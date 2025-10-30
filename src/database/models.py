@@ -457,3 +457,301 @@ Index("idx_email_logs_campaign_id", EmailLog.campaign_id)
 Index("idx_email_campaigns_status", EmailCampaign.status)
 Index("idx_email_campaigns_scheduled_at", EmailCampaign.scheduled_at)
 
+
+# =====================================================================
+# COMPLIANCE AND PRIVACY MODELS (GDPR, CCPA, SOC 2)
+# =====================================================================
+
+
+class AuditLog(Base):  # type: ignore[misc,valid-type]
+    """Audit trail for all data access and modifications (SOC 2 requirement)."""
+
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Action details
+    action = Column(String(100), nullable=False)  # e.g., 'user.login', 'data.export', 'user.delete'
+    resource_type = Column(String(100))  # e.g., 'user', 'video', 'fingerprint'
+    resource_id = Column(String(255))  # ID of the affected resource
+    
+    # Request context
+    ip_address = Column(String(45))  # IPv4 or IPv6
+    user_agent = Column(String(500))
+    request_method = Column(String(10))  # GET, POST, etc.
+    request_path = Column(String(500))
+    
+    # Changes made (for audit trail)
+    old_values = Column(JSON)  # Previous state
+    new_values = Column(JSON)  # New state
+    
+    # Status
+    status = Column(String(20))  # 'success', 'failure', 'partial'
+    error_message = Column(Text)
+    
+    # Metadata
+    metadata = Column(JSON)  # Additional context
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class UserConsent(Base):  # type: ignore[misc,valid-type]
+    """User consent records for GDPR compliance."""
+
+    __tablename__ = "user_consents"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Consent type
+    consent_type = Column(String(100), nullable=False)  # e.g., 'terms_of_service', 'privacy_policy', 'marketing', 'data_processing'
+    consent_version = Column(String(50), nullable=False)  # Version of the document consented to
+    
+    # Consent details
+    given = Column(Boolean, nullable=False)  # True = consented, False = withdrawn
+    given_at = Column(DateTime, nullable=False)
+    withdrawn_at = Column(DateTime)
+    
+    # Evidence
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    method = Column(String(50))  # e.g., 'web_form', 'api', 'email_link'
+    
+    # Metadata
+    metadata = Column(JSON)  # Additional context
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class DataExportRequest(Base):  # type: ignore[misc,valid-type]
+    """Track user data export requests (GDPR Article 15 - Right to access)."""
+
+    __tablename__ = "data_export_requests"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Request details
+    request_type = Column(String(50), default="full_export")  # 'full_export', 'specific_data'
+    data_types = Column(JSON)  # List of specific data types requested
+    format = Column(String(20), default="json")  # 'json', 'csv', 'xml'
+    
+    # Status tracking
+    status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'expired'
+    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    expires_at = Column(DateTime)  # Export file expiration (e.g., 30 days)
+    
+    # Result
+    file_path = Column(String(500))  # Path to generated export file
+    file_size_bytes = Column(Integer)
+    download_count = Column(Integer, default=0)
+    last_downloaded_at = Column(DateTime)
+    
+    # Error handling
+    error_message = Column(Text)
+    
+    # Metadata
+    ip_address = Column(String(45))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
+    """Track data deletion requests (GDPR Article 17 - Right to be forgotten)."""
+
+    __tablename__ = "data_deletion_requests"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Request details
+    deletion_type = Column(String(50), default="full")  # 'full', 'partial', 'anonymize'
+    data_types = Column(JSON)  # Specific data types to delete/anonymize
+    reason = Column(Text)  # Optional reason for deletion
+    
+    # Status tracking
+    status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'cancelled'
+    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    approved_at = Column(DateTime)  # Manual approval for compliance
+    approved_by = Column(Integer, ForeignKey("users.id"))  # Admin who approved
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    
+    # Verification
+    verification_token = Column(String(255))  # Token to confirm deletion request
+    verified_at = Column(DateTime)
+    
+    # Result summary
+    items_deleted = Column(JSON)  # Summary of deleted items by type
+    items_anonymized = Column(JSON)  # Summary of anonymized items
+    
+    # Error handling
+    error_message = Column(Text)
+    
+    # Metadata
+    ip_address = Column(String(45))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class DataRetentionPolicy(Base):  # type: ignore[misc,valid-type]
+    """Data retention policies for compliance."""
+
+    __tablename__ = "data_retention_policies"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    
+    # Policy details
+    policy_name = Column(String(200), nullable=False)
+    data_type = Column(String(100), nullable=False)  # e.g., 'user_data', 'audit_logs', 'fingerprints'
+    retention_days = Column(Integer, nullable=False)  # Days to retain data
+    
+    # Action after retention period
+    action = Column(String(50), default="delete")  # 'delete', 'archive', 'anonymize'
+    
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    # Metadata
+    description = Column(Text)
+    legal_basis = Column(String(500))  # Legal reason for retention period
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    last_applied_at = Column(DateTime)  # Last time policy was executed
+
+
+class PrivacyPolicy(Base):  # type: ignore[misc,valid-type]
+    """Version-controlled privacy policies and terms of service."""
+
+    __tablename__ = "privacy_policies"
+
+    id = Column(Integer, primary_key=True)
+    
+    # Policy details
+    policy_type = Column(String(50), nullable=False)  # 'privacy_policy', 'terms_of_service', 'cookie_policy', 'dpa'
+    version = Column(String(50), nullable=False)
+    title = Column(String(500), nullable=False)
+    content = Column(Text, nullable=False)  # Full policy text (markdown or HTML)
+    
+    # Effective dates
+    effective_from = Column(DateTime, nullable=False)
+    effective_until = Column(DateTime)
+    
+    # Status
+    is_active = Column(Boolean, default=False, nullable=False)
+    requires_consent = Column(Boolean, default=True, nullable=False)
+    
+    # Localization
+    language = Column(String(10), default="en", nullable=False)
+    
+    # Metadata
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class DataProcessingAgreement(Base):  # type: ignore[misc,valid-type]
+    """Data Processing Agreements for enterprise tenants (GDPR Article 28)."""
+
+    __tablename__ = "data_processing_agreements"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
+    
+    # Agreement details
+    agreement_name = Column(String(200), nullable=False)
+    processor_name = Column(String(200), nullable=False)  # Third-party processor
+    processor_contact = Column(String(500))
+    
+    # Agreement content
+    agreement_text = Column(Text)
+    signed_document_url = Column(String(500))  # URL to signed PDF
+    
+    # Status
+    status = Column(String(50), default="draft")  # 'draft', 'pending_signature', 'active', 'expired', 'terminated'
+    signed_at = Column(DateTime)
+    signed_by = Column(String(200))  # Name of person who signed
+    
+    # Validity
+    effective_from = Column(DateTime)
+    effective_until = Column(DateTime)
+    
+    # Data processing details
+    data_types_processed = Column(JSON)  # List of data types processed
+    processing_purposes = Column(JSON)  # List of purposes
+    data_retention_period = Column(String(200))
+    
+    # Security measures
+    security_measures = Column(JSON)  # List of security measures in place
+    
+    # Sub-processors
+    sub_processors = Column(JSON)  # List of sub-processors
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
+    """Inventory of third-party data processors (SOC 2 requirement)."""
+
+    __tablename__ = "third_party_data_processors"
+
+    id = Column(Integer, primary_key=True)
+    
+    # Processor details
+    name = Column(String(200), nullable=False)
+    category = Column(String(100))  # e.g., 'email_service', 'payment_processor', 'analytics'
+    website = Column(String(500))
+    contact_email = Column(String(255))
+    contact_phone = Column(String(50))
+    
+    # Compliance certifications
+    certifications = Column(JSON)  # e.g., ['SOC 2', 'ISO 27001', 'GDPR compliant']
+    
+    # Data processing
+    data_types_shared = Column(JSON)  # Types of data shared with processor
+    processing_location = Column(String(200))  # Geographic location of processing
+    
+    # Agreement
+    has_dpa = Column(Boolean, default=False)  # Has Data Processing Agreement
+    dpa_id = Column(Integer, ForeignKey("data_processing_agreements.id"))
+    
+    # Status
+    is_active = Column(Boolean, default=True, nullable=False)
+    risk_level = Column(String(20))  # 'low', 'medium', 'high'
+    
+    # Review
+    last_reviewed_at = Column(DateTime)
+    next_review_date = Column(DateTime)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# Indexes for compliance tables
+Index("idx_audit_logs_user_id", AuditLog.user_id)
+Index("idx_audit_logs_tenant_id", AuditLog.tenant_id)
+Index("idx_audit_logs_action", AuditLog.action)
+Index("idx_audit_logs_resource", AuditLog.resource_type, AuditLog.resource_id)
+Index("idx_audit_logs_created_at", AuditLog.created_at)
+Index("idx_user_consents_user_id", UserConsent.user_id)
+Index("idx_user_consents_type", UserConsent.consent_type)
+Index("idx_user_consents_given", UserConsent.given)
+Index("idx_data_export_requests_user_id", DataExportRequest.user_id)
+Index("idx_data_export_requests_status", DataExportRequest.status)
+Index("idx_data_deletion_requests_user_id", DataDeletionRequest.user_id)
+Index("idx_data_deletion_requests_status", DataDeletionRequest.status)
+Index("idx_data_retention_policies_tenant_id", DataRetentionPolicy.tenant_id)
+Index("idx_data_retention_policies_data_type", DataRetentionPolicy.data_type)
+Index("idx_privacy_policies_type", PrivacyPolicy.policy_type)
+Index("idx_privacy_policies_version", PrivacyPolicy.version)
+Index("idx_privacy_policies_active", PrivacyPolicy.is_active)
+Index("idx_dpas_tenant_id", DataProcessingAgreement.tenant_id)
+Index("idx_dpas_status", DataProcessingAgreement.status)
+Index("idx_third_party_processors_category", ThirdPartyDataProcessor.category)
+Index("idx_third_party_processors_active", ThirdPartyDataProcessor.is_active)
+
