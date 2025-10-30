@@ -216,6 +216,65 @@ class Config:
     DIGEST_WEEKLY_DAY = int(os.getenv("DIGEST_WEEKLY_DAY", 0))  # Monday = 0, Sunday = 6
     DIGEST_WEEKLY_TIME = os.getenv("DIGEST_WEEKLY_TIME", "09:00")  # HH:MM format
 
+    # ==================== Security Configuration ====================
+    
+    # Rate Limiting
+    RATE_LIMITING_ENABLED = os.getenv("RATE_LIMITING_ENABLED", "true").lower() == "true"
+    API_RATE_LIMIT_PER_HOUR = int(os.getenv("API_RATE_LIMIT_PER_HOUR", 1000))
+    API_RATE_LIMIT_PER_DAY = int(os.getenv("API_RATE_LIMIT_PER_DAY", 10000))
+    API_BURST_SIZE = int(os.getenv("API_BURST_SIZE", 10))
+    SEARCH_RATE_LIMIT_PER_MINUTE = int(os.getenv("SEARCH_RATE_LIMIT_PER_MINUTE", 30))
+    
+    # IP Filtering
+    IP_FILTERING_ENABLED = os.getenv("IP_FILTERING_ENABLED", "false").lower() == "true"
+    IP_ALLOWLIST = os.getenv("IP_ALLOWLIST", "").split(",") if os.getenv("IP_ALLOWLIST") else []
+    IP_BLOCKLIST = os.getenv("IP_BLOCKLIST", "").split(",") if os.getenv("IP_BLOCKLIST") else []
+    
+    # Threat Detection
+    THREAT_DETECTION_ENABLED = os.getenv("THREAT_DETECTION_ENABLED", "true").lower() == "true"
+    THREAT_AUTO_BLOCK_THRESHOLD = int(os.getenv("THREAT_AUTO_BLOCK_THRESHOLD", 5))
+    FAILED_LOGIN_THRESHOLD = int(os.getenv("FAILED_LOGIN_THRESHOLD", 5))
+    FAILED_LOGIN_WINDOW = int(os.getenv("FAILED_LOGIN_WINDOW", 900))  # 15 minutes
+    MAX_HEADER_SIZE = int(os.getenv("MAX_HEADER_SIZE", 8192))  # 8KB
+    
+    # Request Signature Verification
+    SIGNATURE_VERIFICATION_ENABLED = os.getenv("SIGNATURE_VERIFICATION_ENABLED", "false").lower() == "true"
+    SIGNATURE_MAX_TIMESTAMP_DELTA = int(os.getenv("SIGNATURE_MAX_TIMESTAMP_DELTA", 300))  # 5 minutes
+    
+    # Security Headers
+    CSP_ENABLED = os.getenv("CSP_ENABLED", "true").lower() == "true"
+    CSP_POLICY = os.getenv(
+        "CSP_POLICY",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+        "font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+    )
+    HSTS_ENABLED = os.getenv("HSTS_ENABLED", "true").lower() == "true"
+    HSTS_MAX_AGE = int(os.getenv("HSTS_MAX_AGE", 31536000))  # 1 year
+    X_FRAME_OPTIONS = os.getenv("X_FRAME_OPTIONS", "DENY")
+    REFERRER_POLICY = os.getenv("REFERRER_POLICY", "strict-origin-when-cross-origin")
+    PERMISSIONS_POLICY = os.getenv(
+        "PERMISSIONS_POLICY",
+        "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+    )
+    
+    # API Key Rotation
+    API_KEY_ROTATION_DAYS = int(os.getenv("API_KEY_ROTATION_DAYS", 90))
+    API_KEY_DEFAULT_EXPIRY_DAYS = int(os.getenv("API_KEY_DEFAULT_EXPIRY_DAYS", 365))
+    
+    # Security Audit Logging
+    SECURITY_AUDIT_ENABLED = os.getenv("SECURITY_AUDIT_ENABLED", "true").lower() == "true"
+    SECURITY_LOG_FILE = os.getenv("SECURITY_LOG_FILE", "./logs/security.log")
+    
+    # DDoS Protection (Documentation/Integration)
+    DDOS_PROTECTION_PROVIDER = os.getenv("DDOS_PROTECTION_PROVIDER", "none")  # cloudflare, aws-shield, none
+    CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID")
+    CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN")
+    
+    # Compliance
+    COMPLIANCE_MODE = os.getenv("COMPLIANCE_MODE", "none")  # soc2, iso27001, hipaa, none
+    DATA_RETENTION_POLICY_DAYS = int(os.getenv("DATA_RETENTION_POLICY_DAYS", 365))
+    
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:
