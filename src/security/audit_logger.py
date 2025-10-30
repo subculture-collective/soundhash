@@ -76,10 +76,18 @@ class SecurityAuditLogger:
                 file_handler.setLevel(logging.INFO)
 
                 # JSON format for easy parsing
-                formatter = logging.Formatter(
-                    '{"timestamp": "%(asctime)s", "level": "%(levelname)s", '
-                    '"logger": "%(name)s", "message": %(message)s}'
-                )
+                class JsonLogFormatter(logging.Formatter):
+                    def format(self, record):
+                        import json
+                        log_record = {
+                            "timestamp": self.formatTime(record, self.datefmt),
+                            "level": record.levelname,
+                            "logger": record.name,
+                            "message": record.getMessage(),
+                        }
+                        return json.dumps(log_record)
+
+                formatter = JsonLogFormatter()
                 file_handler.setFormatter(formatter)
 
                 self.security_logger.addHandler(file_handler)

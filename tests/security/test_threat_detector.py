@@ -256,4 +256,6 @@ class TestThreatDetector:
         )
 
         # Should detect excessive header size if MAX_HEADER_SIZE is set appropriately
-        # Result depends on config
+        # Result depends on config - we just verify the function doesn't crash
+        assert isinstance(is_safe, bool)
+        assert isinstance(threats, list)

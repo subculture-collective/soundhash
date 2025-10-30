@@ -179,8 +179,7 @@ class TestSignatureVerifier:
         api_key = "test_api_key"
 
         timestamp1 = str(int(time.time()))
-        time.sleep(1)
-        timestamp2 = str(int(time.time()))
+        timestamp2 = str(int(time.time()) + 1)
 
         sig1 = verifier.generate_signature(method, path, body, timestamp1, api_key)
         sig2 = verifier.generate_signature(method, path, body, timestamp2, api_key)

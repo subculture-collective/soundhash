@@ -157,11 +157,12 @@ class AdvancedSecurityMiddleware(BaseHTTPMiddleware):
                     body_bytes = await request.body()
                     body = body_bytes.decode("utf-8")
 
-                    # Store body for later use by route handlers
+                    # Create a new receive function that replays the body for downstream handlers
                     async def receive():
-                        return {"type": "http.request", "body": body_bytes}
+                        return {"type": "http.request", "body": body_bytes, "more_body": False}
 
-                    request._receive = receive
+                    # Replace the request with a new one that uses the custom receive function
+                    request = Request(request.scope, receive)
                 except Exception as e:
                     logger.error(f"Failed to read request body: {e}")
 
@@ -196,7 +197,6 @@ class AdvancedSecurityMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         if Config.RATE_LIMITING_ENABLED:
-            user_tier = self._get_user_tier(request)
             identifier = client_ip
             quota = self.rate_limiter.get_remaining_quota(identifier, path)
 

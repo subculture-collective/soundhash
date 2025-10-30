@@ -356,12 +356,12 @@ async def add_to_blocklist(
         )
 
 
-@router.delete("/ip-lists/allowlist/{ip}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/ip-lists/allowlist", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_from_allowlist(
     ip: str,
     admin_user: Annotated[User, Depends(get_admin_user)],
 ):
-    """Remove IP or network from allowlist (Admin only)."""
+    """Remove IP or network from allowlist (Admin only). Pass IP as query parameter."""
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.remove_from_allowlist(ip)
@@ -390,12 +390,12 @@ async def remove_from_allowlist(
         )
 
 
-@router.delete("/ip-lists/blocklist/{ip}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/ip-lists/blocklist", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_from_blocklist(
     ip: str,
     admin_user: Annotated[User, Depends(get_admin_user)],
 ):
-    """Remove IP or network from blocklist (Admin only)."""
+    """Remove IP or network from blocklist (Admin only). Pass IP as query parameter."""
     try:
         ip_manager = get_ip_manager()
         success = ip_manager.remove_from_blocklist(ip)

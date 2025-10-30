@@ -45,7 +45,7 @@ class ThreatDetector:
         # SQL injection patterns
         self.sql_injection_patterns = [
             r"(\bunion\b.*\bselect\b)",
-            r"(\bor\b.*=.*)",
+            r"(\bor\b\s+\d+\s*=\s*\d+)",  # More specific: OR <number> = <number>
             r"(--|\#|\/\*)",
             r"(\bexec\b|\bexecute\b)",
             r"(\bdrop\b.*\btable\b)",

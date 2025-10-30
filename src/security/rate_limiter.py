@@ -202,7 +202,7 @@ class RateLimiter:
         """Reset rate limits for an identifier."""
         if self.use_redis:
             pattern = f"ratelimit:{identifier}:{endpoint}:*"
-            keys = self.redis_client.keys(pattern)
+            keys = list(self.redis_client.scan_iter(pattern))
             if keys:
                 self.redis_client.delete(*keys)
         else:

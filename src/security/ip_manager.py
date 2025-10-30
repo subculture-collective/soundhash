@@ -181,7 +181,11 @@ class IPManager:
 
             return False, None
         except Exception as e:
-            logger.error(f"Failed to check if {ip} is blocked: {e}")
+            logger.critical(
+                f"Security check failure: Failed to check if {ip} is blocked. "
+                f"Failing open (not blocking). Error: {e}",
+                exc_info=True
+            )
             # Fail open - don't block on error
             return False, None
 
