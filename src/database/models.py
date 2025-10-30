@@ -491,8 +491,8 @@ class AuditLog(Base):  # type: ignore[misc,valid-type]
     status = Column(String(20))  # 'success', 'failure', 'partial'
     error_message = Column(Text)
     
-    # Metadata
-    metadata = Column(JSON)  # Additional context
+    # Additional context
+    extra_metadata = Column(JSON)  # Additional context
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
@@ -518,8 +518,8 @@ class UserConsent(Base):  # type: ignore[misc,valid-type]
     user_agent = Column(String(500))
     method = Column(String(50))  # e.g., 'web_form', 'api', 'email_link'
     
-    # Metadata
-    metadata = Column(JSON)  # Additional context
+    # Additional context
+    extra_metadata = Column(JSON)  # Additional context
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

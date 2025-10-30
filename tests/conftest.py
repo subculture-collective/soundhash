@@ -7,10 +7,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 import soundfile as sf
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+from src.database.models import Base  # noqa: E402
 
 
 @pytest.fixture
@@ -53,3 +57,25 @@ def multi_second_sine_wave(temp_dir):
     sf.write(wav_path, audio_data, sample_rate)
 
     return str(wav_path)
+
+
+@pytest.fixture(scope="function")
+def db_engine():
+    """Create a test database engine."""
+    # Use in-memory SQLite for tests
+    engine = create_engine("sqlite:///:memory:", echo=False)
+    Base.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a test database session."""
+    SessionLocal = sessionmaker(bind=db_engine)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()

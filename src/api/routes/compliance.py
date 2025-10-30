@@ -60,7 +60,7 @@ async def record_consent(
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
         method=consent_data.method or "api",
-        metadata=consent_data.metadata,
+        extra_metadata=consent_data.metadata,
         session=db,
     )
 

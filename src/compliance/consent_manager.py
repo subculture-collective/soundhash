@@ -61,7 +61,7 @@ class ConsentManager:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 method=method,
-                metadata=metadata,
+                extra_metadata=metadata,
             )
             session.add(consent)
             session.commit()
@@ -75,7 +75,7 @@ class ConsentManager:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 status="success",
-                metadata={
+                extra_metadata={
                     "consent_type": consent_type,
                     "consent_version": consent_version,
                     "given": given,

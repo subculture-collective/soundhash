@@ -167,7 +167,7 @@ class DataRetentionService:
                 resource_type="retention_policy",
                 resource_id=str(policy.id),
                 status="success",
-                metadata={
+                extra_metadata={
                     "policy_name": policy.policy_name,
                     "data_type": policy.data_type,
                     "items_processed": count,

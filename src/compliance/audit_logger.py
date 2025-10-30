@@ -81,6 +81,7 @@ class AuditLogger:
             )
             session.add(audit_entry)
             session.commit()
+            session.refresh(audit_entry)
             logger.debug(f"Audit log created: {action} by user {user_id}")
             return audit_entry
         except Exception as e:
@@ -98,6 +99,7 @@ class AuditLogger:
         resource_id: str,
         ip_address: Optional[str] = None,
         metadata: Optional[dict] = None,
+        session: Optional[Session] = None,
     ) -> Optional[AuditLog]:
         """Log data access event."""
         return AuditLogger.log_action(
@@ -107,6 +109,7 @@ class AuditLogger:
             resource_id=resource_id,
             ip_address=ip_address,
             metadata=metadata,
+            session=session,
         )
 
     @staticmethod
@@ -118,6 +121,7 @@ class AuditLogger:
         new_values: dict,
         ip_address: Optional[str] = None,
         metadata: Optional[dict] = None,
+        session: Optional[Session] = None,
     ) -> Optional[AuditLog]:
         """Log data modification event."""
         return AuditLogger.log_action(
@@ -129,6 +133,7 @@ class AuditLogger:
             new_values=new_values,
             ip_address=ip_address,
             metadata=metadata,
+            session=session,
         )
 
     @staticmethod
@@ -139,6 +144,7 @@ class AuditLogger:
         old_values: dict,
         ip_address: Optional[str] = None,
         metadata: Optional[dict] = None,
+        session: Optional[Session] = None,
     ) -> Optional[AuditLog]:
         """Log data deletion event."""
         return AuditLogger.log_action(
@@ -149,4 +155,5 @@ class AuditLogger:
             old_values=old_values,
             ip_address=ip_address,
             metadata=metadata,
+            session=session,
         )
