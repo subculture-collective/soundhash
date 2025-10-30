@@ -95,7 +95,7 @@ class StripeService:
 
             # Determine trial period (only for paid plans)
             if trial_period_days is None and plan.tier != PlanTier.FREE:
-                trial_period_days = 14  # Default 14-day trial
+                trial_period_days = Config.DEFAULT_TRIAL_DAYS  # Use configured default trial period
 
             session = stripe.checkout.Session.create(
                 customer=customer_id,

@@ -46,6 +46,7 @@ class WebhookHandler:
 
     async def handle_subscription_created(self, subscription: Dict[str, Any]):
         """Handle new subscription creation."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -56,7 +57,6 @@ class WebhookHandler:
 
             if not user:
                 logger.error(f"User not found for Stripe customer {subscription['customer']}")
-                session.close()
                 return
 
             # Create subscription record
@@ -84,18 +84,20 @@ class WebhookHandler:
 
             session.add(db_subscription)
             session.commit()
-            session.close()
 
             logger.info(f"Created subscription record for user {user.id}")
         except Exception as e:
             logger.error(f"Error creating subscription: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_subscription_updated(self, subscription: Dict[str, Any]):
         """Handle subscription changes."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -107,7 +109,6 @@ class WebhookHandler:
 
             if not db_subscription:
                 logger.error(f"Subscription not found for Stripe subscription {subscription['id']}")
-                session.close()
                 return
 
             # Update subscription details
@@ -128,18 +129,20 @@ class WebhookHandler:
                 db_subscription.stripe_price_id = subscription["items"]["data"][0]["price"]["id"]
 
             session.commit()
-            session.close()
 
             logger.info(f"Updated subscription {db_subscription.id}")
         except Exception as e:
             logger.error(f"Error updating subscription: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_subscription_deleted(self, subscription: Dict[str, Any]):
         """Handle subscription cancellation."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -151,7 +154,6 @@ class WebhookHandler:
 
             if not db_subscription:
                 logger.error(f"Subscription not found for Stripe subscription {subscription['id']}")
-                session.close()
                 return
 
             # Update subscription status
@@ -161,18 +163,20 @@ class WebhookHandler:
             )
 
             session.commit()
-            session.close()
 
             logger.info(f"Marked subscription {db_subscription.id} as cancelled")
         except Exception as e:
             logger.error(f"Error deleting subscription: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_invoice_created(self, invoice: Dict[str, Any]):
         """Handle invoice creation."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -181,7 +185,6 @@ class WebhookHandler:
 
             if not user:
                 logger.error(f"User not found for Stripe customer {invoice['customer']}")
-                session.close()
                 return
 
             # Get subscription if exists
@@ -217,18 +220,20 @@ class WebhookHandler:
 
             session.add(db_invoice)
             session.commit()
-            session.close()
 
             logger.info(f"Created invoice record for user {user.id}")
         except Exception as e:
             logger.error(f"Error creating invoice: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_invoice_finalized(self, invoice: Dict[str, Any]):
         """Handle invoice finalization."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -236,6 +241,8 @@ class WebhookHandler:
 
             if not db_invoice:
                 # If invoice doesn't exist, create it
+                if session:
+                    session.close()
                 await self.handle_invoice_created(invoice)
                 return
 
@@ -246,18 +253,20 @@ class WebhookHandler:
             db_invoice.hosted_invoice_url = invoice.get("hosted_invoice_url")
 
             session.commit()
-            session.close()
 
             logger.info(f"Finalized invoice {db_invoice.id}")
         except Exception as e:
             logger.error(f"Error finalizing invoice: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_invoice_paid(self, invoice: Dict[str, Any]):
         """Handle successful payment."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -265,7 +274,6 @@ class WebhookHandler:
 
             if not db_invoice:
                 logger.error(f"Invoice not found for Stripe invoice {invoice['id']}")
-                session.close()
                 return
 
             # Update invoice status
@@ -280,7 +288,6 @@ class WebhookHandler:
             )
 
             session.commit()
-            session.close()
 
             logger.info(f"Marked invoice {db_invoice.id} as paid")
 
@@ -290,11 +297,14 @@ class WebhookHandler:
             logger.error(f"Error handling paid invoice: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_payment_failed(self, invoice: Dict[str, Any]):
         """Handle failed payment."""
+        session = None
         try:
             session = db_manager.get_session()
 
@@ -304,8 +314,6 @@ class WebhookHandler:
                 db_invoice.status = invoice.get("status")
                 session.commit()
 
-            session.close()
-
             logger.warning(f"Payment failed for invoice {invoice['id']}")
 
             # TODO: Send payment failed email
@@ -314,8 +322,10 @@ class WebhookHandler:
             logger.error(f"Error handling failed payment: {e}")
             if session:
                 session.rollback()
-                session.close()
             raise
+        finally:
+            if session:
+                session.close()
 
     async def handle_checkout_completed(self, session_data: Dict[str, Any]):
         """Handle successful checkout session completion."""

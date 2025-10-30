@@ -24,11 +24,9 @@ def upgrade() -> None:
     # Add stripe_customer_id to users table
     op.add_column(
         "users",
-        sa.Column("stripe_customer_id", sa.String(255), nullable=True, unique=True),
+        sa.Column("stripe_customer_id", sa.String(255), nullable=True),
     )
-    op.create_index(
-        "idx_users_stripe_customer_id", "users", ["stripe_customer_id"], unique=True
-    )
+    op.create_index("idx_users_stripe_customer_id", "users", ["stripe_customer_id"], unique=True)
 
     # Create subscriptions table
     op.create_table(
@@ -83,9 +81,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(["subscription_id"], ["subscriptions.id"]),
     )
-    op.create_index(
-        "idx_usage_records_subscription_id", "usage_records", ["subscription_id"]
-    )
+    op.create_index("idx_usage_records_subscription_id", "usage_records", ["subscription_id"])
     op.create_index(
         "idx_usage_records_period",
         "usage_records",
@@ -119,9 +115,7 @@ def upgrade() -> None:
     )
     op.create_index("idx_invoices_user_id", "invoices", ["user_id"])
     op.create_index("idx_invoices_subscription_id", "invoices", ["subscription_id"])
-    op.create_index(
-        "idx_invoices_stripe_invoice_id", "invoices", ["stripe_invoice_id"]
-    )
+    op.create_index("idx_invoices_stripe_invoice_id", "invoices", ["stripe_invoice_id"])
     op.create_index("idx_invoices_status", "invoices", ["status"])
 
 
@@ -140,12 +134,8 @@ def downgrade() -> None:
 
     op.drop_index("idx_subscriptions_plan_tier", table_name="subscriptions")
     op.drop_index("idx_subscriptions_status", table_name="subscriptions")
-    op.drop_index(
-        "idx_subscriptions_stripe_customer_id", table_name="subscriptions"
-    )
-    op.drop_index(
-        "idx_subscriptions_stripe_subscription_id", table_name="subscriptions"
-    )
+    op.drop_index("idx_subscriptions_stripe_customer_id", table_name="subscriptions")
+    op.drop_index("idx_subscriptions_stripe_subscription_id", table_name="subscriptions")
     op.drop_index("idx_subscriptions_user_id", table_name="subscriptions")
     op.drop_table("subscriptions")
 

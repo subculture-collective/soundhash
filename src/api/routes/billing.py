@@ -103,20 +103,21 @@ async def create_checkout_session(
 
         # Check if user already has a subscription
         session = db_manager.get_session()
-        existing_subscription = (
-            session.query(Subscription).filter_by(user_id=current_user.id).first()
-        )
-
-        if existing_subscription and existing_subscription.status in ["active", "trialing"]:
-            session.close()
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "User already has an active subscription. "
-                    "Please cancel it first or use the billing portal to upgrade."
-                ),
+        try:
+            existing_subscription = (
+                session.query(Subscription).filter_by(user_id=current_user.id).first()
             )
-        session.close()
+
+            if existing_subscription and existing_subscription.status in ["active", "trialing"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "User already has an active subscription. "
+                        "Please cancel it first or use the billing portal to upgrade."
+                    ),
+                )
+        finally:
+            session.close()
 
         # Create or get Stripe customer
         if not current_user.stripe_customer_id:
@@ -126,10 +127,14 @@ async def create_checkout_session(
 
             # Update user with Stripe customer ID
             session = db_manager.get_session()
-            user = session.query(User).filter_by(id=current_user.id).first()
-            user.stripe_customer_id = customer_id
-            session.commit()
-            session.close()
+            try:
+                user = session.query(User).filter_by(id=current_user.id).first()
+                if user is None:
+                    raise HTTPException(status_code=404, detail="User not found")
+                user.stripe_customer_id = customer_id
+                session.commit()
+            finally:
+                session.close()
         else:
             customer_id = current_user.stripe_customer_id
 
@@ -195,32 +200,33 @@ async def get_subscription(current_user: User = Depends(get_current_user)):
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
+        try:
+            subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
-        if not subscription:
+            if not subscription:
+                return {
+                    "plan": "free",
+                    "status": "active",
+                    "current_period_end": None,
+                    "cancel_at_period_end": False,
+                    "trial_end": None,
+                }
+
+            response = SubscriptionResponse(
+                plan=subscription.plan_tier,
+                status=subscription.status,
+                current_period_end=(
+                    subscription.current_period_end.isoformat()
+                    if subscription.current_period_end
+                    else None
+                ),
+                cancel_at_period_end=subscription.cancel_at_period_end,
+                trial_end=subscription.trial_end.isoformat() if subscription.trial_end else None,
+            )
+
+            return response.dict()
+        finally:
             session.close()
-            return {
-                "plan": "free",
-                "status": "active",
-                "current_period_end": None,
-                "cancel_at_period_end": False,
-                "trial_end": None,
-            }
-
-        response = SubscriptionResponse(
-            plan=subscription.plan_tier,
-            status=subscription.status,
-            current_period_end=(
-                subscription.current_period_end.isoformat()
-                if subscription.current_period_end
-                else None
-            ),
-            cancel_at_period_end=subscription.cancel_at_period_end,
-            trial_end=subscription.trial_end.isoformat() if subscription.trial_end else None,
-        )
-
-        session.close()
-        return response.dict()
 
     except Exception as e:
         logger.error(f"Error fetching subscription: {e}")
@@ -243,24 +249,25 @@ async def cancel_subscription(
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
+        try:
+            subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
-        if not subscription or not subscription.stripe_subscription_id:
+            if not subscription or not subscription.stripe_subscription_id:
+                raise HTTPException(status_code=400, detail="No active subscription found")
+
+            if subscription.status not in ["active", "trialing"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot cancel subscription with status: {subscription.status}",
+                )
+
+            stripe_subscription_id = subscription.stripe_subscription_id
+        finally:
             session.close()
-            raise HTTPException(status_code=400, detail="No active subscription found")
-
-        if subscription.status not in ["active", "trialing"]:
-            session.close()
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot cancel subscription with status: {subscription.status}",
-            )
-
-        session.close()
 
         # Cancel in Stripe
         stripe_service.cancel_subscription(
-            subscription_id=subscription.stripe_subscription_id, at_period_end=at_period_end
+            subscription_id=stripe_subscription_id, at_period_end=at_period_end
         )
 
         message = (
@@ -291,71 +298,81 @@ async def get_usage(current_user: User = Depends(get_current_user)):
     """
     try:
         session = db_manager.get_session()
-        subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
+        try:
+            subscription = session.query(Subscription).filter_by(user_id=current_user.id).first()
 
-        if not subscription:
-            # Free tier user
-            plan = get_plan(PlanTier.FREE)
-            session.close()
-            return UsageResponse(
-                plan=PlanTier.FREE.value,
-                usage={
+            if not subscription:
+                # Free tier user
+                plan = get_plan(PlanTier.FREE)
+                return UsageResponse(
+                    plan=PlanTier.FREE.value,
+                    usage={
+                        "api_calls": 0,
+                        "videos_processed": 0,
+                        "matches_performed": 0,
+                        "storage_used_mb": 0,
+                    },
+                    limits=plan.features,
+                ).dict()
+
+            # Get current period usage
+            usage_record = (
+                session.query(UsageRecord)
+                .filter(
+                    UsageRecord.subscription_id == subscription.id,
+                    UsageRecord.period_start == subscription.current_period_start,
+                    UsageRecord.period_end == subscription.current_period_end,
+                )
+                .first()
+            )
+
+            # Validate and convert plan_tier
+            try:
+                plan_tier = PlanTier(subscription.plan_tier)
+            except ValueError:
+                logger.error(f"Invalid plan_tier value in subscription: {subscription.plan_tier}")
+                raise HTTPException(status_code=500, detail="Invalid subscription plan tier")
+
+            plan = get_plan(plan_tier)
+
+            if not usage_record:
+                usage = {
                     "api_calls": 0,
                     "videos_processed": 0,
                     "matches_performed": 0,
                     "storage_used_mb": 0,
-                },
+                }
+            else:
+                usage = {
+                    "api_calls": usage_record.api_calls,
+                    "videos_processed": usage_record.videos_processed,
+                    "matches_performed": usage_record.matches_performed,
+                    "storage_used_mb": usage_record.storage_used_mb,
+                }
+
+            response = UsageResponse(
+                plan=subscription.plan_tier,
+                billing_period=subscription.billing_period,
+                period_start=(
+                    subscription.current_period_start.isoformat()
+                    if subscription.current_period_start
+                    else None
+                ),
+                period_end=(
+                    subscription.current_period_end.isoformat()
+                    if subscription.current_period_end
+                    else None
+                ),
+                usage=usage,
                 limits=plan.features,
-            ).dict()
-
-        # Get current period usage
-        usage_record = (
-            session.query(UsageRecord)
-            .filter(
-                UsageRecord.subscription_id == subscription.id,
-                UsageRecord.period_start == subscription.current_period_start,
-                UsageRecord.period_end == subscription.current_period_end,
             )
-            .first()
-        )
 
-        plan = get_plan(PlanTier(subscription.plan_tier))
+            return response.dict()
+        finally:
+            session.close()
 
-        if not usage_record:
-            usage = {
-                "api_calls": 0,
-                "videos_processed": 0,
-                "matches_performed": 0,
-                "storage_used_mb": 0,
-            }
-        else:
-            usage = {
-                "api_calls": usage_record.api_calls,
-                "videos_processed": usage_record.videos_processed,
-                "matches_performed": usage_record.matches_performed,
-                "storage_used_mb": usage_record.storage_used_mb,
-            }
-
-        response = UsageResponse(
-            plan=subscription.plan_tier,
-            billing_period=subscription.billing_period,
-            period_start=(
-                subscription.current_period_start.isoformat()
-                if subscription.current_period_start
-                else None
-            ),
-            period_end=(
-                subscription.current_period_end.isoformat()
-                if subscription.current_period_end
-                else None
-            ),
-            usage=usage,
-            limits=plan.features,
-        )
-
-        session.close()
-        return response.dict()
-
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching usage: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch usage")

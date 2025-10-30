@@ -1,6 +1,6 @@
 """Tests for billing endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -127,8 +127,8 @@ class TestCheckoutSession:
             plan_tier="pro",
             billing_period="monthly",
             status="active",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30),
+            current_period_start=datetime.now(timezone.utc),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -211,8 +211,8 @@ class TestSubscriptionManagement:
             plan_tier="pro",
             billing_period="monthly",
             status="active",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30),
+            current_period_start=datetime.now(timezone.utc),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
             cancel_at_period_end=False,
         )
         test_db.add(subscription)
@@ -240,8 +240,8 @@ class TestSubscriptionManagement:
             plan_tier="pro",
             billing_period="monthly",
             status="active",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30),
+            current_period_start=datetime.now(timezone.utc),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -272,8 +272,8 @@ class TestSubscriptionManagement:
             plan_tier="pro",
             billing_period="monthly",
             status="active",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30),
+            current_period_start=datetime.now(timezone.utc),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -326,8 +326,8 @@ class TestUsageTracking:
             plan_tier="pro",
             billing_period="monthly",
             status="active",
-            current_period_start=datetime.utcnow(),
-            current_period_end=datetime.utcnow() + timedelta(days=30),
+            current_period_start=datetime.now(timezone.utc),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
         )
         test_db.add(subscription)
         test_db.commit()
@@ -374,8 +374,10 @@ class TestWebhookHandling:
                 "data": [{"price": {"id": "price_pro_monthly", "recurring": {"interval": "month"}}}]
             },
             "metadata": {"plan_tier": "pro"},
-            "current_period_start": int(datetime.utcnow().timestamp()),
-            "current_period_end": int((datetime.utcnow() + timedelta(days=30)).timestamp()),
+            "current_period_start": int(datetime.now(timezone.utc).timestamp()),
+            "current_period_end": int(
+                (datetime.now(timezone.utc) + timedelta(days=30)).timestamp()
+            ),
             "trial_end": None,
         }
         mock_construct_event.return_value = mock_event
