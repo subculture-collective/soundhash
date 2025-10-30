@@ -69,6 +69,16 @@ class Config:
 
     # Multi-tenant Configuration
     BASE_DOMAIN = os.getenv("BASE_DOMAIN", "soundhash.io")
+    
+    # Enterprise SSO Configuration
+    SSO_SESSION_DURATION_HOURS = int(os.getenv("SSO_SESSION_DURATION_HOURS", 24))
+    SSO_SESSION_CLEANUP_INTERVAL_HOURS = int(os.getenv("SSO_SESSION_CLEANUP_INTERVAL_HOURS", 1))
+    SSO_ENABLED = os.getenv("SSO_ENABLED", "true").lower() == "true"
+    
+    # MFA Configuration
+    MFA_ENABLED = os.getenv("MFA_ENABLED", "true").lower() == "true"
+    MFA_TOTP_ISSUER_NAME = os.getenv("MFA_TOTP_ISSUER_NAME", "SoundHash")
+    MFA_BACKUP_CODES_COUNT = int(os.getenv("MFA_BACKUP_CODES_COUNT", 10))
 
     # Processing
     TEMP_DIR = os.getenv("TEMP_DIR", "./temp")
