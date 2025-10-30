@@ -1,6 +1,5 @@
 """Compliance and privacy API routes (GDPR, CCPA, SOC 2)."""
 
-from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -17,7 +16,6 @@ from src.api.models.compliance import (
     RetentionPolicyCreate,
     RetentionPolicyResponse,
 )
-from src.compliance.audit_logger import AuditLogger
 from src.compliance.consent_manager import ConsentManager
 from src.compliance.data_deletion import DataDeletionService
 from src.compliance.data_export import DataExportService
@@ -60,7 +58,7 @@ async def record_consent(
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("User-Agent"),
         method=consent_data.method or "api",
-        extra_metadata=consent_data.metadata,
+        metadata=consent_data.metadata,
         session=db,
     )
 
@@ -227,7 +225,10 @@ async def process_data_export(
             status_code=status.HTTP_404_NOT_FOUND, detail="Export request not found"
         )
 
-    if export_request.user_id != current_user.id and not current_user.is_admin:
+    if (
+        export_request.user_id != current_user.id
+        and not (current_user.is_admin or getattr(current_user, "role", None) == "admin")
+    ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     file_path = data_export_service.process_export_request(request_id, session=db)
@@ -238,7 +239,7 @@ async def process_data_export(
             detail="Failed to process export request",
         )
 
-    return {"message": "Export processed successfully", "file_path": file_path}
+    return {"message": "Export processed successfully", "request_id": request_id}
 
 
 # =====================================================================

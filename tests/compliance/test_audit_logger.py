@@ -1,6 +1,5 @@
 """Tests for audit logging service."""
 
-import pytest
 from sqlalchemy.orm import Session
 
 from src.compliance.audit_logger import AuditLogger

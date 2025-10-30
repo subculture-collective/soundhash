@@ -5,7 +5,6 @@ import secrets
 from datetime import datetime
 from typing import Dict, Optional
 
-from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from src.compliance.audit_logger import AuditLogger

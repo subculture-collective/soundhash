@@ -3,14 +3,14 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from src.api.auth import get_password_hash, hash_api_key  # noqa: E402
 from src.compliance.data_deletion import DataDeletionService
-from src.database.models import APIKey, DataDeletionRequest, User, UserConsent
+from src.database.models import APIKey, User, UserConsent
 
 
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a test user with associated data."""
-    from src.api.auth import get_password_hash, hash_api_key
 
     user = User(
         username="deletion_test_user",

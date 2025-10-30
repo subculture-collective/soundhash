@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from sqlalchemy.orm import Session
 

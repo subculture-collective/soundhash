@@ -3,6 +3,7 @@
 import pytest
 from sqlalchemy.orm import Session
 
+from src.api.auth import get_password_hash  # noqa: E402
 from src.compliance.consent_manager import ConsentManager
 from src.database.models import User, UserConsent
 
@@ -10,7 +11,6 @@ from src.database.models import User, UserConsent
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a test user."""
-    from src.api.auth import get_password_hash
 
     user = User(
         username="consent_test_user",

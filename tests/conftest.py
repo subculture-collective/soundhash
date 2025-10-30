@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent

@@ -2,11 +2,10 @@
 
 from datetime import datetime, timedelta
 
-import pytest
 from sqlalchemy.orm import Session
 
 from src.compliance.retention import DataRetentionService
-from src.database.models import AuditLog, DataRetentionPolicy, EmailLog
+from src.database.models import AuditLog, EmailLog
 
 
 def test_create_retention_policy(db_session: Session):
@@ -106,7 +105,7 @@ def test_apply_audit_log_retention_policy(db_session: Session):
     db_session.commit()
 
     # Create retention policy (365 days)
-    policy = DataRetentionService.create_policy(
+    DataRetentionService.create_policy(
         policy_name="Audit Log Cleanup",
         data_type="audit_logs",
         retention_days=365,

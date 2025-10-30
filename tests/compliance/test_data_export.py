@@ -2,19 +2,18 @@
 
 import json
 import os
-from pathlib import Path
 
 import pytest
 from sqlalchemy.orm import Session
 
+from src.api.auth import get_password_hash  # noqa: E402
 from src.compliance.data_export import DataExportService
-from src.database.models import DataExportRequest, User
+from src.database.models import User
 
 
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a test user."""
-    from src.api.auth import get_password_hash
 
     user = User(
         username="export_test_user",

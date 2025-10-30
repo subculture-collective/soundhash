@@ -15,13 +15,11 @@ from src.database.connection import db_manager
 from src.database.models import (
     APIKey,
     AuditLog,
-    Channel,
     DataExportRequest,
     EmailLog,
     EmailPreference,
     User,
     UserConsent,
-    Video,
 )
 
 logger = logging.getLogger(__name__)
@@ -273,10 +271,7 @@ class DataExportService:
             with open(file_path, "w") as f:
                 json.dump(data, f, indent=2)
         else:
-            # For now, only JSON is supported
-            # CSV and XML can be added later
-            with open(file_path, "w") as f:
-                json.dump(data, f, indent=2)
+            raise ValueError(f"Unsupported export format: {format}. Only 'json' is currently supported.")
 
         return file_path
 
