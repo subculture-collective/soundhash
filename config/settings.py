@@ -80,7 +80,7 @@ class Config:
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
     
     # Fingerprinting Optimization Settings
-    USE_OPTIMIZED_FINGERPRINTING = os.getenv("USE_OPTIMIZED_FINGERPRINTING", "true").lower() == "true"
+    USE_OPTIMIZED_FINGERPRINTING = os.getenv("USE_OPTIMIZED_FINGERPRINTING", "false").lower() == "true"
     FINGERPRINT_USE_GPU = os.getenv("FINGERPRINT_USE_GPU", "auto").lower()  # auto, true, false
     FINGERPRINT_BATCH_SIZE = int(os.getenv("FINGERPRINT_BATCH_SIZE", 10))
     FINGERPRINT_MAX_WORKERS = int(os.getenv("FINGERPRINT_MAX_WORKERS", 4))

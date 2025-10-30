@@ -5,7 +5,6 @@ LSH allows O(1) approximate nearest neighbor search instead of O(n) linear searc
 This is crucial for production systems with millions of fingerprints.
 """
 
-import hashlib
 from collections import defaultdict
 from typing import Any
 
@@ -39,6 +38,9 @@ class LSHIndex:
         self.hash_size = hash_size
         
         # Generate random hyperplanes for each table
+        # Note: Using fixed seed (42) ensures consistent hyperplanes across process restarts,
+        # but means all LSH indexes will use identical hyperplanes. For distributed systems
+        # or multiple independent indexes, consider making seed configurable.
         self.hyperplanes = []
         rng = np.random.RandomState(42)  # Fixed seed for reproducibility
         for _ in range(num_tables):

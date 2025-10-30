@@ -86,10 +86,10 @@ def _get_optimized_fingerprinter(**kwargs: Any) -> OptimizedAudioFingerprinter:
     if use_gpu is None:
         # Auto-detect based on config
         gpu_config = Config.FINGERPRINT_USE_GPU
-        if gpu_config == "auto":
+        if gpu_config.lower() == "auto":
             use_gpu = None  # Let OptimizedAudioFingerprinter auto-detect
         else:
-            use_gpu = gpu_config == "true"
+            use_gpu = gpu_config.lower() == "true"
     
     # Batch processing settings
     enable_batch_mode = kwargs.get("enable_batch_mode", True)

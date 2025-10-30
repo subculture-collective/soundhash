@@ -1,7 +1,5 @@
 """Tests for fingerprinter factory."""
 
-import pytest
-
 from config.settings import Config
 from src.core.audio_fingerprinting import AudioFingerprinter
 from src.core.audio_fingerprinting_optimized import OptimizedAudioFingerprinter

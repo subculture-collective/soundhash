@@ -1,7 +1,6 @@
 """Tests for LSH index functionality."""
 
 import numpy as np
-import pytest
 
 from src.core.lsh_index import LSHIndex, MultiResolutionFingerprinter
 from src.core.audio_fingerprinting_optimized import OptimizedAudioFingerprinter

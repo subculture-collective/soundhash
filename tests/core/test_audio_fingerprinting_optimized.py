@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pytest
 import soundfile as sf
 
 from src.core.audio_fingerprinting import AudioFingerprinter
@@ -156,7 +155,13 @@ class TestOptimizedAudioFingerprinter:
         assert np.array_equal(fp["compact_fingerprint"], deserialized["compact_fingerprint"])
 
     def test_rank_matches(self):
-        """Test ranking matches."""
+        """
+        Test ranking matches.
+        
+        Note: Uses zero thresholds to ensure test audio (synthetic sine waves) generates
+        enough matches. Real production code would use higher thresholds from config.
+        The test validates ranking logic and API rather than threshold effectiveness.
+        """
         fingerprinter = OptimizedAudioFingerprinter()
 
         sample_rate = 22050
@@ -180,7 +185,7 @@ class TestOptimizedAudioFingerprinter:
             fp = fingerprinter.extract_fingerprint_from_audio(audio, sample_rate)
             candidates.append((f"candidate_{i}", fp))
 
-        # Use lower thresholds for test audio
+        # Use zero thresholds for synthetic test audio (see docstring note)
         matches = fingerprinter.rank_matches(
             query_fp, candidates, 
             min_score=0.0,

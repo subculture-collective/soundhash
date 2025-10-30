@@ -168,7 +168,7 @@ class OptimizedAudioFingerprinter:
         """
         # Compute STFT (potentially on GPU)
         if self.use_gpu and CUPY_AVAILABLE:
-            magnitude = self._compute_stft_gpu(y)
+            magnitude = self._compute_stft_with_gpu_fallback(y)
         else:
             magnitude = self._compute_stft_cpu(y)
 
@@ -199,21 +199,23 @@ class OptimizedAudioFingerprinter:
         stft = librosa.stft(y, n_fft=self.n_fft, hop_length=self.hop_length)
         return np.abs(stft)
 
-    def _compute_stft_gpu(self, y: np.ndarray) -> np.ndarray:
-        """Compute STFT on GPU using CuPy."""
+    def _compute_stft_with_gpu_fallback(self, y: np.ndarray) -> np.ndarray:
+        """
+        Compute STFT with GPU fallback (currently CPU-only).
+        
+        Note: This method currently uses CPU computation as librosa does not support
+        CuPy arrays. For true GPU acceleration, cuSignal or custom CUDA kernels
+        would be required. The method name reflects the intended architecture.
+        """
         try:
-            # Transfer audio to GPU
-            y_gpu = cp.asarray(y)
-            
-            # Compute STFT on GPU (using librosa with CuPy backend)
-            # Note: librosa doesn't have native CuPy support, so we use CPU STFT
+            # Currently falls back to CPU as librosa doesn't support CuPy arrays
             # For true GPU acceleration, we'd need cuSignal or custom CUDA kernels
             stft = librosa.stft(y, n_fft=self.n_fft, hop_length=self.hop_length)
             magnitude = np.abs(stft)
             
             return magnitude
         except Exception:
-            # Fallback to CPU if GPU fails
+            # Fallback to CPU if computation fails
             return self._compute_stft_cpu(y)
 
     def _extract_peaks_vectorized(
@@ -405,7 +407,13 @@ class OptimizedAudioFingerprinter:
         return float(similarity)
 
     def serialize_fingerprint(self, fingerprint: dict[str, Any]) -> bytes:
-        """Serialize fingerprint for database storage."""
+        """
+        Serialize fingerprint for database storage.
+        
+        WARNING: Uses pickle for serialization. Only deserialize data from trusted sources
+        as pickle can execute arbitrary code during deserialization. For production systems
+        handling untrusted data, consider using a safer format like JSON with NumPy encoding.
+        """
         serializable = {
             "compact_fingerprint": fingerprint["compact_fingerprint"],
             "confidence_score": fingerprint["confidence_score"],
@@ -416,7 +424,12 @@ class OptimizedAudioFingerprinter:
         return pickle.dumps(serializable)
 
     def deserialize_fingerprint(self, data: bytes) -> dict[str, Any]:
-        """Deserialize fingerprint from database."""
+        """
+        Deserialize fingerprint from database.
+        
+        WARNING: Only deserialize data from trusted sources. See serialize_fingerprint
+        for security considerations.
+        """
         return pickle.loads(data)
 
     def rank_matches(

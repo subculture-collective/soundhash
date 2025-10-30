@@ -77,12 +77,12 @@ def benchmark_extraction_speed():
             try:
                 # Original
                 start = time.time()
-                fp_orig = original.extract_fingerprint(tmp.name)
+                original.extract_fingerprint(tmp.name)
                 time_orig = (time.time() - start) * 1000
                 
                 # Optimized
                 start = time.time()
-                fp_opt = optimized.extract_fingerprint(tmp.name)
+                optimized.extract_fingerprint(tmp.name)
                 time_opt = (time.time() - start) * 1000
                 
                 # Calculate per-second metrics
@@ -326,12 +326,12 @@ def benchmark_gpu_acceleration():
         try:
             # CPU
             start = time.time()
-            fp_cpu = optimized_cpu.extract_fingerprint(tmp.name)
+            optimized_cpu.extract_fingerprint(tmp.name)
             time_cpu = (time.time() - start) * 1000
             
             # GPU
             start = time.time()
-            fp_gpu = optimized_gpu.extract_fingerprint(tmp.name)
+            optimized_gpu.extract_fingerprint(tmp.name)
             time_gpu = (time.time() - start) * 1000
             
             speedup = time_cpu / time_gpu if time_gpu > 0 else 1.0
@@ -456,9 +456,13 @@ if __name__ == "__main__":
     try:
         from tabulate import tabulate
     except ImportError:
-        print("Installing tabulate for better output formatting...")
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "tabulate"])
-        from tabulate import tabulate
+        print(
+            "Error: The 'tabulate' package is required for this script.\n"
+            "Please install it by running:\n"
+            "    pip install tabulate\n"
+            "or install all requirements:\n"
+            "    pip install -r requirements.txt\n"
+        )
+        sys.exit(1)
     
     sys.exit(main())
