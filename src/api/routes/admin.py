@@ -1,6 +1,7 @@
 """Admin routes."""
 
 import math
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -204,3 +205,173 @@ async def delete_user(
     db.commit()
 
     return SuccessResponse(message="User deleted successfully")
+
+
+@router.post("/users/{user_id}/ban", response_model=SuccessResponse)
+async def ban_user(
+    user_id: int,
+    admin_user: Annotated[User, Depends(get_admin_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Ban a user (admin only)."""
+    if user_id == admin_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot ban your own account",
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    user.is_active = False
+    db.commit()
+
+    return SuccessResponse(message="User banned successfully")
+
+
+@router.post("/users/{user_id}/unban", response_model=SuccessResponse)
+async def unban_user(
+    user_id: int,
+    admin_user: Annotated[User, Depends(get_admin_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Unban a user (admin only)."""
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    user.is_active = True
+    db.commit()
+
+    return SuccessResponse(message="User unbanned successfully")
+
+
+@router.post("/jobs/{job_id}/cancel", response_model=SuccessResponse)
+async def cancel_job(
+    job_id: int,
+    admin_user: Annotated[User, Depends(get_admin_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Cancel a pending or running job (admin only)."""
+    job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id).first()
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+
+    if job.status not in ['pending', 'running']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only cancel pending or running jobs",
+        )
+
+    job.status = 'cancelled'
+    job.error_message = "Cancelled by admin"
+    db.commit()
+
+    return SuccessResponse(message="Job cancelled successfully")
+
+
+@router.get("/health")
+async def admin_health_check(
+    admin_user: Annotated[User, Depends(get_admin_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    """Get detailed health check information (admin only)."""
+    from sqlalchemy import text
+    
+    # Check database
+    try:
+        db.execute(text("SELECT 1"))
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+
+    # Check job queue health
+    stuck_jobs = db.query(func.count(ProcessingJob.id)).filter(
+        ProcessingJob.status == 'running',
+        ProcessingJob.started_at < datetime.utcnow() - timedelta(hours=2)
+    ).scalar() or 0
+
+    return {
+        "status": "healthy" if db_status == "healthy" and stuck_jobs == 0 else "degraded",
+        "database": db_status,
+        "stuck_jobs": stuck_jobs,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@router.get("/analytics")
+async def get_analytics(
+    admin_user: Annotated[User, Depends(get_admin_user)],
+    db: Annotated[Session, Depends(get_db)],
+    start_date: str | None = Query(None, description="Start date (ISO format)"),
+    end_date: str | None = Query(None, description="End date (ISO format)"),
+):
+    """Get analytics data with optional date filtering (admin only)."""
+    # Default to last 30 days
+    if not start_date:
+        start_dt = datetime.utcnow() - timedelta(days=30)
+    else:
+        start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    
+    if not end_date:
+        end_dt = datetime.utcnow()
+    else:
+        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+
+    # User growth over time
+    user_growth = []
+    current_date = start_dt
+    while current_date <= end_dt:
+        next_date = current_date + timedelta(days=1)
+        count = db.query(func.count(User.id)).filter(
+            User.created_at >= current_date,
+            User.created_at < next_date
+        ).scalar() or 0
+        
+        user_growth.append({
+            "date": current_date.strftime('%Y-%m-%d'),
+            "count": count
+        })
+        current_date = next_date
+
+    # Job status distribution
+    job_status = []
+    for status_name in ['pending', 'running', 'completed', 'failed', 'cancelled']:
+        count = db.query(func.count(ProcessingJob.id)).filter(
+            ProcessingJob.status == status_name,
+            ProcessingJob.created_at >= start_dt,
+            ProcessingJob.created_at <= end_dt
+        ).scalar() or 0
+        
+        job_status.append({
+            "status": status_name,
+            "count": count
+        })
+
+    # Video processing stats
+    videos_processed = db.query(func.count(Video.id)).filter(
+        Video.processed == True,
+        Video.created_at >= start_dt,
+        Video.created_at <= end_dt
+    ).scalar() or 0
+
+    return {
+        "user_growth": user_growth,
+        "job_status": job_status,
+        "videos_processed": videos_processed,
+        "start_date": start_dt.isoformat(),
+        "end_date": end_dt.isoformat(),
+    }
