@@ -78,6 +78,23 @@ class Config:
         os.getenv("SEGMENT_LENGTH_SECONDS", 90)
     )  # Longer segments for better accuracy
     FINGERPRINT_SAMPLE_RATE = int(os.getenv("FINGERPRINT_SAMPLE_RATE", 22050))
+    
+    # Fingerprinting Optimization Settings
+    USE_OPTIMIZED_FINGERPRINTING = os.getenv("USE_OPTIMIZED_FINGERPRINTING", "true").lower() == "true"
+    FINGERPRINT_USE_GPU = os.getenv("FINGERPRINT_USE_GPU", "auto").lower()  # auto, true, false
+    FINGERPRINT_BATCH_SIZE = int(os.getenv("FINGERPRINT_BATCH_SIZE", 10))
+    FINGERPRINT_MAX_WORKERS = int(os.getenv("FINGERPRINT_MAX_WORKERS", 4))
+    FINGERPRINT_N_FFT = int(os.getenv("FINGERPRINT_N_FFT", 2048))
+    FINGERPRINT_HOP_LENGTH = int(os.getenv("FINGERPRINT_HOP_LENGTH", 512))
+    
+    # LSH Index Settings
+    USE_LSH_INDEX = os.getenv("USE_LSH_INDEX", "false").lower() == "true"
+    LSH_NUM_TABLES = int(os.getenv("LSH_NUM_TABLES", 5))
+    LSH_HASH_SIZE = int(os.getenv("LSH_HASH_SIZE", 12))
+    LSH_MAX_CANDIDATES = int(os.getenv("LSH_MAX_CANDIDATES", 100))
+    
+    # Multi-Resolution Fingerprinting
+    USE_MULTI_RESOLUTION = os.getenv("USE_MULTI_RESOLUTION", "false").lower() == "true"
 
     # Caching
     YT_DLP_CACHE_DIR = os.getenv("YT_DLP_CACHE_DIR", "./cache/yt-dlp")
