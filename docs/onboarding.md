@@ -92,6 +92,7 @@ In-app tooltips that provide context-sensitive assistance:
 
 **Usage:**
 ```tsx
+// Import from the onboarding components directory
 import ContextualTooltip, { useContextualHelp } from '@/components/onboarding/ContextualTooltip'
 
 function MyComponent() {
@@ -251,7 +252,12 @@ The existing email automation system (`src/email/automation.py`) sends onboardin
 - Day 3: Tips & tricks
 - Day 7: Feature highlights
 
-These emails can be coordinated with the UI onboarding progress.
+**Coordination with UI Onboarding:**
+- Email triggers check `onboarding_progress.is_completed` to avoid sending unnecessary emails
+- Emails reference specific onboarding steps that users can complete in the UI
+- Email content can be personalized based on `use_case` selection
+- Suggested: Add a "Resume Onboarding" button in emails linking to `/onboarding`
+- Consider suppressing later emails if user completes onboarding early
 
 ### Analytics
 
@@ -338,6 +344,13 @@ alembic upgrade head
 # Or use the specific revision
 alembic upgrade d4e8a9b2c1f5
 ```
+
+**Important Notes:**
+- **Downtime:** This migration creates new tables and does not modify existing ones, so it can be run with minimal downtime
+- **Prerequisites:** Ensure database backup is taken before running migrations in production
+- **Dependencies:** Requires PostgreSQL with JSON support (standard in modern versions)
+- **Testing:** Test migration in staging environment first
+- **Rollback:** Use `alembic downgrade d4e8a9b2c1f5` if needed to rollback changes
 
 ## Future Enhancements
 
