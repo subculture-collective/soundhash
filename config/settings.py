@@ -275,6 +275,20 @@ class Config:
     COMPLIANCE_MODE = os.getenv("COMPLIANCE_MODE", "none")  # soc2, iso27001, hipaa, none
     DATA_RETENTION_POLICY_DAYS = int(os.getenv("DATA_RETENTION_POLICY_DAYS", 365))
     
+    # ==================== Billing & Payments Configuration ====================
+    
+    # Stripe Configuration
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    
+    # Frontend URL for redirects
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    
+    # Billing Settings
+    DEFAULT_TRIAL_DAYS = int(os.getenv("DEFAULT_TRIAL_DAYS", 14))
+    BILLING_GRACE_PERIOD_DAYS = int(os.getenv("BILLING_GRACE_PERIOD_DAYS", 3))
+    
     @classmethod
     def get_database_url(cls):
         if cls.DATABASE_URL:

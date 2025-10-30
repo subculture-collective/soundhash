@@ -81,11 +81,16 @@ class User(Base):  # type: ignore[misc,valid-type]
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_login = Column(DateTime)
 
+    # Stripe customer ID for billing
+    stripe_customer_id = Column(String(255), unique=True)
+
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="users")  # type: ignore[assignment]
     api_keys: Mapped[list["APIKey"]] = relationship("APIKey", back_populates="user")  # type: ignore[assignment]
     email_preferences: Mapped["EmailPreference"] = relationship("EmailPreference", back_populates="user", uselist=False)  # type: ignore[assignment]
     email_logs: Mapped[list["EmailLog"]] = relationship("EmailLog", back_populates="user")  # type: ignore[assignment]
+    subscription: Mapped["Subscription"] = relationship("Subscription", back_populates="user", uselist=False)  # type: ignore[assignment]
+    invoices: Mapped[list["Invoice"]] = relationship("Invoice", back_populates="user")  # type: ignore[assignment]
 
 
 class APIKey(Base):  # type: ignore[misc,valid-type]
@@ -754,4 +759,122 @@ Index("idx_dpas_tenant_id", DataProcessingAgreement.tenant_id)
 Index("idx_dpas_status", DataProcessingAgreement.status)
 Index("idx_third_party_processors_category", ThirdPartyDataProcessor.category)
 Index("idx_third_party_processors_active", ThirdPartyDataProcessor.is_active)
+
+
+# =====================================================================
+# BILLING AND SUBSCRIPTION MODELS
+# =====================================================================
+
+
+class Subscription(Base):  # type: ignore[misc,valid-type]
+    """User subscription model for billing."""
+
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Stripe IDs
+    stripe_subscription_id = Column(String(255), unique=True)
+    stripe_customer_id = Column(String(255))
+    stripe_price_id = Column(String(255))
+
+    # Plan details
+    plan_tier = Column(String(50), nullable=False)  # free, pro, enterprise
+    billing_period = Column(String(20))  # monthly, yearly
+
+    # Status
+    status = Column(String(50))  # active, cancelled, past_due, trialing, incomplete
+    trial_end = Column(DateTime)
+    current_period_start = Column(DateTime)
+    current_period_end = Column(DateTime)
+    cancel_at_period_end = Column(Boolean, default=False)
+    cancelled_at = Column(DateTime)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="subscription")  # type: ignore[assignment]
+    usage_records: Mapped[list["UsageRecord"]] = relationship("UsageRecord", back_populates="subscription")  # type: ignore[assignment]
+
+
+class UsageRecord(Base):  # type: ignore[misc,valid-type]
+    """Usage tracking for billing periods."""
+
+    __tablename__ = "usage_records"
+
+    id = Column(Integer, primary_key=True)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=False)
+
+    # Usage metrics
+    api_calls = Column(Integer, default=0)
+    videos_processed = Column(Integer, default=0)
+    matches_performed = Column(Integer, default=0)
+    storage_used_mb = Column(Float, default=0)
+
+    # Billing period
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+
+    # Stripe
+    stripe_usage_record_id = Column(String(255))
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    subscription: Mapped["Subscription"] = relationship("Subscription", back_populates="usage_records")  # type: ignore[assignment]
+
+
+class Invoice(Base):  # type: ignore[misc,valid-type]
+    """Invoice records from Stripe."""
+
+    __tablename__ = "invoices"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+
+    # Stripe
+    stripe_invoice_id = Column(String(255), unique=True)
+    stripe_payment_intent_id = Column(String(255))
+
+    # Details
+    amount_due = Column(Integer)  # In cents
+    amount_paid = Column(Integer)
+    amount_remaining = Column(Integer)
+    currency = Column(String(3), default="usd")
+
+    # Status
+    status = Column(String(50))  # draft, open, paid, void, uncollectible
+    paid = Column(Boolean, default=False)
+
+    # URLs
+    invoice_pdf = Column(String(500))
+    hosted_invoice_url = Column(String(500))
+
+    # Dates
+    created = Column(DateTime)
+    due_date = Column(DateTime)
+    paid_at = Column(DateTime)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="invoices")  # type: ignore[assignment]
+
+
+# Indexes for billing tables
+Index("idx_subscriptions_user_id", Subscription.user_id)
+Index("idx_subscriptions_stripe_subscription_id", Subscription.stripe_subscription_id)
+Index("idx_subscriptions_stripe_customer_id", Subscription.stripe_customer_id)
+Index("idx_subscriptions_status", Subscription.status)
+Index("idx_subscriptions_plan_tier", Subscription.plan_tier)
+Index("idx_usage_records_subscription_id", UsageRecord.subscription_id)
+Index("idx_usage_records_period", UsageRecord.period_start, UsageRecord.period_end)
+Index("idx_invoices_user_id", Invoice.user_id)
+Index("idx_invoices_subscription_id", Invoice.subscription_id)
+Index("idx_invoices_stripe_invoice_id", Invoice.stripe_invoice_id)
+Index("idx_invoices_status", Invoice.status)
 

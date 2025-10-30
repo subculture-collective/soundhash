@@ -151,6 +151,7 @@ async def readiness_check():
 from src.api.routes import (
     admin,
     auth,
+    billing,
     channels,
     compliance,
     email,
@@ -173,6 +174,7 @@ app.include_router(email.router, prefix="/api/v1", tags=["Email"])
 app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
 app.include_router(security.router, prefix="/api/v1/security", tags=["Security"])
 app.include_router(compliance.router, prefix="/api/v1/compliance", tags=["Compliance"])
+app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 
 
 # WebSocket endpoint for real-time audio streaming
