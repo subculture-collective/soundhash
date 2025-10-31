@@ -111,9 +111,12 @@ class RewardsService:
                 awarded_badges.append(badge)
 
         # Check API usage badges
+        from src.database.models import Subscription
+        
         total_api_calls = (
             session.query(func.sum(UsageRecord.api_calls))
-            .join(UsageRecord.subscription)
+            .join(Subscription, UsageRecord.subscription_id == Subscription.id)
+            .join(User, Subscription.user_id == User.id)
             .filter(User.id == user_id)
             .scalar()
             or 0

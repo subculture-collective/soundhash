@@ -401,7 +401,7 @@ async def create_campaign(
     current_user: User = Depends(get_current_user),
 ):
     """Create a promotional campaign (admin only)."""
-    if not current_user.is_admin:
+    if not (current_user.is_admin and current_user.is_active):
         raise HTTPException(status_code=403, detail="Admin access required")
 
     try:

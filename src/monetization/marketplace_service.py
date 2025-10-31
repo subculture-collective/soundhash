@@ -69,7 +69,7 @@ class MarketplaceService:
         if item.status != "active":
             raise ValueError("Item is not available for purchase")
 
-        # Calculate fees (15% marketplace fee)
+        # Calculate fees (marketplace_fee_percentage is stored as whole number, e.g., 15.0 for 15%)
         marketplace_fee = int(item.price * (item.marketplace_fee_percentage / 100))
         seller_payout = item.price - marketplace_fee
 

@@ -143,7 +143,7 @@ class CampaignService:
         return (
             session.query(Campaign)
             .filter(
-                Campaign.is_active == True,
+                Campaign.is_active.is_(True),
                 Campaign.start_date <= now,
                 Campaign.end_date >= now,
             )
