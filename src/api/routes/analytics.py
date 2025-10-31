@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, desc, func, text
 from sqlalchemy.orm import Session
 
@@ -16,13 +15,10 @@ from src.database.models import (
     AnalyticsEvent,
     CohortAnalysis,
     DashboardConfig,
-    MatchResult,
     ReportConfig,
     RevenueMetric,
-    ScheduledReport,
     User,
     UserJourney,
-    Video,
 )
 
 router = APIRouter()
@@ -417,10 +413,11 @@ async def create_dashboard(
     db: Annotated[Session, Depends(get_db)],
     name: str,
     description: str | None = None,
-    layout: dict[str, Any] = {},
+    layout: dict[str, Any] | None = None,
     is_default: bool = False,
 ):
     """Create a custom dashboard configuration."""
+    layout = layout or {}
     # If setting as default, unset other defaults
     if is_default:
         db.query(DashboardConfig).filter(

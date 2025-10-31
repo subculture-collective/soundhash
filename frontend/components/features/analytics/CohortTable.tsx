@@ -1,7 +1,5 @@
 'use client'
 
-import { Table } from '@/components/ui/table'
-
 const cohortData = [
   { cohort: 'Jan 2024', size: 1200, week1: 95, week2: 87, week3: 78, week4: 72, week5: 68, week6: 65 },
   { cohort: 'Feb 2024', size: 1450, week1: 94, week2: 85, week3: 76, week4: 70, week5: 66, week6: 62 },

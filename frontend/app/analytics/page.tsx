@@ -9,7 +9,6 @@ import {
   Users, 
   Activity, 
   DollarSign,
-  Clock,
   AlertCircle,
   Download
 } from 'lucide-react'

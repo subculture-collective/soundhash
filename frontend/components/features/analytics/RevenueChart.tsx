@@ -1,6 +1,6 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ComposedChart, Bar } from 'recharts'
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, ComposedChart, Bar } from 'recharts'
 
 const revenueData = [
   { month: 'Jan', revenue: 12500, mrr: 11200, forecast: null },

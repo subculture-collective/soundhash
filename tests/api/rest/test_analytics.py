@@ -1,6 +1,5 @@
 """Tests for analytics endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 

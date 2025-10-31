@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   Activity, 
   Users, 
-  TrendingUp, 
   Clock,
   BarChart3,
   AlertCircle

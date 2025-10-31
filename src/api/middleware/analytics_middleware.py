@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import UTC, datetime
 
-from fastapi import Request
+from fastapi import BackgroundTasks, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
@@ -12,6 +12,53 @@ from src.database.connection import db_manager
 from src.database.models import APIUsageLog
 
 logger = logging.getLogger(__name__)
+
+
+def log_api_usage(
+    tenant_id: int | None,
+    user_id: int | None,
+    api_key_id: int | None,
+    endpoint: str,
+    method: str,
+    path_params: dict | None,
+    query_params: dict | None,
+    status_code: int,
+    response_time_ms: int,
+    response_size_bytes: int,
+    ip_address: str | None,
+    user_agent: str | None,
+) -> None:
+    """Log API usage to database in background."""
+    session = None
+    try:
+        session = db_manager.get_session()
+        
+        api_log = APIUsageLog(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            api_key_id=api_key_id,
+            endpoint=endpoint,
+            method=method,
+            path_params=path_params,
+            query_params=query_params,
+            status_code=status_code,
+            response_time_ms=response_time_ms,
+            response_size_bytes=response_size_bytes,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            timestamp=datetime.now(UTC),
+        )
+        
+        session.add(api_log)
+        session.commit()
+    except Exception as e:
+        # Don't let analytics errors break the API
+        logger.error(f"Failed to log API usage: {e}")
+        if session:
+            session.rollback()
+    finally:
+        if session:
+            session.close()
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -59,33 +106,26 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         path_params = dict(request.path_params) if hasattr(request, "path_params") else {}
         query_params = dict(request.query_params)
         
-        # Log API usage
-        # TODO: Consider using async database operations or background task queue
-        # to avoid blocking the request-response cycle
-        try:
-            session = db_manager.get_session()
-            
-            api_log = APIUsageLog(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                api_key_id=api_key_id,
-                endpoint=request.url.path,
-                method=request.method,
-                path_params=path_params if path_params else None,
-                query_params=query_params if query_params else None,
-                status_code=response.status_code,
-                response_time_ms=response_time_ms,
-                response_size_bytes=response_size_bytes,
-                ip_address=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
-                timestamp=datetime.now(UTC),
-            )
-            
-            session.add(api_log)
-            session.commit()
-            session.close()
-        except Exception as e:
-            # Don't let analytics errors break the API
-            logger.error(f"Failed to log API usage: {e}")
+        # Schedule API usage logging as a background task
+        # This prevents blocking the request-response cycle
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(
+            log_api_usage,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            api_key_id=api_key_id,
+            endpoint=request.url.path,
+            method=request.method,
+            path_params=path_params if path_params else None,
+            query_params=query_params if query_params else None,
+            status_code=response.status_code,
+            response_time_ms=response_time_ms,
+            response_size_bytes=response_size_bytes,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+        
+        # Attach background tasks to response
+        response.background = background_tasks
         
         return response

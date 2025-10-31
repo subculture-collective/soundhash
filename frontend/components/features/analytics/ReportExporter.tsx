@@ -10,8 +10,7 @@ import {
   FileText,
   FileSpreadsheet,
   Mail,
-  Calendar,
-  CheckCircle2
+  Calendar
 } from 'lucide-react'
 
 interface ReportConfig {
