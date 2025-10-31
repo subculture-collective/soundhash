@@ -75,8 +75,8 @@ def test_create_dashboard_config(client: TestClient, auth_headers: dict):
             "name": "Test Dashboard",
             "description": "A test dashboard",
             "is_default": False,
+            "layout": {"widgets": []},
         },
-        json={"layout": {"widgets": []}},
     )
     assert response.status_code == 200
     

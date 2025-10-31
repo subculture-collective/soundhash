@@ -254,21 +254,21 @@ async def get_funnel_analysis(
     # Completed
     completed = (
         db.query(func.count(UserJourney.id))
-        .filter(and_(*filters), UserJourney.is_completed == True)
+        .filter(and_(*filters), UserJourney.is_completed.is_(True))
         .scalar() or 0
     )
     
     # Dropped off
     dropped_off = (
         db.query(func.count(UserJourney.id))
-        .filter(and_(*filters), UserJourney.dropped_off == True)
+        .filter(and_(*filters), UserJourney.dropped_off.is_(True))
         .scalar() or 0
     )
     
     # Drop-off by step
     drop_off_by_step = (
         db.query(UserJourney.drop_off_step, func.count(UserJourney.id))
-        .filter(and_(*filters), UserJourney.dropped_off == True)
+        .filter(and_(*filters), UserJourney.dropped_off.is_(True))
         .group_by(UserJourney.drop_off_step)
         .all()
     )
@@ -425,7 +425,7 @@ async def create_dashboard(
     if is_default:
         db.query(DashboardConfig).filter(
             DashboardConfig.user_id == current_user.id,
-            DashboardConfig.is_default == True,
+            DashboardConfig.is_default.is_(True),
         ).update({"is_default": False})
     
     dashboard = DashboardConfig(
@@ -539,7 +539,7 @@ async def update_dashboard(
             db.query(DashboardConfig).filter(
                 DashboardConfig.user_id == current_user.id,
                 DashboardConfig.id != dashboard_id,
-                DashboardConfig.is_default == True,
+                DashboardConfig.is_default.is_(True),
             ).update({"is_default": False})
         dashboard.is_default = is_default
     

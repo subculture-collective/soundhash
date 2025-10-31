@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
@@ -1091,7 +1091,7 @@ class AnalyticsEvent(Base):  # type: ignore[misc,valid-type]
     value = Column(Float)  # Numeric value (e.g., revenue, count)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
 class DashboardConfig(Base):  # type: ignore[misc,valid-type]
@@ -1116,8 +1116,8 @@ class DashboardConfig(Base):  # type: ignore[misc,valid-type]
     share_token = Column(String(255), unique=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
     last_viewed_at = Column(DateTime)
 
     # Relationships
@@ -1148,8 +1148,8 @@ class ReportConfig(Base):  # type: ignore[misc,valid-type]
     export_format = Column(String(20))  # 'pdf', 'csv', 'excel'
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
@@ -1186,8 +1186,8 @@ class ScheduledReport(Base):  # type: ignore[misc,valid-type]
     run_count = Column(Integer, default=0)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
     # Relationships
     report_config: Mapped["ReportConfig"] = relationship("ReportConfig", back_populates="scheduled_reports")  # type: ignore[assignment]
@@ -1224,7 +1224,7 @@ class APIUsageLog(Base):  # type: ignore[misc,valid-type]
     error_type = Column(String(100))
     
     # Timestamps
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
 class UserJourney(Base):  # type: ignore[misc,valid-type]
@@ -1254,9 +1254,9 @@ class UserJourney(Base):  # type: ignore[misc,valid-type]
     metadata = Column(JSON)
     
     # Timestamps
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
     completed_at = Column(DateTime)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
 
 class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
@@ -1286,7 +1286,7 @@ class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
     metrics = Column(JSON)
     
     # Timestamps
-    calculated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    calculated_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
 class RevenueMetric(Base):  # type: ignore[misc,valid-type]
@@ -1326,7 +1326,7 @@ class RevenueMetric(Base):  # type: ignore[misc,valid-type]
     metrics = Column(JSON)  # Additional custom metrics
     
     # Timestamps
-    calculated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    calculated_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
 
 
 # Indexes for billing tables

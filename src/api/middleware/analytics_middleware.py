@@ -1,7 +1,7 @@
 """Middleware for tracking API usage analytics."""
 
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -73,7 +73,7 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
                 response_size_bytes=response_size_bytes,
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
             )
             
             session.add(api_log)
