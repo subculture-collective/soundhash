@@ -288,8 +288,8 @@ class BackupEncryption:
         if key.startswith("AGE-SECRET-KEY-"):
             try:
                 os.unlink(key_file)
-            except:
-                pass
+            except (OSError, FileNotFoundError) as e:
+                self.logger.debug(f"Failed to remove temp key file: {e}")
 
         if result.returncode != 0:
             raise EncryptionError(f"Age decryption failed: {result.stderr}")

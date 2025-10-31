@@ -308,7 +308,8 @@ class DisasterRecovery:
                 query = f"SELECT COUNT(*) as count FROM {table};"
                 result = self._execute_query(query)
                 counts[table] = result[0]["count"] if result else 0
-            except:
+            except (subprocess.CalledProcessError, KeyError, IndexError) as e:
+                self.logger.debug(f"Failed to count rows in {table}: {e}")
                 counts[table] = None
 
         return {
@@ -377,6 +378,9 @@ class DisasterRecovery:
 
     def _execute_query(self, query: str) -> list[dict[str, Any]]:
         """Execute a SQL query and return results."""
+        # Extract column names from the query for proper parsing
+        import re
+        
         cmd = [
             "psql",
             "-h", Config.DATABASE_HOST,
@@ -385,7 +389,6 @@ class DisasterRecovery:
             "-d", self.test_db_name,
             "-t",  # Tuples only
             "-A",  # Unaligned output
-            "-F", ",",  # Field separator
             "-c", query,
         ]
 
@@ -395,16 +398,31 @@ class DisasterRecovery:
 
         result = subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
 
-        # Parse output
+        # Parse output - extract alias names from query
         rows = []
         lines = result.stdout.strip().split("\n")
         if lines and lines[0]:
-            # Simple parsing for key-value results
+            # Try to extract column aliases from SELECT clause
+            select_match = re.search(r'SELECT\s+(.+?)\s+FROM', query, re.IGNORECASE | re.DOTALL)
+            if select_match:
+                select_clause = select_match.group(1)
+                # Extract aliases (e.g., "COUNT(*) as table_count" -> "table_count")
+                alias_match = re.search(r'\bas\s+(\w+)', select_clause, re.IGNORECASE)
+                if alias_match:
+                    col_name = alias_match.group(1)
+                else:
+                    col_name = "count"  # Default for simple COUNT(*)
+            else:
+                col_name = "count"
+            
             for line in lines:
-                if line:
-                    parts = line.split(",")
-                    if len(parts) == 1:
-                        rows.append({"count": int(parts[0]) if parts[0].isdigit() else parts[0]})
+                if line.strip():
+                    value = line.strip()
+                    # Try to convert to int if it's numeric
+                    if value.isdigit():
+                        rows.append({col_name: int(value)})
+                    else:
+                        rows.append({col_name: value})
 
         return rows
 
@@ -506,7 +524,8 @@ class DisasterRecovery:
                     test_time = datetime.fromisoformat(test_data["start_time"])
                     if test_time >= cutoff:
                         tests.append(test_data)
-            except:
+            except (json.JSONDecodeError, KeyError, ValueError, IOError) as e:
+                self.logger.debug(f"Failed to parse test file {test_file}: {e}")
                 continue
 
         passed = sum(1 for t in tests if t.get("success"))
@@ -534,8 +553,8 @@ class DisasterRecovery:
                 with open(test_files[0]) as f:
                     test_data = json.load(f)
                     latest_rto = test_data.get("rto_minutes")
-            except:
-                pass
+            except (json.JSONDecodeError, KeyError, IOError) as e:
+                self.logger.debug(f"Failed to read latest test file: {e}")
 
         return {
             "rto_objective_minutes": Config.BACKUP_RTO_MINUTES,
