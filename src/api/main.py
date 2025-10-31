@@ -44,6 +44,10 @@ app.add_middleware(AdvancedSecurityMiddleware)
 from src.api.middleware.tenant_middleware import TenantMiddleware
 app.add_middleware(TenantMiddleware)
 
+# Add analytics middleware for API usage tracking
+from src.api.middleware.analytics_middleware import AnalyticsMiddleware
+app.add_middleware(AnalyticsMiddleware)
+
 app.middleware("http")(request_logging_middleware)
 app.state.limiter = limiter
 add_exception_handlers(app)
@@ -150,6 +154,7 @@ async def readiness_check():
 # Import and include routers
 from src.api.routes import (
     admin,
+    analytics,
     auth,
     billing,
     channels,
@@ -179,6 +184,7 @@ app.include_router(compliance.router, prefix="/api/v1/compliance", tags=["Compli
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
 
 
 # WebSocket endpoint for real-time audio streaming

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     JSON,
@@ -1063,6 +1063,272 @@ class UserPreference(Base):  # type: ignore[misc,valid-type]
     user: Mapped["User"] = relationship("User", backref="preferences")  # type: ignore[assignment]
 
 
+class AnalyticsEvent(Base):  # type: ignore[misc,valid-type]
+    """Track analytics events for business intelligence."""
+
+    __tablename__ = "analytics_events"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Event details
+    event_type = Column(String(100), nullable=False)  # 'page_view', 'api_call', 'upload', 'match', etc.
+    event_category = Column(String(100), nullable=False)  # 'user_action', 'api', 'system'
+    event_name = Column(String(200), nullable=False)
+    
+    # Context
+    session_id = Column(String(255))
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    referrer = Column(String(1000))
+    
+    # Properties
+    properties = Column(JSON)  # Flexible event properties
+    
+    # Metrics
+    duration_ms = Column(Integer)  # For timed events
+    value = Column(Float)  # Numeric value (e.g., revenue, count)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class DashboardConfig(Base):  # type: ignore[misc,valid-type]
+    """Custom dashboard configurations for users."""
+
+    __tablename__ = "dashboard_configs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Config details
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    is_default = Column(Boolean, default=False, nullable=False)
+    
+    # Layout configuration (JSON with widget positions and settings)
+    layout = Column(JSON, nullable=False)
+    
+    # Sharing
+    is_public = Column(Boolean, default=False, nullable=False)
+    share_token = Column(String(255), unique=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    last_viewed_at = Column(DateTime)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
+
+
+class ReportConfig(Base):  # type: ignore[misc,valid-type]
+    """Custom report configurations."""
+
+    __tablename__ = "report_configs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Report details
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    report_type = Column(String(50), nullable=False)  # 'usage', 'revenue', 'matches', 'api', 'custom'
+    
+    # Configuration
+    filters = Column(JSON)  # Report filters
+    metrics = Column(JSON)  # Metrics to include
+    dimensions = Column(JSON)  # Grouping dimensions
+    visualization_type = Column(String(50))  # 'table', 'chart', 'both'
+    
+    # Export settings
+    export_format = Column(String(20))  # 'pdf', 'csv', 'excel'
+    
+    # Timestamps
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
+    scheduled_reports: Mapped[list["ScheduledReport"]] = relationship("ScheduledReport", back_populates="report_config", cascade="all, delete-orphan")  # type: ignore[assignment]
+
+
+class ScheduledReport(Base):  # type: ignore[misc,valid-type]
+    """Scheduled report delivery."""
+
+    __tablename__ = "scheduled_reports"
+
+    id = Column(Integer, primary_key=True)
+    report_config_id = Column(Integer, ForeignKey("report_configs.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Schedule settings
+    is_active = Column(Boolean, default=True, nullable=False)
+    frequency = Column(String(20), nullable=False)  # 'daily', 'weekly', 'monthly'
+    day_of_week = Column(Integer)  # 0-6 for weekly reports
+    day_of_month = Column(Integer)  # 1-31 for monthly reports
+    time_of_day = Column(String(5))  # HH:MM format
+    timezone = Column(String(50), default="UTC")
+    
+    # Delivery settings
+    recipients = Column(JSON, nullable=False)  # List of email addresses
+    subject_template = Column(String(500))
+    message_template = Column(Text)
+    
+    # Execution tracking
+    last_run_at = Column(DateTime)
+    last_run_status = Column(String(20))  # 'success', 'failed'
+    last_run_error = Column(Text)
+    next_run_at = Column(DateTime)
+    run_count = Column(Integer, default=0)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+
+    # Relationships
+    report_config: Mapped["ReportConfig"] = relationship("ReportConfig", back_populates="scheduled_reports")  # type: ignore[assignment]
+    user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
+
+
+class APIUsageLog(Base):  # type: ignore[misc,valid-type]
+    """Detailed API usage logs for analytics."""
+
+    __tablename__ = "api_usage_logs"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=True)
+
+    # Request details
+    endpoint = Column(String(500), nullable=False)
+    method = Column(String(10), nullable=False)  # GET, POST, etc.
+    path_params = Column(JSON)
+    query_params = Column(JSON)
+    
+    # Response details
+    status_code = Column(Integer, nullable=False)
+    response_time_ms = Column(Integer)
+    response_size_bytes = Column(Integer)
+    
+    # Context
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    
+    # Error tracking
+    error_message = Column(Text)
+    error_type = Column(String(100))
+    
+    # Timestamps
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class UserJourney(Base):  # type: ignore[misc,valid-type]
+    """Track user journeys for funnel analysis."""
+
+    __tablename__ = "user_journeys"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    session_id = Column(String(255), nullable=False)
+
+    # Journey details
+    journey_type = Column(String(50), nullable=False)  # 'signup', 'upload', 'match', etc.
+    current_step = Column(String(100), nullable=False)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    
+    # Steps tracking
+    steps_completed = Column(JSON)  # List of completed steps
+    total_steps = Column(Integer)
+    
+    # Drop-off analysis
+    dropped_off = Column(Boolean, default=False, nullable=False)
+    drop_off_step = Column(String(100))
+    drop_off_reason = Column(String(200))
+    
+    # Metadata
+    metadata = Column(JSON)
+    
+    # Timestamps
+    started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    completed_at = Column(DateTime)
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+
+
+class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
+    """Pre-calculated cohort analysis data."""
+
+    __tablename__ = "cohort_analysis"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Cohort definition
+    cohort_name = Column(String(200), nullable=False)
+    cohort_date = Column(DateTime, nullable=False)  # Date when cohort was created
+    cohort_type = Column(String(50), nullable=False)  # 'signup', 'first_upload', etc.
+    
+    # Metrics by period
+    period_number = Column(Integer, nullable=False)  # 0, 1, 2, ... (days/weeks/months after cohort_date)
+    period_type = Column(String(20), nullable=False)  # 'day', 'week', 'month'
+    
+    # Cohort metrics
+    cohort_size = Column(Integer, nullable=False)  # Initial size
+    active_users = Column(Integer)
+    retention_rate = Column(Float)
+    revenue = Column(Float)
+    
+    # Additional metrics
+    metrics = Column(JSON)
+    
+    # Timestamps
+    calculated_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
+class RevenueMetric(Base):  # type: ignore[misc,valid-type]
+    """Revenue analytics and forecasting data."""
+
+    __tablename__ = "revenue_metrics"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Period
+    period_type = Column(String(20), nullable=False)  # 'daily', 'weekly', 'monthly'
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    
+    # Revenue metrics
+    total_revenue = Column(Float, default=0.0)
+    mrr = Column(Float)  # Monthly Recurring Revenue
+    arr = Column(Float)  # Annual Recurring Revenue
+    
+    # Customer metrics
+    new_customers = Column(Integer, default=0)
+    churned_customers = Column(Integer, default=0)
+    active_customers = Column(Integer, default=0)
+    
+    # Growth metrics
+    revenue_growth_rate = Column(Float)
+    customer_growth_rate = Column(Float)
+    churn_rate = Column(Float)
+    
+    # Forecasting
+    forecasted_revenue = Column(Float)
+    confidence_interval_lower = Column(Float)
+    confidence_interval_upper = Column(Float)
+    
+    # Metadata
+    metrics = Column(JSON)  # Additional custom metrics
+    
+    # Timestamps
+    calculated_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
+
+
 # Indexes for billing tables
 Index("idx_subscriptions_user_id", Subscription.user_id)
 Index("idx_subscriptions_stripe_subscription_id", Subscription.stripe_subscription_id)
@@ -1097,4 +1363,39 @@ Index("idx_webhook_deliveries_webhook_id", WebhookDelivery.webhook_id)
 Index("idx_webhook_deliveries_event_id", WebhookDelivery.event_id)
 Index("idx_webhook_deliveries_status", WebhookDelivery.status)
 Index("idx_webhook_deliveries_next_retry", WebhookDelivery.next_retry_at)
+
+# Indexes for analytics tables
+Index("idx_analytics_events_tenant_id", AnalyticsEvent.tenant_id)
+Index("idx_analytics_events_user_id", AnalyticsEvent.user_id)
+Index("idx_analytics_events_type", AnalyticsEvent.event_type)
+Index("idx_analytics_events_category", AnalyticsEvent.event_category)
+Index("idx_analytics_events_created_at", AnalyticsEvent.created_at)
+Index("idx_analytics_events_session", AnalyticsEvent.session_id)
+Index("idx_dashboard_configs_user_id", DashboardConfig.user_id)
+Index("idx_dashboard_configs_tenant_id", DashboardConfig.tenant_id)
+Index("idx_dashboard_configs_share_token", DashboardConfig.share_token)
+Index("idx_report_configs_user_id", ReportConfig.user_id)
+Index("idx_report_configs_tenant_id", ReportConfig.tenant_id)
+Index("idx_report_configs_type", ReportConfig.report_type)
+Index("idx_scheduled_reports_report_config_id", ScheduledReport.report_config_id)
+Index("idx_scheduled_reports_user_id", ScheduledReport.user_id)
+Index("idx_scheduled_reports_is_active", ScheduledReport.is_active)
+Index("idx_scheduled_reports_next_run", ScheduledReport.next_run_at)
+Index("idx_api_usage_logs_tenant_id", APIUsageLog.tenant_id)
+Index("idx_api_usage_logs_user_id", APIUsageLog.user_id)
+Index("idx_api_usage_logs_api_key_id", APIUsageLog.api_key_id)
+Index("idx_api_usage_logs_timestamp", APIUsageLog.timestamp)
+Index("idx_api_usage_logs_endpoint", APIUsageLog.endpoint)
+Index("idx_api_usage_logs_status", APIUsageLog.status_code)
+Index("idx_user_journeys_user_id", UserJourney.user_id)
+Index("idx_user_journeys_session_id", UserJourney.session_id)
+Index("idx_user_journeys_type", UserJourney.journey_type)
+Index("idx_user_journeys_started_at", UserJourney.started_at)
+Index("idx_cohort_analysis_tenant_id", CohortAnalysis.tenant_id)
+Index("idx_cohort_analysis_cohort_date", CohortAnalysis.cohort_date)
+Index("idx_cohort_analysis_cohort_type", CohortAnalysis.cohort_type)
+Index("idx_cohort_analysis_period", CohortAnalysis.period_number, CohortAnalysis.period_type)
+Index("idx_revenue_metrics_tenant_id", RevenueMetric.tenant_id)
+Index("idx_revenue_metrics_period", RevenueMetric.period_start, RevenueMetric.period_end)
+Index("idx_revenue_metrics_period_type", RevenueMetric.period_type)
 
