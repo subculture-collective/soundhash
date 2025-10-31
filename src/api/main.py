@@ -162,6 +162,7 @@ from src.api.routes import (
     email,
     fingerprints,
     matches,
+    monetization,
     monitoring,
     onboarding,
     security,
@@ -185,6 +186,7 @@ app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
 app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["Analytics"])
+app.include_router(monetization.router, prefix="/api/v1/monetization", tags=["Monetization"])
 
 
 # WebSocket endpoint for real-time audio streaming
