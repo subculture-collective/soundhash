@@ -55,6 +55,12 @@ redis==5.2.1  # Optional: for query result caching
 
 # Observability
 prometheus-client==0.21.1
+opentelemetry-api==1.27.0
+opentelemetry-sdk==1.27.0
+opentelemetry-exporter-jaeger==1.27.0
+opentelemetry-exporter-otlp==1.27.0
+opentelemetry-instrumentation-sqlalchemy==0.48b0
+sentry-sdk[fastapi]==2.18.0
 
 # Development
 pytest==8.4.2

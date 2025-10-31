@@ -170,6 +170,29 @@ class Config:
     METRICS_ENABLED = os.getenv("METRICS_ENABLED", "true").lower() == "true"
     METRICS_PORT = int(os.getenv("METRICS_PORT", 9090))
     HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", 300))  # seconds
+    
+    # Distributed Tracing (OpenTelemetry + Jaeger)
+    TRACING_ENABLED = os.getenv("TRACING_ENABLED", "false").lower() == "true"
+    TRACING_SERVICE_NAME = os.getenv("TRACING_SERVICE_NAME", "soundhash")
+    TRACING_ENVIRONMENT = os.getenv("TRACING_ENVIRONMENT", "development")
+    JAEGER_ENABLED = os.getenv("JAEGER_ENABLED", "false").lower() == "true"
+    JAEGER_AGENT_HOST = os.getenv("JAEGER_AGENT_HOST", "localhost")
+    JAEGER_AGENT_PORT = int(os.getenv("JAEGER_AGENT_PORT", 6831))
+    OTLP_ENABLED = os.getenv("OTLP_ENABLED", "false").lower() == "true"
+    OTLP_ENDPOINT = os.getenv("OTLP_ENDPOINT", "http://localhost:4317")
+    TRACING_CONSOLE_EXPORT = os.getenv("TRACING_CONSOLE_EXPORT", "false").lower() == "true"
+    
+    # Error Tracking (Sentry)
+    SENTRY_ENABLED = os.getenv("SENTRY_ENABLED", "false").lower() == "true"
+    SENTRY_DSN = os.getenv("SENTRY_DSN")
+    SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", "development")
+    SENTRY_TRACES_SAMPLE_RATE = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1"))
+    SENTRY_PROFILES_SAMPLE_RATE = float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.1"))
+    
+    # Structured Logging (JSON format for ELK/Loki)
+    STRUCTURED_LOGGING_ENABLED = os.getenv("STRUCTURED_LOGGING_ENABLED", "false").lower() == "true"
+    LOG_FORMAT = os.getenv("LOG_FORMAT", "text")  # text or json
+    LOG_OUTPUT = os.getenv("LOG_OUTPUT", "stdout")  # stdout, file, or both
 
     # Data retention and cleanup settings
     RETENTION_TEMP_FILES_DAYS = int(
