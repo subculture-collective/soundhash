@@ -246,6 +246,9 @@ class BackupEncryption:
         if not key:
             raise EncryptionError("Age private key or password required for decryption")
 
+        # Initialize key_file to None
+        key_file = None
+
         # Determine if key is a private key or passphrase
         if key.startswith("AGE-SECRET-KEY-"):
             # Private key decryption
@@ -254,6 +257,9 @@ class BackupEncryption:
             with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
                 f.write(key)
                 key_file = f.name
+            
+            # Restrict permissions to owner only
+            os.chmod(key_file, 0o600)
 
             cmd = [
                 "age",
@@ -284,8 +290,8 @@ class BackupEncryption:
             text=True,
         )
 
-        # Clean up temp key file
-        if key.startswith("AGE-SECRET-KEY-"):
+        # Clean up temp key file if it was created
+        if key_file is not None:
             try:
                 os.unlink(key_file)
             except (OSError, FileNotFoundError) as e:

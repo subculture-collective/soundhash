@@ -214,9 +214,10 @@ class Config:
     )  # S3 key prefix for backups
     
     # Advanced backup settings
+    # Encrypt backups at rest
     BACKUP_ENCRYPTION_ENABLED = (
         os.getenv("BACKUP_ENCRYPTION_ENABLED", "false").lower() == "true"
-    )  # Encrypt backups at rest
+    )
     BACKUP_ENCRYPTION_KEY = os.getenv("BACKUP_ENCRYPTION_KEY")  # GPG key ID or encryption password
     BACKUP_ENCRYPTION_METHOD = os.getenv("BACKUP_ENCRYPTION_METHOD", "gpg")  # gpg or age
     

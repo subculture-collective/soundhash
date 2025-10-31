@@ -11,7 +11,6 @@ import hashlib
 import logging
 import os
 import shutil
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -188,7 +187,7 @@ class WALArchiver:
 
             for wal_file in self.wal_dir.glob("*"):
                 if wal_file.is_file():
-                    file_mtime = datetime.fromtimestamp(wal_file.stat().st_mtime, tz=timezone.utc)
+                    file_mtime = datetime.fromtimestamp(wal_file.stat().st_mtime, tz=None).astimezone(timezone.utc)
 
                     if file_mtime < cutoff_time:
                         file_size = wal_file.stat().st_size
@@ -286,7 +285,6 @@ def generate_postgres_config() -> str:
         String with PostgreSQL configuration directives
     """
     script_path = Path(__file__).absolute()
-    wal_dir = Path(Config.BACKUP_WAL_DIR).absolute()
 
     config = f"""
 # PostgreSQL WAL Archiving Configuration for PITR

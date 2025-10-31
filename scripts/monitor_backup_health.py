@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -76,17 +76,17 @@ class BackupHealthMonitor:
 
             # Check RPO compliance
             rpo_threshold = Config.BACKUP_RPO_MINUTES * 2  # Allow 2x RPO for daily backups
-            metrics["meets_rpo"] = age_minutes <= (24 * 60)  # Daily backup is acceptable
+            metrics["meets_rpo"] = age_minutes <= rpo_threshold
 
-            if age_minutes > (24 * 60):
+            if age_minutes > rpo_threshold:
                 metrics["status"] = "warning"
                 metrics["warnings"].append(
-                    f"Last backup is {age_minutes / 60:.1f} hours old (> 24 hours)"
+                    f"Last backup is {age_minutes / 60:.1f} hours old (> {rpo_threshold / 60:.0f} hours)"
                 )
-            elif age_minutes > (48 * 60):
+            elif age_minutes > (rpo_threshold * 2):
                 metrics["status"] = "error"
                 metrics["warnings"].append(
-                    f"Last backup is {age_minutes / 60:.1f} hours old (> 48 hours)"
+                    f"Last backup is {age_minutes / 60:.1f} hours old (> {(rpo_threshold * 2) / 60:.0f} hours)"
                 )
 
         except Exception as e:
@@ -126,8 +126,11 @@ class BackupHealthMonitor:
                 return metrics
 
             # Find WAL files (exclude checksum files)
-            wal_files = [f for f in self.wal_dir.iterdir() 
-                        if f.is_file() and not f.name.endswith('.sha256')]
+            wal_files = [
+                f
+                for f in self.wal_dir.iterdir()
+                if f.is_file() and not f.name.endswith('.sha256')
+            ]
             
             metrics["wal_count"] = len(wal_files)
 

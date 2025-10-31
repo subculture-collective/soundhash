@@ -9,6 +9,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import time
@@ -378,9 +379,6 @@ class DisasterRecovery:
 
     def _execute_query(self, query: str) -> list[dict[str, Any]]:
         """Execute a SQL query and return results."""
-        # Extract column names from the query for proper parsing
-        import re
-        
         cmd = [
             "psql",
             "-h", Config.DATABASE_HOST,

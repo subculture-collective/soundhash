@@ -38,7 +38,12 @@ apt-get install -y postgresql-client python3 python3-pip
 pip install boto3 google-cloud-storage python-dotenv
 
 # Install encryption tools (optional)
-apt-get install -y gnupg age
+apt-get install -y gnupg
+
+# Install age (not available in all apt repositories):
+# - macOS/Linux (with Homebrew): brew install age
+# - Or download from: https://github.com/FiloSottile/age/releases
+# - On some recent Ubuntu/Debian: apt-get install -y age  # (may not be available)
 ```
 
 ### Configuration Files

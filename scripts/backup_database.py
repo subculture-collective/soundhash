@@ -58,7 +58,7 @@ class DatabaseBackup:
         
         # Enhanced features
         self.encryption_enabled = (
-            encryption_enabled if encryption_enabled is not None 
+            encryption_enabled if encryption_enabled is not None
             else Config.BACKUP_ENCRYPTION_ENABLED
         )
         self.gcs_enabled = (
