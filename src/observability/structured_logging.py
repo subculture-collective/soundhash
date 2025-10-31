@@ -6,7 +6,7 @@ Enables log aggregation and analysis with ELK stack or Loki.
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from config.settings import Config
@@ -40,7 +40,7 @@ class StructuredFormatter(logging.Formatter):
         """
         # Base log entry
         log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -60,8 +60,9 @@ class StructuredFormatter(logging.Formatter):
                 trace_id = tracing.get_current_trace_id()
                 if trace_id:
                     log_entry["trace_id"] = trace_id
-            except (ImportError, Exception):
-                pass
+            except (ImportError, Exception) as e:
+                # Tracing is optional; log at debug level if trace ID cannot be retrieved
+                logging.getLogger(__name__).debug("Could not retrieve trace_id for structured log: %s", e)
         
         # Add extra fields from the log record
         if hasattr(record, "extra_fields"):

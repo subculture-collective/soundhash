@@ -21,6 +21,8 @@ rule_files:
 # Scrape configurations
 scrape_configs:
   # SoundHash application metrics
+  # NOTE: The target 'app:9090' assumes a service named 'app' exists, typically defined in the main docker-compose.yml.
+  # If running this monitoring stack standalone, ensure the 'app' service is available, or update the target accordingly.
   - job_name: 'soundhash-app'
     static_configs:
       - targets: ['app:9090']

@@ -1,6 +1,5 @@
 """Tests for error tracking functionality."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 from src.observability.error_tracking import ErrorTracker

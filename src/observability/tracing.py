@@ -28,6 +28,7 @@ class TracingManager:
         self.enabled = getattr(Config, "TRACING_ENABLED", False)
         self.service_name = getattr(Config, "TRACING_SERVICE_NAME", "soundhash")
         self.environment = getattr(Config, "TRACING_ENVIRONMENT", "development")
+        self._noop_tracer = None  # Cache for no-op tracer when disabled
         self.jaeger_enabled = getattr(Config, "JAEGER_ENABLED", False)
         self.otlp_enabled = getattr(Config, "OTLP_ENABLED", False)
         self.console_export = getattr(Config, "TRACING_CONSOLE_EXPORT", False)
@@ -113,7 +114,10 @@ class TracingManager:
             Span object or NoOp span if tracing is disabled
         """
         if not self.enabled or not self.tracer:
-            return trace.get_tracer(__name__).start_span(name)
+            # Cache no-op tracer to avoid repeated creation
+            if self._noop_tracer is None:
+                self._noop_tracer = trace.get_tracer(__name__)
+            return self._noop_tracer.start_span(name)
         
         return self.tracer.start_span(
             name=name,

@@ -49,6 +49,8 @@ metadata:
 type: Opaque
 stringData:
   admin-user: admin
+  # WARNING: The default admin password below is insecure and MUST be changed before deploying to production!
+  # Consider using a Sealed Secret or external secrets operator for production deployments.
   admin-password: changeme-in-production
 
 ---

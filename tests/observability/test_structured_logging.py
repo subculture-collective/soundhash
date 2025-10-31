@@ -2,7 +2,6 @@
 
 import json
 import logging
-import pytest
 from unittest.mock import MagicMock, patch
 
 from src.observability.structured_logging import StructuredFormatter, StructuredLogger, get_structured_logger

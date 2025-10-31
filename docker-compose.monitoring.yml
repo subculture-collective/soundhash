@@ -1,6 +1,12 @@
 # Monitoring Stack for SoundHash
 # Includes: Prometheus, Grafana, Jaeger, Loki, Promtail
-# Usage: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+#
+# Usage:
+#   Standalone:  docker compose -f docker-compose.monitoring.yml up -d
+#   With app:    docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Note: The 'postgres-exporter' service uses the 'with-app' profile and requires the main
+# docker-compose.yml to be included. When running standalone, postgres-exporter is skipped.
 
 services:
   # Prometheus - Metrics collection and storage

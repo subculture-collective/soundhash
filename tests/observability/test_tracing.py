@@ -1,6 +1,5 @@
 """Tests for distributed tracing functionality."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 from opentelemetry.trace import SpanKind
 
