@@ -56,7 +56,7 @@ resource "aws_lambda_function" "edge_fingerprint_cache" {
   filename         = data.archive_file.edge_fingerprint_cache.output_path
   function_name    = "${local.cluster_name}-edge-fingerprint-cache"
   role            = aws_iam_role.lambda_edge.arn
-  handler         = "index.handler"
+  handler         = "fingerprint-cache.handler"
   source_code_hash = data.archive_file.edge_fingerprint_cache.output_base64sha256
   runtime         = "nodejs20.x"
   timeout         = 5
@@ -85,7 +85,7 @@ resource "aws_lambda_function" "edge_low_latency_match" {
   filename         = data.archive_file.edge_low_latency_match.output_path
   function_name    = "${local.cluster_name}-edge-low-latency-match"
   role            = aws_iam_role.lambda_edge.arn
-  handler         = "index.handler"
+  handler         = "low-latency-match.handler"
   source_code_hash = data.archive_file.edge_low_latency_match.output_base64sha256
   runtime         = "nodejs20.x"
   timeout         = 5

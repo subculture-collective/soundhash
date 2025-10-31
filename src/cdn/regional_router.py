@@ -1,5 +1,6 @@
 """Regional routing and database endpoint selection."""
 
+import random
 import time
 from typing import Optional, Dict
 from config.settings import Config
@@ -80,7 +81,6 @@ class RegionalRouter:
             return self.get_database_endpoint("read", region)
 
         # Simple round-robin selection (could be enhanced with health checks)
-        import random
         return random.choice(self.db_reader_endpoints)
 
     def _get_region_from_ip(self, client_ip: str) -> str:

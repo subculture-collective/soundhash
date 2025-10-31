@@ -45,7 +45,11 @@ resource "aws_rds_cluster" "primary" {
   # Deletion protection
   deletion_protection        = var.environment == "production" ? true : false
   skip_final_snapshot       = var.environment != "production"
-  final_snapshot_identifier = var.environment == "production" ? "${local.cluster_name}-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
+  final_snapshot_identifier = var.environment == "production" ? "${local.cluster_name}-final-snapshot" : null
+  
+  lifecycle {
+    ignore_changes = [final_snapshot_identifier]
+  }
   
   tags = merge(
     local.common_tags,

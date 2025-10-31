@@ -279,7 +279,7 @@ resource "aws_route53_record" "api_default" {
   health_check_id = aws_route53_health_check.us_east.id
 
   geolocation_routing_policy {
-    country = "*"
+    # Use empty block for default geolocation (matches all locations not explicitly matched)
   }
 
   alias {
