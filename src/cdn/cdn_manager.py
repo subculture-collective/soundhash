@@ -1,11 +1,14 @@
 """CDN management and cache invalidation."""
 
 import hashlib
+import logging
 import time
 from typing import List, Optional
 import boto3
 from botocore.exceptions import ClientError
 from config.settings import Config
+
+logger = logging.getLogger(__name__)
 
 
 class CDNManager:
@@ -53,11 +56,11 @@ class CDNManager:
                 },
             )
             invalidation_id = response["Invalidation"]["Id"]
-            print(f"CloudFront invalidation created: {invalidation_id}")
+            logger.info(f"CloudFront invalidation created: {invalidation_id}")
             return invalidation_id
 
         except ClientError as e:
-            print(f"Failed to create CloudFront invalidation: {e}")
+            logger.error(f"Failed to create CloudFront invalidation: {e}")
             return None
 
     def get_invalidation_status(self, invalidation_id: str) -> Optional[str]:
@@ -79,7 +82,7 @@ class CDNManager:
             )
             return response["Invalidation"]["Status"]
         except ClientError as e:
-            print(f"Failed to get invalidation status: {e}")
+            logger.error(f"Failed to get invalidation status: {e}")
             return None
 
     def purge_all(self) -> Optional[str]:
@@ -132,7 +135,7 @@ class CDNManager:
             response = self.cloudfront_client.get_distribution_config(DistributionId=self.distribution_id)
             return response["DistributionConfig"]
         except ClientError as e:
-            print(f"Failed to get distribution config: {e}")
+            logger.error(f"Failed to get distribution config: {e}")
             return None
 
     def enable_distribution(self) -> bool:
@@ -158,11 +161,11 @@ class CDNManager:
             self.cloudfront_client.update_distribution(
                 DistributionConfig=config, Id=self.distribution_id, IfMatch=etag
             )
-            print(f"CloudFront distribution {self.distribution_id} enabled")
+            logger.error(f"CloudFront distribution {self.distribution_id} enabled")
             return True
 
         except ClientError as e:
-            print(f"Failed to enable distribution: {e}")
+            logger.error(f"Failed to enable distribution: {e}")
             return False
 
     def disable_distribution(self) -> bool:
@@ -188,11 +191,11 @@ class CDNManager:
             self.cloudfront_client.update_distribution(
                 DistributionConfig=config, Id=self.distribution_id, IfMatch=etag
             )
-            print(f"CloudFront distribution {self.distribution_id} disabled")
+            logger.error(f"CloudFront distribution {self.distribution_id} disabled")
             return True
 
         except ClientError as e:
-            print(f"Failed to disable distribution: {e}")
+            logger.error(f"Failed to disable distribution: {e}")
             return False
 
     def get_cache_statistics(self) -> Optional[dict]:
@@ -231,5 +234,5 @@ class CDNManager:
             return {"cache_hit_rate": cache_hit_rate, "distribution_id": self.distribution_id}
 
         except ClientError as e:
-            print(f"Failed to get cache statistics: {e}")
+            logger.error(f"Failed to get cache statistics: {e}")
             return None

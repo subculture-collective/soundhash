@@ -1,10 +1,13 @@
 """Image optimization and WebP conversion service."""
 
+import logging
 import os
 from pathlib import Path
 from typing import Optional, Tuple
 from PIL import Image
 from config.settings import Config
+
+logger = logging.getLogger(__name__)
 
 
 class ImageOptimizer:
@@ -175,7 +178,7 @@ class ImageOptimizer:
                 )
                 optimized_images.append(optimized_path)
             except Exception as e:
-                print(f"Failed to optimize {filename}: {e}")
+                logger.error(f"Failed to optimize {filename}: {e}")
 
         return optimized_images
 

@@ -57,13 +57,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "canary_artifacts" {
   }
 }
 
+# Archive the canary code for deployment
+data "archive_file" "latency_monitor" {
+  type        = "zip"
+  source_file = "${path.module}/canary/latencyMonitor.js"
+  output_path = "${path.module}/canary/latency-monitor.zip"
+}
+
 # Canary for US East region
 resource "aws_synthetics_canary" "us_east_latency" {
   name                 = "${local.cluster_name}-us-east-latency"
   artifact_s3_location = "s3://${aws_s3_bucket.canary_artifacts.id}/us-east/"
   execution_role_arn   = aws_iam_role.canary.arn
   handler              = "latencyMonitor.handler"
-  zip_file             = "canary/latency-monitor.zip"
+  zip_file             = data.archive_file.latency_monitor.output_path
   runtime_version      = "syn-nodejs-puppeteer-9.0"
 
   schedule {
@@ -100,7 +107,7 @@ resource "aws_synthetics_canary" "eu_west_latency" {
   artifact_s3_location = "s3://${aws_s3_bucket.canary_artifacts.id}/eu-west/"
   execution_role_arn   = aws_iam_role.canary.arn
   handler              = "latencyMonitor.handler"
-  zip_file             = "canary/latency-monitor.zip"
+  zip_file             = data.archive_file.latency_monitor.output_path
   runtime_version      = "syn-nodejs-puppeteer-9.0"
 
   schedule {
@@ -137,7 +144,7 @@ resource "aws_synthetics_canary" "ap_southeast_latency" {
   artifact_s3_location = "s3://${aws_s3_bucket.canary_artifacts.id}/ap-southeast/"
   execution_role_arn   = aws_iam_role.canary.arn
   handler              = "latencyMonitor.handler"
-  zip_file             = "canary/latency-monitor.zip"
+  zip_file             = data.archive_file.latency_monitor.output_path
   runtime_version      = "syn-nodejs-puppeteer-9.0"
 
   schedule {

@@ -32,7 +32,7 @@ resource "aws_rds_cluster" "primary" {
   
   global_cluster_identifier  = aws_rds_global_cluster.soundhash[0].id
   
-  vpc_security_group_ids     = [aws_security_group.rds.id]
+  vpc_security_group_ids     = [aws_security_group.postgres.id]
   db_subnet_group_name       = aws_db_subnet_group.main.name
   
   # Enable encryption
@@ -174,8 +174,10 @@ resource "aws_rds_cluster" "secondary_eu" {
   
   global_cluster_identifier  = aws_rds_global_cluster.soundhash[0].id
   
-  vpc_security_group_ids     = [aws_security_group.rds_eu.id]
-  db_subnet_group_name       = aws_db_subnet_group.eu.name
+  # Note: Create dedicated security group for EU region or use primary region's
+  # vpc_security_group_ids     = [aws_security_group.postgres_eu.id]
+  # db_subnet_group_name       = aws_db_subnet_group.eu.name
+  # For now, commenting out to avoid errors. Define these resources in vpc.tf for multi-region setup
   
   # Replication
   replication_source_identifier = aws_rds_cluster.primary[0].arn
@@ -228,8 +230,10 @@ resource "aws_rds_cluster" "secondary_apac" {
   
   global_cluster_identifier  = aws_rds_global_cluster.soundhash[0].id
   
-  vpc_security_group_ids     = [aws_security_group.rds_apac.id]
-  db_subnet_group_name       = aws_db_subnet_group.apac.name
+  # Note: Create dedicated security group for APAC region or use primary region's
+  # vpc_security_group_ids     = [aws_security_group.postgres_apac.id]
+  # db_subnet_group_name       = aws_db_subnet_group.apac.name
+  # For now, commenting out to avoid errors. Define these resources in vpc.tf for multi-region setup
   
   # Replication
   replication_source_identifier = aws_rds_cluster.primary[0].arn

@@ -24,8 +24,6 @@ exports.handler = async (event, context) => {
  * Process viewer request (before reaching origin)
  */
 function processViewerRequest(request) {
-    const headers = request.headers;
-    
     // Add edge processing metadata
     request.headers['x-edge-processing'] = [{
         key: 'X-Edge-Processing',
@@ -39,8 +37,8 @@ function processViewerRequest(request) {
     }];
     
     // Optimize request routing based on payload size
-    const contentLength = headers['content-length'] ? 
-        parseInt(headers['content-length'][0].value) : 0;
+    const contentLength = request.headers['content-length'] ? 
+        parseInt(request.headers['content-length'][0].value) : 0;
     
     if (contentLength > 1048576) { // > 1MB
         // Route large requests to specific origin path
@@ -57,8 +55,6 @@ function processViewerRequest(request) {
  * Process origin response (before sending to viewer)
  */
 function processOriginResponse(response, request) {
-    const headers = response.headers;
-    
     // Calculate edge processing latency
     const startTime = request.headers['x-edge-start-time'] ?
         parseInt(request.headers['x-edge-start-time'][0].value) : Date.now();
@@ -84,12 +80,6 @@ function processOriginResponse(response, request) {
             value: 'public, max-age=300, s-maxage=300'
         }];
     }
-    
-    // Add edge location header for analytics
-    response.headers['x-edge-region'] = [{
-        key: 'X-Edge-Region',
-        value: process.env.AWS_REGION || 'unknown'
-    }];
     
     // Security headers
     response.headers['x-content-type-options'] = [{

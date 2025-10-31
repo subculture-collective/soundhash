@@ -2,7 +2,6 @@
 
 import os
 import tempfile
-from pathlib import Path
 import pytest
 from PIL import Image
 from src.cdn.image_optimizer import ImageOptimizer

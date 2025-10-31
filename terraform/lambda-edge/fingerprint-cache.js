@@ -7,11 +7,10 @@
 
 'use strict';
 
-const crypto = require('crypto');
+const { webcrypto } = require('crypto');
 
 exports.handler = async (event, context) => {
     const request = event.Records[0].cf.request;
-    const headers = request.headers;
     
     // Only process POST requests with body
     if (request.method !== 'POST' || !request.body || !request.body.data) {
@@ -24,7 +23,7 @@ exports.handler = async (event, context) => {
         const requestPayload = JSON.parse(bodyData);
         
         // Generate cache key from fingerprint data
-        const cacheKey = generateCacheKey(requestPayload);
+        const cacheKey = await generateCacheKey(requestPayload);
         
         // Add cache key to headers for origin server
         request.headers['x-fingerprint-cache-key'] = [{
@@ -58,7 +57,7 @@ exports.handler = async (event, context) => {
 /**
  * Generate a deterministic cache key from fingerprint data
  */
-function generateCacheKey(payload) {
+async function generateCacheKey(payload) {
     // Extract fingerprint data (adjust based on your fingerprint structure)
     const fingerprintData = payload.fingerprint || payload.fingerprint_hash || '';
     const metadata = payload.metadata || {};
@@ -70,10 +69,11 @@ function generateCacheKey(payload) {
         metadata.duration || ''
     ].filter(Boolean).join('|');
     
-    // Generate hash for cache key
-    return crypto
-        .createHash('sha256')
-        .update(components)
-        .digest('hex')
-        .substring(0, 16);
+    // Generate hash for cache key using Web Crypto API
+    const encoder = new TextEncoder();
+    const data = encoder.encode(components);
+    const hashBuffer = await webcrypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex.substring(0, 16);
 }

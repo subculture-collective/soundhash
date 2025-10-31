@@ -1,7 +1,7 @@
 """Tests for CDN management functionality."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from botocore.exceptions import ClientError
 from src.cdn.cdn_manager import CDNManager
 

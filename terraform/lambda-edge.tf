@@ -39,13 +39,6 @@ resource "aws_iam_role_policy" "lambda_edge" {
           "logs:PutLogEvents"
         ]
         Resource = "arn:aws:logs:*:*:*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticache:*"
-        ]
-        Resource = "*"
       }
     ]
   })
