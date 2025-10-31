@@ -162,6 +162,7 @@ from src.api.routes import (
     security,
     tenants,
     videos,
+    webhooks,
 )
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
@@ -177,6 +178,7 @@ app.include_router(security.router, prefix="/api/v1/security", tags=["Security"]
 app.include_router(compliance.router, prefix="/api/v1/compliance", tags=["Compliance"])
 app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
 app.include_router(onboarding.router, prefix="/api/v1/onboarding", tags=["Onboarding"])
+app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 
 
 # WebSocket endpoint for real-time audio streaming
