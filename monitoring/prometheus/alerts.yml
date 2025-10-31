@@ -1,0 +1,156 @@
+# Prometheus alert rules for SoundHash
+groups:
+  - name: soundhash_app_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(soundhash_ingestion_errors_total[5m]) > 0.1 or rate(soundhash_processing_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors/sec for {{ $labels.instance }}"
+
+      # High job failure rate
+      - alert: HighJobFailureRate
+        expr: soundhash_failed_jobs > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: jobs
+        annotations:
+          summary: "High number of failed jobs"
+          description: "{{ $value }} jobs have failed on {{ $labels.instance }}"
+
+      # Job queue backed up
+      - alert: JobQueueBacklog
+        expr: soundhash_pending_jobs > 100
+        for: 15m
+        labels:
+          severity: warning
+          component: jobs
+        annotations:
+          summary: "Job queue is backed up"
+          description: "{{ $value }} pending jobs on {{ $labels.instance }}"
+
+      # Slow processing
+      - alert: SlowProcessing
+        expr: rate(soundhash_processing_duration_seconds_sum[5m]) / rate(soundhash_processing_duration_seconds_count[5m]) > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: processing
+        annotations:
+          summary: "Processing is slow"
+          description: "Average processing time is {{ $value }}s on {{ $labels.instance }}"
+
+      # Application down
+      - alert: ApplicationDown
+        expr: up{job="soundhash-app"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: application
+        annotations:
+          summary: "SoundHash application is down"
+          description: "Application on {{ $labels.instance }} has been down for more than 2 minutes"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|vfat"})) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Low disk space detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} ({{ $labels.device }})"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database down
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database on {{ $labels.instance }} has been down for more than 2 minutes"
+
+      # High database connections
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Database connections at {{ $value }}% of max on {{ $labels.instance }}"
+
+      # Slow queries
+      - alert: SlowQueries
+        expr: rate(pg_stat_statements_mean_exec_time[5m]) > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}ms on {{ $labels.instance }}"
+
+  - name: sla_alerts
+    interval: 60s
+    rules:
+      # SLA violation - processing time
+      - alert: ProcessingSLAViolation
+        expr: histogram_quantile(0.95, rate(soundhash_processing_duration_seconds_bucket[5m])) > 600
+        for: 15m
+        labels:
+          severity: critical
+          component: sla
+        annotations:
+          summary: "Processing SLA violated"
+          description: "95th percentile processing time is {{ $value }}s (SLA: 600s)"
+
+      # SLA violation - availability
+      - alert: AvailabilitySLAViolation
+        expr: avg_over_time(up{job="soundhash-app"}[1h]) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          component: sla
+        annotations:
+          summary: "Availability SLA violated"
+          description: "Uptime is {{ $value }} (SLA: 99.9%)"

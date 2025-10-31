@@ -1,0 +1,131 @@
+# AlertManager configuration for routing alerts
+global:
+  resolve_timeout: 5m
+  # Slack webhook (if configured)
+  slack_api_url: ${SLACK_WEBHOOK_URL}
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/*.tmpl'
+
+# Route tree for alert routing
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  routes:
+    # Critical alerts - immediate notification
+    - receiver: 'critical'
+      match:
+        severity: critical
+      group_wait: 0s
+      repeat_interval: 5m
+      continue: true
+
+    # Warning alerts - grouped notification
+    - receiver: 'warning'
+      match:
+        severity: warning
+      group_wait: 30s
+      repeat_interval: 2h
+      continue: true
+
+    # Database alerts - specific handling
+    - receiver: 'database'
+      match:
+        component: database
+      group_wait: 10s
+      repeat_interval: 30m
+
+    # SLA alerts - high priority
+    - receiver: 'sla'
+      match:
+        component: sla
+      group_wait: 0s
+      repeat_interval: 15m
+
+# Inhibit rules - prevent alert storms
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Inhibit specific alerts if application is down
+  - source_match:
+      alertname: 'ApplicationDown'
+    target_match_re:
+      alertname: '(HighErrorRate|HighJobFailureRate|JobQueueBacklog|SlowProcessing)'
+    equal: ['instance']
+
+# Receivers for different notification channels
+receivers:
+  # Default receiver - logs only
+  - name: 'default'
+    # Add webhook or email configuration here
+
+  # Critical alerts - multiple channels
+  - name: 'critical'
+    slack_configs:
+      - channel: '#soundhash-critical-alerts'
+        title: '🚨 Critical Alert'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+    # Add PagerDuty configuration here for on-call
+    # pagerduty_configs:
+    #   - service_key: YOUR_PAGERDUTY_SERVICE_KEY
+    #     description: '{{ .Annotations.summary }}'
+
+  # Warning alerts - Slack only
+  - name: 'warning'
+    slack_configs:
+      - channel: '#soundhash-alerts'
+        title: '⚠️ Warning Alert'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+
+  # Database alerts - specialized handling
+  - name: 'database'
+    slack_configs:
+      - channel: '#soundhash-database'
+        title: '🗄️ Database Alert'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  # SLA alerts - high visibility
+  - name: 'sla'
+    slack_configs:
+      - channel: '#soundhash-sla'
+        title: '📊 SLA Violation'
+        text: |-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Component:* {{ .Labels.component }}
+          {{ end }}
+        send_resolved: true
+    # Add email notification for SLA violations
+    # email_configs:
+    #   - to: 'ops-team@soundhash.io'
+    #     from: 'alertmanager@soundhash.io'
+    #     headers:
+    #       Subject: 'SLA Violation: {{ .Annotations.summary }}'
