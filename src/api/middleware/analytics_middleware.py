@@ -1,5 +1,6 @@
 """Middleware for tracking API usage analytics."""
 
+import logging
 import time
 from datetime import UTC, datetime
 
@@ -9,6 +10,8 @@ from starlette.responses import Response
 
 from src.database.connection import db_manager
 from src.database.models import APIUsageLog
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -56,7 +59,9 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         path_params = dict(request.path_params) if hasattr(request, "path_params") else {}
         query_params = dict(request.query_params)
         
-        # Log API usage asynchronously
+        # Log API usage
+        # TODO: Consider using async database operations or background task queue
+        # to avoid blocking the request-response cycle
         try:
             session = db_manager.get_session()
             
@@ -81,8 +86,6 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
             session.close()
         except Exception as e:
             # Don't let analytics errors break the API
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Failed to log API usage: {e}")
         
         return response

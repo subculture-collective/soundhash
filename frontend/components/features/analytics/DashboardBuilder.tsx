@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 import { 
   GripVertical, 
   Plus, 
@@ -76,8 +77,9 @@ export function DashboardBuilder() {
 
   const saveDashboard = () => {
     // TODO: Implement API call to save dashboard
-    console.log('Saving dashboard:', { name: dashboardName, widgets })
-    alert('Dashboard saved successfully!')
+    toast.success('Dashboard saved successfully!', {
+      description: `"${dashboardName}" has been saved with ${widgets.length} widgets`,
+    })
   }
 
   return (

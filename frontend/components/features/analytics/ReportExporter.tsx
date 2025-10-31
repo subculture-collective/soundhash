@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 import { 
   Download,
   FileText,
@@ -39,36 +40,35 @@ export function ReportExporter() {
   const handleGenerateReport = async () => {
     setIsGenerating(true)
     
-    // Simulate report generation
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // TODO: Implement actual API call
-    console.log('Generating report:', {
-      name: reportName,
-      type: reportType,
-      format: exportFormat,
-      dateRange,
-      includeCharts,
-    })
-    
-    setIsGenerating(false)
-    alert('Report generated successfully!')
+    try {
+      // Simulate report generation
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // TODO: Implement actual API call
+      toast.success('Report generated successfully!', {
+        description: `Your ${reportType} report in ${exportFormat.toUpperCase()} format is ready to download`,
+      })
+    } catch (error) {
+      toast.error('Failed to generate report', {
+        description: 'Please try again or contact support',
+      })
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const handleScheduleReport = async () => {
-    // TODO: Implement API call to schedule report
-    console.log('Scheduling report:', {
-      name: reportName,
-      type: reportType,
-      format: exportFormat,
-      dateRange,
-      includeCharts,
-      schedule: {
-        frequency: scheduleFrequency,
-        recipients: recipients.split(',').map(e => e.trim()),
-      },
-    })
-    alert('Report scheduled successfully!')
+    try {
+      // TODO: Implement API call to schedule report
+      const recipientList = recipients.split(',').map(e => e.trim())
+      toast.success('Report scheduled successfully!', {
+        description: `${scheduleFrequency.charAt(0).toUpperCase() + scheduleFrequency.slice(1)} reports will be sent to ${recipientList.length} recipient(s)`,
+      })
+    } catch (error) {
+      toast.error('Failed to schedule report', {
+        description: 'Please check your configuration and try again',
+      })
+    }
   }
 
   return (
