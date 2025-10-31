@@ -1,0 +1,172 @@
+SoundHash CDN & Edge Computing Architecture
+============================================
+
+Global Users
+     │
+     ├─── North America ────┐
+     ├─── South America ────┤
+     ├─── Europe ───────────┼────┐
+     ├─── Africa ───────────┤    │
+     ├─── Asia ─────────────┼────┼────┐
+     └─── Oceania ──────────┘    │    │
+                                 │    │    │
+                        ┌────────▼────▼────▼────────┐
+                        │   CloudFront CDN          │
+                        │   150+ Edge Locations     │
+                        │                           │
+                        │  ┌──────────────────────┐ │
+                        │  │ Lambda@Edge         │ │
+                        │  │ - Fingerprint Cache │ │
+                        │  │ - Low-Latency Match │ │
+                        │  └──────────────────────┘ │
+                        │  ┌──────────────────────┐ │
+                        │  │ CloudFront Functions│ │
+                        │  │ - Image Optimizer   │ │
+                        │  │ - WebP Conversion   │ │
+                        │  └──────────────────────┘ │
+                        └─────────┬─────────────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │    Route53 Routing        │
+                    │  - Geolocation           │
+                    │  - Latency-based         │
+                    │  - Health Checks         │
+                    └─────────────┬─────────────┘
+                                  │
+            ┌─────────────────────┼─────────────────────┐
+            │                     │                     │
+    ┌───────▼────────┐    ┌───────▼────────┐   ┌──────▼─────────┐
+    │  US East       │    │   EU West      │   │ AP Southeast   │
+    │  (Virginia)    │    │   (Ireland)    │   │  (Singapore)   │
+    │   PRIMARY      │    │   SECONDARY    │   │   SECONDARY    │
+    └───────┬────────┘    └───────┬────────┘   └────────┬───────┘
+            │                     │                      │
+    ┌───────▼────────┐    ┌───────▼────────┐   ┌───────▼────────┐
+    │  EKS Cluster   │    │  EKS Cluster   │   │  EKS Cluster   │
+    │  - API Pods    │    │  - API Pods    │   │  - API Pods    │
+    │  - Workers     │    │  - Workers     │   │  - Workers     │
+    └───────┬────────┘    └───────┬────────┘   └────────┬───────┘
+            │                     │                      │
+    ┌───────▼────────┐    ┌───────▼────────┐   ┌───────▼────────┐
+    │ Aurora Primary │◄───┤Aurora Secondary│   │Aurora Secondary│
+    │  us-east-1     │    │   eu-west-1    │   │ ap-southeast-1 │
+    │  Read/Write    │    │   Read Only    │   │   Read Only    │
+    │                │    │   <1s lag      │   │   <1s lag      │
+    └───────┬────────┘    └───────┬────────┘   └────────┬───────┘
+            │                     │                      │
+            └─────────────────────┴──────────────────────┘
+                                  │
+                          ┌───────▼────────┐
+                          │  S3 Storage    │
+                          │  - Backups     │
+                          │  - Logs        │
+                          │  - Assets      │
+                          └────────────────┘
+
+Monitoring & Alerting
+═════════════════════
+
+┌──────────────────────────────────────────────────┐
+│           CloudWatch Monitoring                  │
+│                                                  │
+│  ┌────────────────┐  ┌────────────────┐        │
+│  │  Synthetics    │  │   Dashboards   │        │
+│  │  Canaries      │  │  - Regional    │        │
+│  │  - US: 5min    │  │  - CDN Metrics │        │
+│  │  - EU: 5min    │  │  - DB Perf     │        │
+│  │  - APAC: 5min  │  │  - Latency     │        │
+│  └────────────────┘  └────────────────┘        │
+│                                                  │
+│  ┌────────────────┐  ┌────────────────┐        │
+│  │  Alarms        │  │  Metrics       │        │
+│  │  - High Latency│  │  - P50, P99    │        │
+│  │  - Health Fail │  │  - Cache Hits  │        │
+│  │  - 5xx Errors  │  │  - Requests/s  │        │
+│  └────────────────┘  └────────────────┘        │
+└──────────────────────────────────────────────────┘
+
+Data Flow Examples
+==================
+
+1. Static Asset Request (Image)
+   User → CloudFront → CloudFront Function (WebP) → S3/Cache → User
+   Latency: ~50ms (cache hit)
+
+2. Fingerprint Lookup (US User)
+   User → CloudFront → Lambda@Edge → US ALB → US API → Aurora Primary
+   Latency: ~100ms
+
+3. Fingerprint Lookup (EU User)
+   User → CloudFront → Lambda@Edge → EU ALB → EU API → Aurora EU Replica
+   Latency: ~80ms (local read)
+
+4. Write Operation (Any Region)
+   User → CloudFront → Primary Region → Aurora Primary → Replicate to EU/APAC
+   Latency: ~150ms (write + replication)
+
+Regional Failover Scenario
+===========================
+
+Normal State:
+US Region: ✓ Healthy (serves NA/SA traffic)
+EU Region: ✓ Healthy (serves EU/AF traffic)
+APAC Region: ✓ Healthy (serves AS/OC traffic)
+
+US Region Failure:
+US Region: ✗ Unhealthy (3 failed health checks)
+↓
+Route53 triggers failover
+↓
+NA/SA traffic → EU Region (temporary)
+↓
+Alert sent to operations team
+↓
+US Region recovered → traffic restored
+
+Performance Metrics
+===================
+
+Latency by Region:
+- US → US: 50ms
+- EU → EU: 50ms  
+- APAC → APAC: 50ms
+- Cross-region: 150-300ms
+
+Cache Performance:
+- Static assets: >95% hit rate
+- Fingerprints: 70-80% hit rate
+- API: 40-60% hit rate
+
+Availability:
+- Single region: 99.9%
+- Multi-region: 99.99%
+- CloudFront: 100%
+
+Cost Breakdown
+==============
+
+Monthly Costs (Production):
+┌─────────────────────┬──────────┐
+│ Component           │ Cost     │
+├─────────────────────┼──────────┤
+│ CloudFront          │ $91      │
+│ Lambda@Edge         │ $38      │
+│ Aurora Global DB    │ $1,500   │
+│ Route53             │ $6       │
+│ CloudWatch          │ $22      │
+├─────────────────────┼──────────┤
+│ Total               │ $1,657   │
+└─────────────────────┴──────────┘
+
+Optimized (with RDS replicas):
+┌─────────────────────┬──────────┐
+│ Component           │ Cost     │
+├─────────────────────┼──────────┤
+│ CloudFront          │ $60      │
+│ Lambda@Edge         │ $38      │
+│ RDS + Replicas      │ $600     │
+│ Route53             │ $6       │
+│ CloudWatch          │ $15      │
+├─────────────────────┼──────────┤
+│ Total               │ $719     │
+└─────────────────────┴──────────┘
