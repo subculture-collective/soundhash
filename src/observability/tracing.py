@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any, Optional
 
 from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter as JaegerThriftExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -56,7 +56,7 @@ class TracingManager:
                 jaeger_host = getattr(Config, "JAEGER_AGENT_HOST", "localhost")
                 jaeger_port = int(getattr(Config, "JAEGER_AGENT_PORT", 6831))
                 
-                jaeger_exporter = JaegerExporter(
+                jaeger_exporter = JaegerThriftExporter(
                     agent_host_name=jaeger_host,
                     agent_port=jaeger_port,
                 )
