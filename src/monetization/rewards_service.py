@@ -7,7 +7,7 @@ from typing import Dict, List
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.database.models import Leaderboard, RewardTransaction, User, UserBadge
+from src.database.models import Leaderboard, RewardTransaction, Subscription, User, UserBadge
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +111,6 @@ class RewardsService:
                 awarded_badges.append(badge)
 
         # Check API usage badges
-        from src.database.models import Subscription
-        
         total_api_calls = (
             session.query(func.sum(UsageRecord.api_calls))
             .join(Subscription, UsageRecord.subscription_id == Subscription.id)
