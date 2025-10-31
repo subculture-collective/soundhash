@@ -34,6 +34,8 @@ class DatabaseBackup:
         s3_enabled: bool | None = None,
         s3_bucket: str | None = None,
         s3_prefix: str | None = None,
+        encryption_enabled: bool | None = None,
+        gcs_enabled: bool | None = None,
     ):
         """
         Initialize backup configuration.
@@ -44,6 +46,8 @@ class DatabaseBackup:
             s3_enabled: Whether to upload to S3. If None, uses Config.BACKUP_S3_ENABLED
             s3_bucket: S3 bucket name (default: from config)
             s3_prefix: S3 key prefix (default: from config)
+            encryption_enabled: Whether to encrypt backups (default: from config)
+            gcs_enabled: Whether to upload to GCS (default: from config)
         """
         self.logger = logging.getLogger(__name__)
         self.backup_dir = Path(backup_dir or Config.BACKUP_DIR)
@@ -51,6 +55,18 @@ class DatabaseBackup:
         self.s3_enabled = s3_enabled if s3_enabled is not None else Config.BACKUP_S3_ENABLED
         self.s3_bucket = s3_bucket or Config.BACKUP_S3_BUCKET
         self.s3_prefix = s3_prefix or Config.BACKUP_S3_PREFIX
+        
+        # Enhanced features
+        self.encryption_enabled = (
+            encryption_enabled if encryption_enabled is not None 
+            else Config.BACKUP_ENCRYPTION_ENABLED
+        )
+        self.gcs_enabled = (
+            gcs_enabled if gcs_enabled is not None 
+            else Config.BACKUP_GCS_ENABLED
+        )
+        self.gcs_bucket = Config.BACKUP_GCS_BUCKET
+        self.gcs_prefix = Config.BACKUP_GCS_PREFIX
 
         # Ensure backup directory exists
         self.backup_dir.mkdir(parents=True, exist_ok=True)
@@ -205,6 +221,93 @@ class DatabaseBackup:
             raise BackupError(f"S3 upload failed: {str(e)}") from e
         except Exception as e:
             raise BackupError(f"Unexpected error during S3 upload: {str(e)}") from e
+
+    def encrypt_backup(self, backup_path: Path) -> Path:
+        """
+        Encrypt a backup file.
+
+        Args:
+            backup_path: Path to the backup file
+
+        Returns:
+            Path to the encrypted file
+
+        Raises:
+            BackupError: If encryption fails
+        """
+        if not self.encryption_enabled:
+            self.logger.debug("Encryption disabled, skipping")
+            return backup_path
+
+        try:
+            from backup_encryption import BackupEncryption
+
+            encryption_method = Config.BACKUP_ENCRYPTION_METHOD
+            encryption_key = Config.BACKUP_ENCRYPTION_KEY
+
+            if not encryption_key:
+                raise BackupError("Encryption enabled but BACKUP_ENCRYPTION_KEY not configured")
+
+            self.logger.info(f"Encrypting backup with {encryption_method}")
+            encryptor = BackupEncryption(method=encryption_method, key=encryption_key)
+            encrypted_path = encryptor.encrypt_file(backup_path)
+
+            self.logger.info(f"Backup encrypted: {encrypted_path}")
+            return encrypted_path
+
+        except ImportError:
+            raise BackupError("backup_encryption module not found") from None
+        except Exception as e:
+            raise BackupError(f"Encryption failed: {str(e)}") from e
+
+    def upload_to_gcs(self, backup_path: Path) -> None:
+        """
+        Upload backup file to Google Cloud Storage.
+
+        Args:
+            backup_path: Path to the backup file
+
+        Raises:
+            BackupError: If GCS upload fails
+        """
+        if not self.gcs_enabled:
+            self.logger.debug("GCS upload disabled, skipping")
+            return
+
+        if not self.gcs_bucket:
+            raise BackupError("GCS upload enabled but BACKUP_GCS_BUCKET not configured")
+
+        try:
+            from google.cloud import storage
+            from google.cloud.exceptions import GoogleCloudError
+        except ImportError:
+            raise BackupError(
+                "google-cloud-storage library not installed. "
+                "Install with: pip install google-cloud-storage"
+            ) from None
+
+        try:
+            self.logger.info(f"Uploading backup to GCS: gs://{self.gcs_bucket}/{self.gcs_prefix}")
+
+            storage_client = storage.Client()
+            bucket = storage_client.bucket(self.gcs_bucket)
+            blob_name = f"{self.gcs_prefix}{backup_path.name}"
+            blob = bucket.blob(blob_name)
+
+            # Upload with progress
+            file_size = backup_path.stat().st_size
+            self.logger.info(
+                f"Uploading {file_size / 1024 / 1024:.2f} MB to gs://{self.gcs_bucket}/{blob_name}"
+            )
+
+            blob.upload_from_filename(str(backup_path))
+
+            self.logger.info(f"Successfully uploaded to GCS: gs://{self.gcs_bucket}/{blob_name}")
+
+        except GoogleCloudError as e:
+            raise BackupError(f"GCS upload failed: {str(e)}") from e
+        except Exception as e:
+            raise BackupError(f"Unexpected error during GCS upload: {str(e)}") from e
 
     def cleanup_old_backups(self, dry_run: bool = False) -> tuple[int, int]:
         """
@@ -383,9 +486,17 @@ Examples:
             else:
                 backup_path = backup.create_backup(custom_name=args.name)
 
+                # Encrypt backup if enabled
+                if backup.encryption_enabled:
+                    backup_path = backup.encrypt_backup(backup_path)
+
                 # Upload to S3 if requested
                 if args.s3:
                     backup.upload_to_s3(backup_path)
+                
+                # Upload to GCS if enabled (for cross-region replication)
+                if backup.gcs_enabled:
+                    backup.upload_to_gcs(backup_path)
 
         # Clean up old backups
         files_deleted, bytes_freed = backup.cleanup_old_backups(dry_run=args.dry_run)

@@ -212,6 +212,50 @@ class Config:
     BACKUP_S3_PREFIX = os.getenv(
         "BACKUP_S3_PREFIX", "soundhash-backups/"
     )  # S3 key prefix for backups
+    
+    # Advanced backup settings
+    BACKUP_ENCRYPTION_ENABLED = (
+        os.getenv("BACKUP_ENCRYPTION_ENABLED", "false").lower() == "true"
+    )  # Encrypt backups at rest
+    BACKUP_ENCRYPTION_KEY = os.getenv("BACKUP_ENCRYPTION_KEY")  # GPG key ID or encryption password
+    BACKUP_ENCRYPTION_METHOD = os.getenv("BACKUP_ENCRYPTION_METHOD", "gpg")  # gpg or age
+    
+    # Multi-tier retention policies
+    BACKUP_RETENTION_STANDARD_DAYS = int(os.getenv("BACKUP_RETENTION_STANDARD_DAYS", 30))  # Standard: 30 days
+    BACKUP_RETENTION_EXTENDED_DAYS = int(os.getenv("BACKUP_RETENTION_EXTENDED_DAYS", 90))  # Extended: 90 days
+    BACKUP_RETENTION_ARCHIVE_DAYS = int(os.getenv("BACKUP_RETENTION_ARCHIVE_DAYS", 365))  # Archive: 365 days
+    
+    # Cross-region replication
+    BACKUP_GCS_ENABLED = (
+        os.getenv("BACKUP_GCS_ENABLED", "false").lower() == "true"
+    )  # Enable Google Cloud Storage backup
+    BACKUP_GCS_BUCKET = os.getenv("BACKUP_GCS_BUCKET")  # GCS bucket name for backups
+    BACKUP_GCS_PREFIX = os.getenv("BACKUP_GCS_PREFIX", "soundhash-backups/")  # GCS prefix for backups
+    BACKUP_CROSS_REGION_ENABLED = (
+        os.getenv("BACKUP_CROSS_REGION_ENABLED", "false").lower() == "true"
+    )  # Enable cross-region replication
+    
+    # Point-in-time recovery (PITR) settings
+    BACKUP_WAL_ARCHIVING_ENABLED = (
+        os.getenv("BACKUP_WAL_ARCHIVING_ENABLED", "false").lower() == "true"
+    )  # Enable PostgreSQL WAL archiving
+    BACKUP_WAL_DIR = os.getenv("BACKUP_WAL_DIR", "./backups/wal")  # Local WAL archive directory
+    BACKUP_WAL_S3_ENABLED = (
+        os.getenv("BACKUP_WAL_S3_ENABLED", "false").lower() == "true"
+    )  # Upload WAL files to S3
+    BACKUP_WAL_S3_PREFIX = os.getenv("BACKUP_WAL_S3_PREFIX", "soundhash-wal/")  # S3 prefix for WAL files
+    
+    # Backup testing and validation
+    BACKUP_RESTORE_TEST_ENABLED = (
+        os.getenv("BACKUP_RESTORE_TEST_ENABLED", "false").lower() == "true"
+    )  # Enable automated restore testing
+    BACKUP_RESTORE_TEST_INTERVAL_DAYS = int(
+        os.getenv("BACKUP_RESTORE_TEST_INTERVAL_DAYS", 7)
+    )  # Test restore every N days
+    
+    # Disaster recovery settings
+    BACKUP_RTO_MINUTES = int(os.getenv("BACKUP_RTO_MINUTES", 60))  # Recovery Time Objective: < 1 hour
+    BACKUP_RPO_MINUTES = int(os.getenv("BACKUP_RPO_MINUTES", 15))  # Recovery Point Objective: < 15 min
 
     # Email Configuration
     EMAIL_ENABLED = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
