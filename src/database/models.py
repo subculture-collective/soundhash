@@ -1250,8 +1250,8 @@ class UserJourney(Base):  # type: ignore[misc,valid-type]
     drop_off_step = Column(String(100))
     drop_off_reason = Column(String(200))
     
-    # Metadata
-    metadata = Column(JSON)
+    # Extra data
+    extra_data = Column(JSON)
     
     # Timestamps
     started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
@@ -1735,8 +1735,8 @@ class RewardTransaction(Base):  # type: ignore[misc,valid-type]
     # Status
     status = Column(String(50), default="active")  # active, used, expired, cancelled
 
-    # Metadata
-    metadata = Column(JSON)
+    # Extra data
+    extra_data = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -1763,9 +1763,9 @@ class UserBadge(Base):  # type: ignore[misc,valid-type]
     is_featured = Column(Boolean, default=False)
     display_order = Column(Integer, default=0)
 
-    # Metadata
+    # Extra data
     earned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    metadata = Column(JSON)
+    extra_data = Column(JSON)
 
 
 class Leaderboard(Base):  # type: ignore[misc,valid-type]
@@ -1847,8 +1847,8 @@ class Campaign(Base):  # type: ignore[misc,valid-type]
     status = Column(String(50), default="draft")  # draft, scheduled, active, paused, completed, cancelled
     is_active = Column(Boolean, default=False)
 
-    # Metadata
-    metadata = Column(JSON)  # Additional campaign data
+    # Extra data
+    extra_data = Column(JSON)  # Additional campaign data
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
