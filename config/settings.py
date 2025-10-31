@@ -370,6 +370,68 @@ class Config:
     COMPLIANCE_MODE = os.getenv("COMPLIANCE_MODE", "none")  # soc2, iso27001, hipaa, none
     DATA_RETENTION_POLICY_DAYS = int(os.getenv("DATA_RETENTION_POLICY_DAYS", 365))
     
+    # ==================== CDN & Edge Computing Configuration ====================
+    
+    # CDN Configuration
+    CDN_ENABLED = os.getenv("CDN_ENABLED", "false").lower() == "true"
+    CDN_PROVIDER = os.getenv("CDN_PROVIDER", "cloudfront")  # cloudfront, cloudflare
+    CDN_DOMAIN = os.getenv("CDN_DOMAIN", "")  # e.g., d123456.cloudfront.net or cdn.soundhash.io
+    CDN_STATIC_ASSETS_URL = os.getenv("CDN_STATIC_ASSETS_URL", "/static")
+    
+    # CloudFront Configuration
+    CLOUDFRONT_DISTRIBUTION_ID = os.getenv("CLOUDFRONT_DISTRIBUTION_ID", "")
+    CLOUDFRONT_ORIGIN_VERIFY_SECRET = os.getenv("CLOUDFRONT_ORIGIN_VERIFY_SECRET", "")
+    
+    # Cloudflare Configuration (alternative to CloudFront)
+    CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID", "")
+    CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
+    
+    # Edge Caching
+    EDGE_CACHE_ENABLED = os.getenv("EDGE_CACHE_ENABLED", "false").lower() == "true"
+    EDGE_CACHE_TTL_SECONDS = int(os.getenv("EDGE_CACHE_TTL_SECONDS", 1800))  # 30 minutes
+    EDGE_FINGERPRINT_CACHE_ENABLED = os.getenv("EDGE_FINGERPRINT_CACHE_ENABLED", "false").lower() == "true"
+    
+    # Image Optimization
+    IMAGE_OPTIMIZATION_ENABLED = os.getenv("IMAGE_OPTIMIZATION_ENABLED", "true").lower() == "true"
+    IMAGE_WEBP_CONVERSION = os.getenv("IMAGE_WEBP_CONVERSION", "true").lower() == "true"
+    IMAGE_DEFAULT_QUALITY = int(os.getenv("IMAGE_DEFAULT_QUALITY", 85))
+    IMAGE_MAX_WIDTH = int(os.getenv("IMAGE_MAX_WIDTH", 2048))
+    IMAGE_MAX_HEIGHT = int(os.getenv("IMAGE_MAX_HEIGHT", 2048))
+    
+    # Multi-Region Configuration
+    MULTI_REGION_ENABLED = os.getenv("MULTI_REGION_ENABLED", "false").lower() == "true"
+    PRIMARY_REGION = os.getenv("PRIMARY_REGION", "us-east-1")
+    REGIONS = os.getenv("REGIONS", "us-east-1,eu-west-1,ap-southeast-1").split(",")
+    
+    # Regional Database Endpoints
+    DATABASE_READER_ENDPOINTS = os.getenv("DATABASE_READER_ENDPOINTS", "").split(",") if os.getenv("DATABASE_READER_ENDPOINTS") else []
+    DATABASE_REPLICA_EU_ENDPOINT = os.getenv("DATABASE_REPLICA_EU_ENDPOINT", "")
+    DATABASE_REPLICA_APAC_ENDPOINT = os.getenv("DATABASE_REPLICA_APAC_ENDPOINT", "")
+    
+    # Geographic Routing
+    GEO_ROUTING_ENABLED = os.getenv("GEO_ROUTING_ENABLED", "false").lower() == "true"
+    LATENCY_ROUTING_ENABLED = os.getenv("LATENCY_ROUTING_ENABLED", "false").lower() == "true"
+    
+    # Regional Data Compliance
+    DATA_RESIDENCY_ENFORCEMENT = os.getenv("DATA_RESIDENCY_ENFORCEMENT", "false").lower() == "true"
+    EU_DATA_RESIDENCY = os.getenv("EU_DATA_RESIDENCY", "false").lower() == "true"  # GDPR compliance
+    APAC_DATA_RESIDENCY = os.getenv("APAC_DATA_RESIDENCY", "false").lower() == "true"
+    
+    # Latency Monitoring
+    LATENCY_MONITORING_ENABLED = os.getenv("LATENCY_MONITORING_ENABLED", "true").lower() == "true"
+    LATENCY_THRESHOLD_MS = int(os.getenv("LATENCY_THRESHOLD_MS", 500))
+    LATENCY_ALERT_THRESHOLD_MS = int(os.getenv("LATENCY_ALERT_THRESHOLD_MS", 1000))
+    
+    # Automatic Failover
+    AUTO_FAILOVER_ENABLED = os.getenv("AUTO_FAILOVER_ENABLED", "false").lower() == "true"
+    FAILOVER_HEALTH_CHECK_INTERVAL = int(os.getenv("FAILOVER_HEALTH_CHECK_INTERVAL", 30))  # seconds
+    FAILOVER_UNHEALTHY_THRESHOLD = int(os.getenv("FAILOVER_UNHEALTHY_THRESHOLD", 3))
+    
+    # Edge Function Configuration
+    EDGE_FUNCTIONS_ENABLED = os.getenv("EDGE_FUNCTIONS_ENABLED", "false").lower() == "true"
+    EDGE_MATCHING_ENABLED = os.getenv("EDGE_MATCHING_ENABLED", "false").lower() == "true"
+    EDGE_MATCHING_THRESHOLD = float(os.getenv("EDGE_MATCHING_THRESHOLD", 0.70))
+    
     # ==================== Billing & Payments Configuration ====================
     
     # Stripe Configuration

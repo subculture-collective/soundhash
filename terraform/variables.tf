@@ -131,3 +131,153 @@ variable "tags" {
     Environment = "production"
   }
 }
+
+# ==================== CDN & Edge Computing Configuration ====================
+
+# CloudFront CDN
+variable "cloudfront_price_class" {
+  description = "CloudFront price class (PriceClass_All for global, PriceClass_200 for most regions, PriceClass_100 for US/EU)"
+  type        = string
+  default     = "PriceClass_All"
+}
+
+variable "cloudfront_aliases" {
+  description = "CloudFront alternate domain names (CNAMEs)"
+  type        = list(string)
+  default     = []
+}
+
+variable "cloudfront_origin_verify_secret" {
+  description = "Secret for verifying CloudFront origin requests"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "cloudfront_geo_restriction_type" {
+  description = "Type of geo restriction (none, whitelist, blacklist)"
+  type        = string
+  default     = "none"
+}
+
+variable "cloudfront_geo_restriction_locations" {
+  description = "List of country codes for geo restriction"
+  type        = list(string)
+  default     = []
+}
+
+# ACM Certificate
+variable "acm_certificate_arn" {
+  description = "ACM certificate ARN for CloudFront (must be in us-east-1)"
+  type        = string
+  default     = ""
+}
+
+# WAF
+variable "waf_web_acl_id" {
+  description = "WAF Web ACL ID for CloudFront"
+  type        = string
+  default     = ""
+}
+
+# ==================== Multi-Region Configuration ====================
+
+# Database Multi-Region
+variable "enable_read_replicas" {
+  description = "Enable RDS read replicas in multiple regions"
+  type        = bool
+  default     = false
+}
+
+variable "enable_global_database" {
+  description = "Enable Aurora Global Database (recommended for multi-region)"
+  type        = bool
+  default     = false
+}
+
+variable "aurora_instance_class" {
+  description = "Aurora instance class for global database"
+  type        = string
+  default     = "db.r6g.large"
+}
+
+variable "aurora_instance_count" {
+  description = "Number of Aurora instances per cluster"
+  type        = number
+  default     = 2
+}
+
+variable "db_replica_instance_class" {
+  description = "RDS read replica instance class"
+  type        = string
+  default     = "db.r6g.large"
+}
+
+# Application Load Balancers (Multi-Region)
+variable "alb_domain_name" {
+  description = "ALB domain name for US East region"
+  type        = string
+  default     = ""
+}
+
+variable "alb_zone_id" {
+  description = "ALB hosted zone ID for US East region"
+  type        = string
+  default     = ""
+}
+
+variable "alb_domain_name_eu" {
+  description = "ALB domain name for EU West region"
+  type        = string
+  default     = ""
+}
+
+variable "alb_zone_id_eu" {
+  description = "ALB hosted zone ID for EU West region"
+  type        = string
+  default     = ""
+}
+
+variable "alb_domain_name_apac" {
+  description = "ALB domain name for AP Southeast region"
+  type        = string
+  default     = ""
+}
+
+variable "alb_zone_id_apac" {
+  description = "ALB hosted zone ID for AP Southeast region"
+  type        = string
+  default     = ""
+}
+
+# Route53 Geographic Routing
+variable "domain_name" {
+  description = "Primary domain name"
+  type        = string
+  default     = "soundhash.io"
+}
+
+variable "create_route53_zone" {
+  description = "Create Route53 hosted zone"
+  type        = bool
+  default     = false
+}
+
+variable "enable_geolocation_routing" {
+  description = "Enable geolocation-based routing"
+  type        = bool
+  default     = true
+}
+
+variable "enable_latency_routing" {
+  description = "Enable latency-based routing (alternative to geolocation)"
+  type        = bool
+  default     = false
+}
+
+# Monitoring & Alerting
+variable "sns_alert_topic_arn" {
+  description = "SNS topic ARN for alerts"
+  type        = string
+  default     = ""
+}

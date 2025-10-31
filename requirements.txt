@@ -53,6 +53,11 @@ tqdm==4.67.1
 colorlog==6.10.1
 redis==5.2.1  # Optional: for query result caching
 
+# CDN & Image Optimization
+Pillow==11.0.0  # For image optimization and WebP conversion
+boto3==1.35.86  # For AWS CloudFront and S3 operations
+botocore==1.35.86
+
 # Observability
 prometheus-client==0.21.1
 opentelemetry-api==1.28.2
