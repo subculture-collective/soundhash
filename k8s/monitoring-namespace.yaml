@@ -1,0 +1,9 @@
+# Kubernetes namespace for monitoring stack
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: soundhash-monitoring
+  labels:
+    name: soundhash-monitoring
+    app: soundhash
+    component: monitoring
