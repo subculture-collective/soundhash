@@ -38,8 +38,8 @@ python-multipart==0.0.20
 
 # Enterprise SSO
 python3-saml==1.16.0
-authlib==1.3.2
-python-ldap==3.4.4
+authlib==1.6.5
+python-ldap==3.4.5
 pyotp==2.9.0  # For MFA/TOTP support
 
 # API Rate Limiting
