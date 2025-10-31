@@ -100,6 +100,10 @@ monitoring/
 
 1. **Start monitoring stack**:
    ```bash
+   # Option 1: Monitoring stack only (without postgres-exporter)
+   docker compose -f docker-compose.monitoring.yml up -d
+   
+   # Option 2: Full stack with application and database monitoring
    docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
    ```
 
@@ -113,6 +117,8 @@ monitoring/
    - Prometheus: http://localhost:9091
    - Jaeger: http://localhost:16686
    - AlertManager: http://localhost:9093
+
+**Note**: The `postgres-exporter` service requires the main `docker-compose.yml` to be used together with `docker-compose.monitoring.yml`. If you only want to run the monitoring stack standalone, it will skip the postgres-exporter automatically.
 
 ## Customization
 

@@ -28,6 +28,12 @@ View metrics: http://localhost:9090/metrics
 
 ### 2. Start Monitoring Stack
 
+**Option A: Monitoring stack only**
+```bash
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+**Option B: Full stack with application**
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 ```
@@ -36,6 +42,8 @@ Wait 30 seconds for services to start, then access:
 - **Grafana**: http://localhost:3001 (login: admin/admin)
 - **Prometheus**: http://localhost:9091
 - **Jaeger**: http://localhost:16686
+
+> **Note**: Option B includes PostgreSQL metrics via postgres-exporter. Option A works standalone without the main application.
 
 ### 3. View Your First Dashboard
 

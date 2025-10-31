@@ -29,9 +29,18 @@ SoundHash uses a modern observability stack:
 ### Local Development
 
 1. **Start the monitoring stack**:
+   
+   **Option A: Monitoring only**
+   ```bash
+   docker compose -f docker-compose.monitoring.yml up -d
+   ```
+   
+   **Option B: Full stack with application**
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
    ```
+   
+   > Use Option B if you want PostgreSQL database metrics. Option A works standalone.
 
 2. **Configure environment variables** in `.env`:
    ```env

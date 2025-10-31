@@ -139,6 +139,8 @@ services:
     restart: unless-stopped
 
   # Postgres Exporter - Database metrics
+  # Note: This service connects to the 'db' service from docker-compose.yml
+  # It will only work when both compose files are used together
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: soundhash-postgres-exporter
@@ -148,9 +150,9 @@ services:
       - "9187:9187"
     networks:
       - soundhash-network
-    depends_on:
-      - db
     restart: unless-stopped
+    profiles:
+      - with-app
 
   # AlertManager - Alert routing and grouping (optional)
   alertmanager:
