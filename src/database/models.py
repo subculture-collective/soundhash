@@ -1250,8 +1250,8 @@ class UserJourney(Base):  # type: ignore[misc,valid-type]
     drop_off_step = Column(String(100))
     drop_off_reason = Column(String(200))
     
-    # Metadata
-    metadata = Column(JSON)
+    # Extra data
+    extra_data = Column(JSON)
     
     # Timestamps
     started_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
@@ -1398,4 +1398,493 @@ Index("idx_cohort_analysis_period", CohortAnalysis.period_number, CohortAnalysis
 Index("idx_revenue_metrics_tenant_id", RevenueMetric.tenant_id)
 Index("idx_revenue_metrics_period", RevenueMetric.period_start, RevenueMetric.period_end)
 Index("idx_revenue_metrics_period_type", RevenueMetric.period_type)
+
+
+# ==================== Monetization Models ====================
+
+
+class AffiliateProgram(Base):  # type: ignore[misc,valid-type]
+    """Affiliate program for partnership tracking."""
+
+    __tablename__ = "affiliate_programs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Affiliate details
+    affiliate_code = Column(String(50), unique=True, nullable=False)  # Unique tracking code
+    affiliate_name = Column(String(255))
+    company_name = Column(String(255))
+    website = Column(String(500))
+
+    # Commission structure
+    commission_rate = Column(Float, default=0.20, nullable=False)  # Default 20%
+    commission_duration_months = Column(Integer, default=3)  # First 3 months
+    is_lifetime_commission = Column(Boolean, default=False)
+
+    # Status
+    status = Column(String(50), default="pending", nullable=False)  # pending, active, suspended, terminated
+    approved_at = Column(DateTime)
+    approved_by = Column(Integer, ForeignKey("users.id"))
+
+    # Performance metrics
+    total_referrals = Column(Integer, default=0)
+    total_conversions = Column(Integer, default=0)
+    total_revenue_generated = Column(Integer, default=0)  # In cents
+    total_commission_earned = Column(Integer, default=0)  # In cents
+    total_commission_paid = Column(Integer, default=0)  # In cents
+
+    # Payment details
+    payment_method = Column(String(50))  # paypal, bank_transfer, stripe
+    payment_email = Column(String(255))
+    payment_details = Column(JSON)  # Bank account or other payment info
+
+    # Metadata
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Referral(Base):  # type: ignore[misc,valid-type]
+    """Referral tracking for user-to-user referrals and affiliate referrals."""
+
+    __tablename__ = "referrals"
+
+    id = Column(Integer, primary_key=True)
+    referrer_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # User who referred
+    affiliate_id = Column(Integer, ForeignKey("affiliate_programs.id"), nullable=True)  # Or affiliate
+    referred_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # User who was referred
+
+    # Referral tracking
+    referral_code = Column(String(50), nullable=False)
+    referral_source = Column(String(100))  # web, email, social, etc.
+    referral_campaign = Column(String(100))  # Campaign identifier
+    landing_page = Column(String(500))
+
+    # Conversion tracking
+    converted = Column(Boolean, default=False)  # Whether referred user subscribed
+    converted_at = Column(DateTime)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+
+    # Reward tracking
+    reward_type = Column(String(50))  # credits, discount, cash
+    reward_amount = Column(Integer)  # In cents or credit units
+    reward_status = Column(String(50), default="pending")  # pending, awarded, expired
+    reward_awarded_at = Column(DateTime)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = Column(DateTime)  # When referral link expires
+
+
+class PartnerEarnings(Base):  # type: ignore[misc,valid-type]
+    """Commission earnings tracking for affiliates and partners."""
+
+    __tablename__ = "partner_earnings"
+
+    id = Column(Integer, primary_key=True)
+    affiliate_id = Column(Integer, ForeignKey("affiliate_programs.id"), nullable=False)
+    referral_id = Column(Integer, ForeignKey("referrals.id"))
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+
+    # Earning details
+    earning_type = Column(String(50), nullable=False)  # commission, bonus, reward
+    amount = Column(Integer, nullable=False)  # In cents
+    currency = Column(String(3), default="usd")
+
+    # Commission calculation
+    base_amount = Column(Integer)  # Original transaction amount
+    commission_rate = Column(Float)  # Rate applied
+    billing_period = Column(String(20))  # monthly, yearly
+
+    # Status
+    status = Column(String(50), default="pending", nullable=False)  # pending, approved, paid, cancelled
+    approved_at = Column(DateTime)
+    approved_by = Column(Integer, ForeignKey("users.id"))
+
+    # Payout tracking
+    payout_id = Column(String(255))  # External payout transaction ID
+    paid_at = Column(DateTime)
+    payment_method = Column(String(50))
+    payment_reference = Column(String(255))
+
+    # Metadata
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    period_start = Column(DateTime)
+    period_end = Column(DateTime)
+
+
+class ContentCreatorRevenue(Base):  # type: ignore[misc,valid-type]
+    """Revenue sharing for content creators (70/30 split)."""
+
+    __tablename__ = "content_creator_revenues"
+
+    id = Column(Integer, primary_key=True)
+    creator_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    channel_id = Column(Integer, ForeignKey("channels.id"))
+    video_id = Column(Integer, ForeignKey("videos.id"))
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Revenue details
+    revenue_type = Column(String(50), nullable=False)  # subscription, api_usage, marketplace
+    total_revenue = Column(Integer, nullable=False)  # In cents
+    creator_share = Column(Integer, nullable=False)  # Creator's 70% in cents
+    platform_share = Column(Integer, nullable=False)  # Platform's 30% in cents
+    revenue_split_percentage = Column(Float, default=70.0)  # Creator's percentage
+
+    # Period tracking
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+    billing_period = Column(String(20))  # daily, weekly, monthly
+
+    # Payout status
+    payout_status = Column(String(50), default="pending")  # pending, processing, paid, failed
+    payout_date = Column(DateTime)
+    payout_method = Column(String(50))
+    payout_reference = Column(String(255))
+
+    # Metrics
+    content_views = Column(Integer, default=0)
+    api_calls_attributed = Column(Integer, default=0)
+    matches_attributed = Column(Integer, default=0)
+
+    # Metadata
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
+    """Premium fingerprint databases and other marketplace items."""
+
+    __tablename__ = "marketplace_items"
+
+    id = Column(Integer, primary_key=True)
+    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Item details
+    item_type = Column(String(50), nullable=False)  # fingerprint_db, dataset, model, tool
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    category = Column(String(100))
+    tags = Column(JSON)  # Array of tags
+
+    # Pricing
+    price = Column(Integer, nullable=False)  # In cents
+    currency = Column(String(3), default="usd")
+    pricing_model = Column(String(50), default="one_time")  # one_time, subscription, usage_based
+    marketplace_fee_percentage = Column(Float, default=15.0)  # Platform takes 15%
+
+    # Item metadata
+    file_url = Column(String(500))  # Download URL
+    file_size_mb = Column(Float)
+    version = Column(String(50))
+    license_type = Column(String(100))  # MIT, proprietary, creative_commons, etc.
+
+    # Statistics
+    download_count = Column(Integer, default=0)
+    purchase_count = Column(Integer, default=0)
+    total_revenue = Column(Integer, default=0)  # In cents
+    average_rating = Column(Float)
+    review_count = Column(Integer, default=0)
+
+    # Status
+    status = Column(String(50), default="draft")  # draft, pending_review, active, suspended, archived
+    published_at = Column(DateTime)
+    approved_at = Column(DateTime)
+    approved_by = Column(Integer, ForeignKey("users.id"))
+
+    # Preview/Demo
+    preview_url = Column(String(500))
+    demo_available = Column(Boolean, default=False)
+    sample_data_url = Column(String(500))
+
+    # Requirements
+    min_plan_tier = Column(String(50))  # Minimum subscription tier required
+    api_access_required = Column(Boolean, default=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
+    """Marketplace purchase transactions."""
+
+    __tablename__ = "marketplace_transactions"
+
+    id = Column(Integer, primary_key=True)
+    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
+    buyer_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Transaction details
+    amount = Column(Integer, nullable=False)  # In cents
+    marketplace_fee = Column(Integer, nullable=False)  # Platform's 15%
+    seller_payout = Column(Integer, nullable=False)  # Seller's 85%
+    currency = Column(String(3), default="usd")
+
+    # Payment processing
+    stripe_payment_intent_id = Column(String(255))
+    payment_status = Column(String(50), default="pending")  # pending, completed, failed, refunded
+    paid_at = Column(DateTime)
+
+    # Payout to seller
+    seller_payout_status = Column(String(50), default="pending")  # pending, processing, completed, failed
+    seller_payout_date = Column(DateTime)
+    seller_payout_reference = Column(String(255))
+
+    # License/Access
+    license_key = Column(String(255), unique=True)
+    access_granted = Column(Boolean, default=False)
+    download_url = Column(String(500))
+    download_expires_at = Column(DateTime)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
+    """White-label reseller program for agencies and enterprises."""
+
+    __tablename__ = "white_label_resellers"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Reseller details
+    company_name = Column(String(255), nullable=False)
+    company_website = Column(String(500))
+    contact_name = Column(String(255))
+    contact_email = Column(String(255))
+    contact_phone = Column(String(50))
+
+    # Branding
+    custom_domain = Column(String(255), unique=True)
+    logo_url = Column(String(500))
+    primary_color = Column(String(7))  # Hex color
+    secondary_color = Column(String(7))
+    brand_name = Column(String(255))
+
+    # Pricing & Discounts
+    volume_discount_percentage = Column(Float, default=0.0)  # Volume discount
+    markup_percentage = Column(Float, default=0.0)  # Markup on top of cost
+    custom_pricing_enabled = Column(Boolean, default=False)
+
+    # Limits
+    max_end_users = Column(Integer)
+    max_api_calls_per_month = Column(Integer)
+
+    # Status
+    status = Column(String(50), default="pending")  # pending, active, suspended, terminated
+    approved_at = Column(DateTime)
+    approved_by = Column(Integer, ForeignKey("users.id"))
+    contract_start_date = Column(DateTime)
+    contract_end_date = Column(DateTime)
+
+    # Performance
+    total_end_users = Column(Integer, default=0)
+    total_revenue = Column(Integer, default=0)  # In cents
+    total_api_calls = Column(Integer, default=0)
+
+    # Payment
+    payment_terms = Column(String(100))  # net_30, net_60, prepaid, etc.
+    billing_contact_email = Column(String(255))
+
+    # Metadata
+    notes = Column(Text)
+    settings = Column(JSON)  # Custom settings
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class RewardTransaction(Base):  # type: ignore[misc,valid-type]
+    """API credits and rewards for gamification."""
+
+    __tablename__ = "reward_transactions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Reward details
+    reward_type = Column(String(50), nullable=False)  # api_credits, discount, badge, points
+    amount = Column(Integer, nullable=False)  # Credits or points amount
+    reason = Column(String(255), nullable=False)  # referral, achievement, promotion, etc.
+    source = Column(String(100))  # referral, campaign, achievement, manual
+
+    # Transaction type
+    transaction_type = Column(String(20), nullable=False)  # credit, debit
+    balance_before = Column(Integer, default=0)
+    balance_after = Column(Integer, default=0)
+
+    # Related entities
+    referral_id = Column(Integer, ForeignKey("referrals.id"))
+    campaign_id = Column(Integer, ForeignKey("campaigns.id"))
+    achievement_id = Column(String(100))  # Achievement identifier
+
+    # Expiration
+    expires_at = Column(DateTime)
+    expired = Column(Boolean, default=False)
+
+    # Status
+    status = Column(String(50), default="active")  # active, used, expired, cancelled
+
+    # Extra data
+    extra_data = Column(JSON)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class UserBadge(Base):  # type: ignore[misc,valid-type]
+    """Gamification badges earned by users."""
+
+    __tablename__ = "user_badges"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Badge details
+    badge_id = Column(String(100), nullable=False)  # Unique badge identifier
+    badge_name = Column(String(255), nullable=False)
+    badge_description = Column(Text)
+    badge_icon_url = Column(String(500))
+    badge_tier = Column(String(50))  # bronze, silver, gold, platinum
+
+    # Achievement criteria
+    achievement_type = Column(String(100))  # referrals, api_usage, content_creator, etc.
+    achievement_value = Column(Integer)  # Number of referrals, API calls, etc.
+
+    # Display
+    is_featured = Column(Boolean, default=False)
+    display_order = Column(Integer, default=0)
+
+    # Extra data
+    earned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    extra_data = Column(JSON)
+
+
+class Leaderboard(Base):  # type: ignore[misc,valid-type]
+    """Leaderboard for gamification."""
+
+    __tablename__ = "leaderboards"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+
+    # Leaderboard category
+    category = Column(String(100), nullable=False)  # referrals, api_usage, revenue, content
+    period_type = Column(String(50), nullable=False)  # daily, weekly, monthly, all_time
+
+    # Metrics
+    score = Column(Integer, nullable=False, default=0)
+    rank = Column(Integer)
+    previous_rank = Column(Integer)
+
+    # Period
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+
+    # Additional metrics
+    total_referrals = Column(Integer, default=0)
+    total_api_calls = Column(Integer, default=0)
+    total_revenue = Column(Integer, default=0)
+    total_content_views = Column(Integer, default=0)
+
+    # Metadata
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class Campaign(Base):  # type: ignore[misc,valid-type]
+    """Promotional campaigns for marketing and growth."""
+
+    __tablename__ = "campaigns"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Campaign details
+    name = Column(String(255), nullable=False)
+    campaign_code = Column(String(50), unique=True, nullable=False)
+    description = Column(Text)
+    campaign_type = Column(String(50), nullable=False)  # referral, discount, promotion, launch
+
+    # Offer details
+    offer_type = Column(String(50), nullable=False)  # discount, credits, free_trial, bonus
+    discount_percentage = Column(Float)
+    discount_amount = Column(Integer)  # In cents
+    credit_amount = Column(Integer)  # API credits
+    free_trial_days = Column(Integer)
+
+    # Targeting
+    target_audience = Column(String(100))  # all, new_users, existing_users, specific_tier
+    target_plan_tiers = Column(JSON)  # Array of plan tiers
+    target_regions = Column(JSON)  # Array of regions
+
+    # Duration
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    timezone = Column(String(50), default="UTC")
+
+    # Limits
+    max_uses = Column(Integer)  # Max total uses
+    max_uses_per_user = Column(Integer)  # Max uses per user
+    current_uses = Column(Integer, default=0)
+
+    # Performance metrics
+    total_clicks = Column(Integer, default=0)
+    total_conversions = Column(Integer, default=0)
+    total_revenue = Column(Integer, default=0)  # In cents
+    conversion_rate = Column(Float, default=0.0)
+
+    # Status
+    status = Column(String(50), default="draft")  # draft, scheduled, active, paused, completed, cancelled
+    is_active = Column(Boolean, default=False)
+
+    # Extra data
+    extra_data = Column(JSON)  # Additional campaign data
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# Indexes for monetization models
+Index("idx_affiliate_programs_user_id", AffiliateProgram.user_id)
+Index("idx_affiliate_programs_code", AffiliateProgram.affiliate_code)
+Index("idx_affiliate_programs_status", AffiliateProgram.status)
+Index("idx_referrals_referrer", Referral.referrer_user_id)
+Index("idx_referrals_affiliate", Referral.affiliate_id)
+Index("idx_referrals_referred", Referral.referred_user_id)
+Index("idx_referrals_code", Referral.referral_code)
+Index("idx_referrals_converted", Referral.converted)
+Index("idx_partner_earnings_affiliate", PartnerEarnings.affiliate_id)
+Index("idx_partner_earnings_status", PartnerEarnings.status)
+Index("idx_creator_revenue_creator", ContentCreatorRevenue.creator_user_id)
+Index("idx_creator_revenue_period", ContentCreatorRevenue.period_start, ContentCreatorRevenue.period_end)
+Index("idx_creator_revenue_status", ContentCreatorRevenue.payout_status)
+Index("idx_marketplace_items_seller", MarketplaceItem.seller_user_id)
+Index("idx_marketplace_items_status", MarketplaceItem.status)
+Index("idx_marketplace_items_type", MarketplaceItem.item_type)
+Index("idx_marketplace_transactions_item", MarketplaceTransaction.marketplace_item_id)
+Index("idx_marketplace_transactions_buyer", MarketplaceTransaction.buyer_user_id)
+Index("idx_marketplace_transactions_seller", MarketplaceTransaction.seller_user_id)
+Index("idx_white_label_user", WhiteLabelReseller.user_id)
+Index("idx_white_label_domain", WhiteLabelReseller.custom_domain)
+Index("idx_white_label_status", WhiteLabelReseller.status)
+Index("idx_reward_transactions_user", RewardTransaction.user_id)
+Index("idx_reward_transactions_type", RewardTransaction.reward_type)
+Index("idx_reward_transactions_status", RewardTransaction.status)
+Index("idx_user_badges_user", UserBadge.user_id)
+Index("idx_user_badges_badge", UserBadge.badge_id)
+Index("idx_leaderboards_user", Leaderboard.user_id)
+Index("idx_leaderboards_category", Leaderboard.category)
+Index("idx_leaderboards_period", Leaderboard.period_type, Leaderboard.period_start)
+Index("idx_campaigns_code", Campaign.campaign_code)
+Index("idx_campaigns_status", Campaign.status)
+Index("idx_campaigns_dates", Campaign.start_date, Campaign.end_date)
 
