@@ -123,12 +123,17 @@ nav:
       - YouTube Setup: guides/youtube-setup.md
   - API Reference:
       - api/index.md
+      - Developer Portal: api/developer-portal.md
+      - Quick Start: api/tutorials/quickstart.md
       - Authentication: api/authentication.md
       - Videos: api/videos.md
       - Matches: api/matches.md
       - Channels: api/channels.md
       - Fingerprints: api/fingerprints.md
       - Admin: api/admin.md
+      - Webhooks: api/webhooks/index.md
+      - Rate Limits: api/rate-limits.md
+      - Changelog: api/changelog.md
       - OpenAPI Specification: api/reference.md
   - Deployment:
       - deployment/index.md
