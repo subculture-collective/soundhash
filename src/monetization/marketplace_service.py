@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from src.database.models import MarketplaceItem, MarketplaceTransaction, User
+from src.database.models import MarketplaceItem, MarketplaceTransaction
 
 logger = logging.getLogger(__name__)
 

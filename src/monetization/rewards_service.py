@@ -7,7 +7,7 @@ from typing import Dict, List
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.database.models import Leaderboard, RewardTransaction, Subscription, User, UserBadge
+from src.database.models import Leaderboard, Subscription, User, UserBadge
 
 logger = logging.getLogger(__name__)
 
@@ -162,8 +162,8 @@ class RewardsService:
             else:
                 period_end = now.replace(month=now.month + 1, day=1)
         else:  # all_time
-            period_start = datetime(2020, 1, 1)
-            period_end = datetime(2099, 12, 31)
+            period_start = datetime.min
+            period_end = datetime.max
 
         # Find or create leaderboard entry
         entry = (
@@ -230,7 +230,7 @@ class RewardsService:
         elif period_type == "monthly":
             period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         else:  # all_time
-            period_start = datetime(2020, 1, 1)
+            period_start = datetime.min
 
         entries = (
             session.query(Leaderboard)

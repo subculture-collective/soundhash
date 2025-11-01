@@ -2,12 +2,12 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from src.database.models import AffiliateProgram, PartnerEarnings, Referral, User
+from src.database.models import AffiliateProgram, PartnerEarnings, Referral
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +167,10 @@ class AffiliateService:
             .all()
         )
 
-        # Calculate pending and paid amounts
+        # Calculate pending amount
         pending_amount = sum(
             e.amount for e in earnings if e.status in ["pending", "approved"]
         )
-        paid_amount = sum(e.amount for e in earnings if e.status == "paid")
 
         # Calculate conversion rate
         total_referrals = len(referrals)

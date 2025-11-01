@@ -1,9 +1,7 @@
 """Tests for monetization endpoints."""
 
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.database.models import (
@@ -12,7 +10,6 @@ from src.database.models import (
     ContentCreatorRevenue,
     MarketplaceItem,
     Referral,
-    RewardTransaction,
     User,
     UserBadge,
 )
@@ -191,6 +188,7 @@ class TestCreatorRevenueEndpoints:
         self, client: TestClient, auth_headers: dict, test_db, test_user
     ):
         """Test getting creator earnings with revenue records."""
+        now = datetime.utcnow()
         # Create revenue record
         revenue = ContentCreatorRevenue(
             creator_user_id=test_user["user_id"],
@@ -199,8 +197,8 @@ class TestCreatorRevenueEndpoints:
             creator_share=7000,
             platform_share=3000,
             revenue_split_percentage=70.0,
-            period_start=datetime.utcnow() - timedelta(days=30),
-            period_end=datetime.utcnow(),
+            period_start=now - timedelta(days=30),
+            period_end=now,
             payout_status="pending",
         )
         test_db.add(revenue)
@@ -356,12 +354,13 @@ class TestCampaignEndpoints:
         self, client: TestClient, auth_headers: dict
     ):
         """Test that non-admin users cannot create campaigns."""
+        now = datetime.utcnow()
         request_data = {
             "name": "Test Campaign",
             "campaign_type": "promotion",
             "offer_type": "discount",
-            "start_date": datetime.utcnow().isoformat(),
-            "end_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
+            "start_date": now.isoformat(),
+            "end_date": (now + timedelta(days=30)).isoformat(),
             "discount_percentage": 20.0,
         }
 
@@ -376,12 +375,13 @@ class TestCampaignEndpoints:
         self, client: TestClient, admin_headers: dict, test_db
     ):
         """Test creating a campaign as admin."""
+        now = datetime.utcnow()
         request_data = {
             "name": "Test Campaign",
             "campaign_type": "promotion",
             "offer_type": "discount",
-            "start_date": datetime.utcnow().isoformat(),
-            "end_date": (datetime.utcnow() + timedelta(days=30)).isoformat(),
+            "start_date": now.isoformat(),
+            "end_date": (now + timedelta(days=30)).isoformat(),
             "discount_percentage": 20.0,
             "max_uses": 100,
         }
@@ -404,6 +404,7 @@ class TestCampaignEndpoints:
 
     def test_get_campaign(self, client: TestClient, test_db, admin_user):
         """Test getting campaign details."""
+        now = datetime.utcnow()
         # Create campaign
         campaign = Campaign(
             created_by=admin_user["user_id"],
@@ -412,8 +413,8 @@ class TestCampaignEndpoints:
             campaign_type="promotion",
             offer_type="discount",
             discount_percentage=20.0,
-            start_date=datetime.utcnow(),
-            end_date=datetime.utcnow() + timedelta(days=30),
+            start_date=now,
+            end_date=now + timedelta(days=30),
             status="active",
             is_active=True,
         )
@@ -430,6 +431,7 @@ class TestCampaignEndpoints:
 
     def test_list_active_campaigns(self, client: TestClient, test_db, admin_user):
         """Test listing active campaigns."""
+        now = datetime.utcnow()
         # Create active campaign
         campaign = Campaign(
             created_by=admin_user["user_id"],
@@ -438,8 +440,8 @@ class TestCampaignEndpoints:
             campaign_type="promotion",
             offer_type="discount",
             discount_percentage=15.0,
-            start_date=datetime.utcnow() - timedelta(days=1),
-            end_date=datetime.utcnow() + timedelta(days=30),
+            start_date=now - timedelta(days=1),
+            end_date=now + timedelta(days=30),
             status="active",
             is_active=True,
         )

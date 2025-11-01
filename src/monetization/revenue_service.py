@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
-from src.database.models import ContentCreatorRevenue, User, Video, Channel
+from src.database.models import ContentCreatorRevenue
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,6 @@ class RevenueService:
 
         total_revenue = sum(r.total_revenue for r in revenues)
         total_creator_share = sum(r.creator_share for r in revenues)
-        
         pending_payout = sum(
             r.creator_share for r in revenues if r.payout_status == "pending"
         )

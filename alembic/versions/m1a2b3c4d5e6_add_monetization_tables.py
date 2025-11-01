@@ -2,14 +2,13 @@
 
 Revision ID: m1a2b3c4d5e6
 Revises: f1a2b3c4d5e6
-Create Date: 2025-10-31 23:45:00.000000
+Create Date: 2024-11-01 00:00:00.000000
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'm1a2b3c4d5e6'

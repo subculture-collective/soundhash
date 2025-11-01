@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
-from src.database.models import Campaign, User
+from src.database.models import Campaign
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
 
-from src.database.models import AffiliateProgram, Referral, RewardTransaction, User
+from src.database.models import AffiliateProgram, Referral, RewardTransaction
 
 logger = logging.getLogger(__name__)
 
