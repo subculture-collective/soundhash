@@ -1,6 +1,5 @@
 """Marketplace service for premium fingerprint databases and items."""
 
-import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta
@@ -369,8 +368,9 @@ class MarketplaceService:
 
         if tags:
             # Filter by tags (JSON array contains check)
-            for tag in tags:
-                base_query = base_query.filter(MarketplaceItem.tags.contains([tag]))
+            # Build a single filter for all tags using AND
+            tag_filters = [MarketplaceItem.tags.contains([tag]) for tag in tags]
+            base_query = base_query.filter(and_(*tag_filters))
 
         # Apply sorting
         if sort_by == "price_asc":

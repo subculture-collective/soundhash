@@ -432,11 +432,11 @@ class TestMarketplaceService:
         assert result["status"] == "no_pending_payouts"
         assert result["amount"] == 0
 
-    def test_process_payout_no_stripe(self, test_db, test_user):
+    def test_process_payout_no_stripe(self, test_db, test_user, test_marketplace_item):
         """Test processing payout without Stripe account."""
         # Create pending transaction
         transaction = MarketplaceTransaction(
-            marketplace_item_id=1,
+            marketplace_item_id=test_marketplace_item.id,
             buyer_user_id=test_user.id,
             seller_user_id=test_user.id,
             amount=4900,
@@ -455,7 +455,7 @@ class TestMarketplaceService:
 
         assert result["status"] == "stripe_not_configured"
 
-    def test_process_payout_success(self, test_db, test_user):
+    def test_process_payout_success(self, test_db, test_user, test_marketplace_item):
         """Test successful payout processing."""
         # Setup Stripe account
         stripe_account = SellerStripeAccount(
@@ -469,7 +469,7 @@ class TestMarketplaceService:
         # Create pending transactions
         for i in range(2):
             transaction = MarketplaceTransaction(
-                marketplace_item_id=1,
+                marketplace_item_id=test_marketplace_item.id,
                 buyer_user_id=test_user.id,
                 seller_user_id=test_user.id,
                 amount=4900,
