@@ -19,14 +19,15 @@ Requirements:
 """
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Constants
+MAX_ERROR_OUTPUT_LENGTH = 500  # Maximum length of error output to display
 
 
 SUPPORTED_LANGUAGES = {
@@ -108,7 +109,9 @@ def check_openapi_generator() -> bool:
         if result.returncode == 0:
             print(f"✅ Found openapi-generator-cli: {result.stdout.strip()}")
             return True
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        # It's expected that this may fail if openapi-generator-cli is not installed;
+        # we'll try using npx as a fallback below.
         pass
     
     # Try npx
@@ -122,7 +125,8 @@ def check_openapi_generator() -> bool:
         if result.returncode == 0:
             print(f"✅ Found openapi-generator-cli via npx")
             return True
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        # Neither direct CLI nor npx found; return False to indicate unavailability
         pass
     
     return False
@@ -173,10 +177,18 @@ def generate_sdk(
     else:
         # Try direct CLI first, fallback to npx
         try:
-            subprocess.run(["openapi-generator-cli", "version"], 
-                         capture_output=True, timeout=5, check=False)
-            base_cmd = ["openapi-generator-cli"]
+            result = subprocess.run(
+                ["openapi-generator-cli", "version"], 
+                capture_output=True, 
+                timeout=5, 
+                check=False
+            )
+            if result.returncode == 0:
+                base_cmd = ["openapi-generator-cli"]
+            else:
+                base_cmd = ["npx", "@openapitools/openapi-generator-cli"]
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            # Fallback to npx if CLI not found
             base_cmd = ["npx", "@openapitools/openapi-generator-cli"]
         
         cmd = [
@@ -190,8 +202,9 @@ def generate_sdk(
     if additional_props:
         cmd.extend(["--additional-properties", additional_props])
     
-    # Add package name
-    cmd.extend(["--package-name", config["package_name"]])
+    # Note: --package-name flag is not supported by all generators
+    # Package name is typically handled via --additional-properties
+    # Keeping this for backwards compatibility, but it may be ignored by some generators
     
     print(f"\n🔨 Generating {language.upper()} SDK...")
     print(f"   Output: {output_dir}")
@@ -214,7 +227,7 @@ def generate_sdk(
             print(f"❌ Failed to generate {language} SDK")
             print(f"   Return code: {result.returncode}")
             if result.stderr:
-                print(f"   Error: {result.stderr[:500]}")  # Limit error output
+                print(f"   Error: {result.stderr[:MAX_ERROR_OUTPUT_LENGTH]}")
             return False
             
     except subprocess.TimeoutExpired:

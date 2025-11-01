@@ -52,24 +52,24 @@ Create an endpoint in your application to receive webhook events:
     const crypto = require('crypto');
     
     const app = express();
-    app.use(express.json());
     
-    app.post('/webhooks/soundhash', (req, res) => {
-      // Verify signature
+    // Use express.raw() for webhook route to preserve original body for signature verification
+    app.post('/webhooks/soundhash', express.raw({ type: 'application/json' }), (req, res) => {
+      // Verify signature using raw body
       const signature = req.headers['x-webhook-signature'];
       const secret = 'your-webhook-secret';
       
       const computedSignature = crypto
         .createHmac('sha256', secret)
-        .update(JSON.stringify(req.body))
+        .update(req.body)  // req.body is a Buffer with raw bytes
         .digest('hex');
       
       if (signature !== computedSignature) {
         return res.status(401).send('Invalid signature');
       }
       
-      // Process event
-      const { event, data } = req.body;
+      // Parse JSON body after verifying signature
+      const { event, data } = JSON.parse(req.body.toString('utf8'));
       
       if (event === 'video.processed') {
         console.log(`Video processed: ${data.title}`);

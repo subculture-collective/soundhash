@@ -167,9 +167,6 @@ Get started with SoundHash API in 5 minutes! This tutorial will guide you throug
         };
         
         checkStatus();
-        
-        console.log('✅ Video processed successfully!');
-        console.log(`Fingerprints: ${video.fingerprints.length}`);
       }
     );
     ```
