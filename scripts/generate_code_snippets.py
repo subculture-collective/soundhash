@@ -35,7 +35,7 @@ with ApiClient(config) as client:
         print(f"{{item.id}}: {{item.{display_field}}}")""",
         "get": """    # Get {resource}
     {singular} = api.get_{singular}({singular}_id)
-    print(f"{singular.capitalize()}: {{{{singular}}.{display_field}}}")""",
+    print(f"{capitalized_singular}: {{{{singular}}.{display_field}}}")""",
         "create": """    # Create {resource}
     {singular} = api.create_{singular}({params})
     print(f"Created {singular}: {{{{singular}}.id}}")""",
@@ -74,7 +74,7 @@ api.get{capitalized_singular}({singular}Id, (error, {singular}) => {{
     return;
   }}
   
-  console.log(`{singular.capitalize()}: ${{{{singular}}.{display_field}}}`);
+  console.log(`{capitalized_singular}: ${{{{singular}}.{display_field}}}`);
 }});""",
         "create": """// Create {resource}
 api.create{capitalized_singular}({params}, (error, {singular}) => {{
@@ -160,7 +160,7 @@ try {{
         "get": """// Get {resource}
 try {{
     ${singular} = $api->get{capitalized_singular}(${singular}Id);
-    echo "{singular.capitalize()}: " . ${singular}->get{capitalized_display_field}() . "\\n";
+    echo "{capitalized_singular}: " . ${singular}->get{capitalized_display_field}() . "\\n";
 }} catch (Exception $e) {{
     echo 'Error: ' . $e->getMessage();
 }}
@@ -215,7 +215,7 @@ end
         "get": """# Get {resource}
 begin
   {singular} = api.get_{singular}({singular}_id)
-  puts "{singular.capitalize()}: \#{{{{singular}}.{display_field}}}"
+  puts "{capitalized_singular}: \#{{{{singular}}.{display_field}}}"
 rescue SoundHash::ApiError => e
   puts "Error: \#{{e}}"
 end
@@ -281,7 +281,7 @@ func main() {{
         return
     }}
     
-    fmt.Printf("{singular.capitalize()}: %s\\n", {singular}.{capitalized_display_field})
+    fmt.Printf("{capitalized_singular}: %s\\n", {singular}.{capitalized_display_field})
 """,
         "create": """    // Create {resource}
     {singular}, _, err := client.{api_class}.Create{capitalized_singular}(auth).{capitalized_singular}({params}).Execute()

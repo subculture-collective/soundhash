@@ -148,12 +148,25 @@ Get started with SoundHash API in 5 minutes! This tutorial will guide you throug
         console.log(`Video uploaded: ${video.id}`);
         console.log(`Processing job: ${video.processing_job_id}`);
         
-        // Poll for completion
-        while (video.status !== 'processed') {
-          await new Promise(r => setTimeout(r, 5000));
-          video = await videosApi.getVideo(video.id);
-          console.log(`Status: ${video.status}`);
-        }
+        // Poll for completion (simplified for example)
+        const checkStatus = () => {
+          videosApi.getVideo(video.id, (error, updatedVideo) => {
+            if (error) {
+              console.error('Error:', error);
+              return;
+            }
+            
+            console.log(`Status: ${updatedVideo.status}`);
+            if (updatedVideo.status !== 'processed') {
+              setTimeout(checkStatus, 5000);
+            } else {
+              console.log('✅ Video processed successfully!');
+              console.log(`Fingerprints: ${updatedVideo.fingerprints.length}`);
+            }
+          });
+        };
+        
+        checkStatus();
         
         console.log('✅ Video processed successfully!');
         console.log(`Fingerprints: ${video.fingerprints.length}`);

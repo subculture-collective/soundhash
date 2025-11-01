@@ -102,12 +102,13 @@ def check_openapi_generator() -> bool:
             ["openapi-generator-cli", "version"],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
+            check=False  # Don't raise on non-zero exit
         )
         if result.returncode == 0:
             print(f"✅ Found openapi-generator-cli: {result.stdout.strip()}")
             return True
-    except (subprocess.SubprocessError, FileNotFoundError):
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
         pass
     
     # Try npx
@@ -173,9 +174,9 @@ def generate_sdk(
         # Try direct CLI first, fallback to npx
         try:
             subprocess.run(["openapi-generator-cli", "version"], 
-                         capture_output=True, timeout=5, check=True)
+                         capture_output=True, timeout=5, check=False)
             base_cmd = ["openapi-generator-cli"]
-        except (subprocess.SubprocessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
             base_cmd = ["npx", "@openapitools/openapi-generator-cli"]
         
         cmd = [
@@ -211,7 +212,9 @@ def generate_sdk(
             return True
         else:
             print(f"❌ Failed to generate {language} SDK")
-            print(f"   Error: {result.stderr}")
+            print(f"   Return code: {result.returncode}")
+            if result.stderr:
+                print(f"   Error: {result.stderr[:500]}")  # Limit error output
             return False
             
     except subprocess.TimeoutExpired:

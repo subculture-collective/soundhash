@@ -20,7 +20,7 @@ import hmac
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 
 try:
@@ -38,7 +38,7 @@ SAMPLE_EVENTS = {
         "url": "https://youtube.com/watch?v=test123",
         "duration": 0,
         "status": "uploaded",
-        "uploaded_at": datetime.now(timezone.utc).isoformat()
+        "uploaded_at": None  # Will be set when payload is generated
     },
     "video.processing": {
         "id": 123,
@@ -122,7 +122,7 @@ SAMPLE_EVENTS = {
         "limit": 10000,
         "remaining": 1500,
         "percentage": 85.0,
-        "reset_at": (datetime.now(timezone.utc).replace(hour=0, minute=0, second=0)).isoformat()
+        "reset_at": None  # Will be set when payload is generated
     }
 }
 
@@ -307,7 +307,12 @@ Examples:
             print(f"❌ Invalid JSON in --custom-data: {e}")
             sys.exit(1)
     else:
-        data = SAMPLE_EVENTS[args.event]
+        data = SAMPLE_EVENTS[args.event].copy()
+        # Set dynamic timestamps
+        if data.get("uploaded_at") is None:
+            data["uploaded_at"] = datetime.now(timezone.utc).isoformat()
+        if data.get("reset_at") is None:
+            data["reset_at"] = (datetime.now(timezone.utc).replace(hour=0, minute=0, second=0) + timedelta(days=1)).isoformat()
     
     print("="*60)
     print("SoundHash Webhook Tester")
