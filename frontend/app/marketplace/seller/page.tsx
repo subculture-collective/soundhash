@@ -8,7 +8,6 @@ import {
   DollarSign, 
   Package, 
   TrendingUp, 
-  Download, 
   Star, 
   BarChart3,
   Plus,
@@ -315,9 +314,9 @@ export default function SellerDashboardPage() {
               <CardContent>
                 <div className="space-y-3">
                   {[
-                    { date: '2025-10-01', amount: 12456, status: 'completed' },
-                    { date: '2025-09-01', amount: 10234, status: 'completed' },
-                    { date: '2025-08-01', amount: 9433, status: 'completed' },
+                    { date: '2025-09-01', amount: 12456, status: 'completed' },
+                    { date: '2025-08-01', amount: 10234, status: 'completed' },
+                    { date: '2025-07-01', amount: 9433, status: 'completed' },
                   ].map((payout, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>

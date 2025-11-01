@@ -86,6 +86,12 @@ class MarketplaceSearchRequest(BaseModel):
     offset: int = Field(0, ge=0)
 
 
+class StripeConnectRequest(BaseModel):
+    """Request to setup Stripe Connect."""
+
+    stripe_account_id: str
+
+
 class CampaignCreateRequest(BaseModel):
     """Request to create a campaign."""
 
@@ -512,7 +518,7 @@ async def get_seller_analytics(current_user: User = Depends(get_current_user)):
 
 @router.post("/marketplace/seller/stripe-connect")
 async def setup_stripe_connect(
-    stripe_account_id: str, current_user: User = Depends(get_current_user)
+    request: StripeConnectRequest, current_user: User = Depends(get_current_user)
 ):
     """Set up Stripe Connect for seller payouts."""
     try:
@@ -521,7 +527,7 @@ async def setup_stripe_connect(
             account = MarketplaceService.setup_stripe_connect(
                 session=session,
                 user_id=current_user.id,
-                stripe_account_id=stripe_account_id,
+                stripe_account_id=request.stripe_account_id,
             )
 
             return {

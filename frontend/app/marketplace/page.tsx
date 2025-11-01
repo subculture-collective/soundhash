@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, Star, Download, TrendingUp, Filter, Package, Palette, Plug, Database } from 'lucide-react'
+import { Search, Star, Download, Filter, Package, Palette, Plug, Database } from 'lucide-react'
 
 interface MarketplaceItem {
   id: number
@@ -28,7 +28,6 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState('relevance')
 
   // Mock data for demo
   useEffect(() => {

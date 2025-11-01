@@ -371,7 +371,7 @@ Platform refund policy:
 
 ### Support Channels
 
-- **Email**: marketplace-support@soundhash.io
+- **Email**: support@soundhash.io
 - **Discord**: #marketplace-sellers channel
 - **Forum**: community.soundhash.io
 - **Documentation**: docs.soundhash.io/marketplace

@@ -306,8 +306,12 @@ Configure Stripe Connect for automated payouts (requires authentication).
 
 **POST** `/api/v1/monetization/marketplace/seller/stripe-connect`
 
-**Query Parameters:**
-- `stripe_account_id`: Your Stripe Connect account ID
+**Request Body:**
+```json
+{
+  "stripe_account_id": "acct_1234567890"
+}
+```
 
 **Response:**
 ```json
@@ -411,6 +415,6 @@ All endpoints may return the following error responses:
 ## Support
 
 For marketplace-related questions or issues:
-- Email: marketplace@soundhash.io
+- Email: support@soundhash.io
 - Discord: #marketplace channel
 - Documentation: https://docs.soundhash.io

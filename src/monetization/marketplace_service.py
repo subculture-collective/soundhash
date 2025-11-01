@@ -5,11 +5,10 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from src.database.models import (
-    MarketplaceCategory,
     MarketplaceItem,
     MarketplaceItemVersion,
     MarketplaceQualityCheck,

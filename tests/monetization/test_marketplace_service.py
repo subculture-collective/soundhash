@@ -1,14 +1,11 @@
 """Tests for marketplace service."""
 
 import pytest
-from datetime import datetime
 
 from src.database.models import (
     MarketplaceItem,
     MarketplaceTransaction,
     MarketplaceReview,
-    MarketplaceItemVersion,
-    MarketplaceQualityCheck,
     SellerStripeAccount,
     User,
 )
