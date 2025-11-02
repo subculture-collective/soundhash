@@ -51,6 +51,45 @@ class MarketplaceItemRequest(BaseModel):
     price: int = Field(gt=0)
     category: Optional[str] = None
     tags: Optional[List[str]] = None
+    file_url: Optional[str] = None
+    version: Optional[str] = None
+    license_type: Optional[str] = None
+
+
+class MarketplaceReviewRequest(BaseModel):
+    """Request to create a review."""
+
+    rating: int = Field(ge=1, le=5)
+    title: Optional[str] = None
+    review_text: Optional[str] = None
+
+
+class MarketplaceVersionRequest(BaseModel):
+    """Request to create a new version."""
+
+    version_number: str
+    file_url: str
+    release_notes: Optional[str] = None
+    changelog: Optional[dict] = None
+
+
+class MarketplaceSearchRequest(BaseModel):
+    """Request to search marketplace items."""
+
+    query: Optional[str] = None
+    item_type: Optional[str] = None
+    category: Optional[str] = None
+    min_rating: Optional[float] = Field(None, ge=0, le=5)
+    tags: Optional[List[str]] = None
+    sort_by: str = "relevance"
+    limit: int = Field(20, ge=1, le=100)
+    offset: int = Field(0, ge=0)
+
+
+class StripeConnectRequest(BaseModel):
+    """Request to setup Stripe Connect."""
+
+    stripe_account_id: str
 
 
 class CampaignCreateRequest(BaseModel):
@@ -327,6 +366,241 @@ async def get_seller_earnings(current_user: User = Depends(get_current_user)):
 
     except Exception as e:
         logger.error(f"Error fetching seller earnings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/items/{item_id}/reviews")
+async def create_review(
+    item_id: int,
+    request: MarketplaceReviewRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Create a review for a marketplace item."""
+    try:
+        session = db_manager.get_session()
+        try:
+            review = MarketplaceService.create_review(
+                session=session,
+                marketplace_item_id=item_id,
+                user_id=current_user.id,
+                rating=request.rating,
+                title=request.title,
+                review_text=request.review_text,
+            )
+
+            return {
+                "id": review.id,
+                "rating": review.rating,
+                "title": review.title,
+                "is_verified_purchase": review.is_verified_purchase,
+                "created_at": review.created_at.isoformat() if review.created_at else None,
+            }
+        finally:
+            session.close()
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating review: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/marketplace/items/{item_id}/reviews")
+async def get_item_reviews(
+    item_id: int,
+    limit: int = Query(default=20, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    """Get reviews for a marketplace item."""
+    try:
+        session = db_manager.get_session()
+        try:
+            reviews = MarketplaceService.get_item_reviews(
+                session, item_id, limit=limit, offset=offset
+            )
+            return {"reviews": reviews, "limit": limit, "offset": offset}
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error fetching reviews: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/items/{item_id}/versions")
+async def create_item_version(
+    item_id: int,
+    request: MarketplaceVersionRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Create a new version for a marketplace item."""
+    try:
+        session = db_manager.get_session()
+        try:
+            # Verify user owns the item
+            from src.database.models import MarketplaceItem
+
+            item = session.query(MarketplaceItem).filter_by(id=item_id).first()
+            if not item:
+                raise HTTPException(status_code=404, detail="Item not found")
+            if item.seller_user_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not authorized")
+
+            version = MarketplaceService.create_item_version(
+                session=session,
+                marketplace_item_id=item_id,
+                version_number=request.version_number,
+                file_url=request.file_url,
+                release_notes=request.release_notes,
+                changelog=request.changelog,
+            )
+
+            return {
+                "id": version.id,
+                "version_number": version.version_number,
+                "file_url": version.file_url,
+                "is_latest": version.is_latest,
+                "created_at": version.created_at.isoformat() if version.created_at else None,
+            }
+        finally:
+            session.close()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating version: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/search")
+async def search_marketplace(request: MarketplaceSearchRequest):
+    """Search marketplace items with advanced filtering."""
+    try:
+        session = db_manager.get_session()
+        try:
+            results = MarketplaceService.search_items(
+                session=session,
+                query=request.query,
+                item_type=request.item_type,
+                category=request.category,
+                min_rating=request.min_rating,
+                tags=request.tags,
+                sort_by=request.sort_by,
+                limit=request.limit,
+                offset=request.offset,
+            )
+            return results
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error searching marketplace: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/marketplace/seller/analytics")
+async def get_seller_analytics(current_user: User = Depends(get_current_user)):
+    """Get comprehensive analytics for seller."""
+    try:
+        session = db_manager.get_session()
+        try:
+            analytics = MarketplaceService.get_seller_analytics(
+                session, current_user.id
+            )
+            return analytics
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error fetching seller analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/seller/stripe-connect")
+async def setup_stripe_connect(
+    request: StripeConnectRequest, current_user: User = Depends(get_current_user)
+):
+    """Set up Stripe Connect for seller payouts."""
+    try:
+        session = db_manager.get_session()
+        try:
+            account = MarketplaceService.setup_stripe_connect(
+                session=session,
+                user_id=current_user.id,
+                stripe_account_id=request.stripe_account_id,
+            )
+
+            return {
+                "stripe_account_id": account.stripe_account_id,
+                "charges_enabled": account.charges_enabled,
+                "payouts_enabled": account.payouts_enabled,
+                "details_submitted": account.details_submitted,
+            }
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error setting up Stripe Connect: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/seller/payout")
+async def process_seller_payout(current_user: User = Depends(get_current_user)):
+    """Process payout for seller via Stripe Connect."""
+    try:
+        session = db_manager.get_session()
+        try:
+            result = MarketplaceService.process_payout(
+                session, current_user.id
+            )
+            return result
+        finally:
+            session.close()
+
+    except Exception as e:
+        logger.error(f"Error processing payout: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/marketplace/items/{item_id}/quality-check")
+async def run_quality_check(
+    item_id: int,
+    check_type: str = "security_scan",
+    current_user: User = Depends(get_current_user),
+):
+    """Run quality check on a marketplace item."""
+    try:
+        session = db_manager.get_session()
+        try:
+            # Verify user owns the item or is admin
+            from src.database.models import MarketplaceItem
+
+            item = session.query(MarketplaceItem).filter_by(id=item_id).first()
+            if not item:
+                raise HTTPException(status_code=404, detail="Item not found")
+            if item.seller_user_id != current_user.id and not current_user.is_admin:
+                raise HTTPException(status_code=403, detail="Not authorized")
+
+            check = MarketplaceService.run_quality_check(
+                session=session,
+                marketplace_item_id=item_id,
+                check_type=check_type,
+            )
+
+            return {
+                "id": check.id,
+                "check_type": check.check_type,
+                "status": check.status,
+                "result_summary": check.result_summary,
+                "issues_found": check.issues_found,
+            }
+        finally:
+            session.close()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error running quality check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

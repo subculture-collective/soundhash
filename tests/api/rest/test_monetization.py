@@ -295,6 +295,208 @@ class TestMarketplaceEndpoints:
         assert data["total_revenue"] == 0
         assert data["total_earnings"] == 0
 
+    def test_create_review(self, client: TestClient, auth_headers: dict, test_db, test_user):
+        """Test creating a review for a marketplace item."""
+        # Create marketplace item
+        item = MarketplaceItem(
+            seller_user_id=test_user["user_id"],
+            item_type="plugin",
+            title="Test Plugin",
+            description="Test plugin description",
+            price=2900,
+            status="active",
+        )
+        test_db.add(item)
+        test_db.commit()
+
+        request_data = {
+            "rating": 5,
+            "title": "Great plugin!",
+            "review_text": "This plugin works perfectly.",
+        }
+
+        response = client.post(
+            f"/api/v1/monetization/marketplace/items/{item.id}/reviews",
+            json=request_data,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["rating"] == 5
+        assert data["title"] == "Great plugin!"
+        assert "id" in data
+
+    def test_create_review_invalid_rating(
+        self, client: TestClient, auth_headers: dict, test_db, test_user
+    ):
+        """Test creating a review with invalid rating."""
+        item = MarketplaceItem(
+            seller_user_id=test_user["user_id"],
+            item_type="plugin",
+            title="Test Plugin",
+            description="Test plugin description",
+            price=2900,
+            status="active",
+        )
+        test_db.add(item)
+        test_db.commit()
+
+        request_data = {
+            "rating": 6,  # Invalid: should be 1-5
+            "title": "Test review",
+        }
+
+        response = client.post(
+            f"/api/v1/monetization/marketplace/items/{item.id}/reviews",
+            json=request_data,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_get_item_reviews(self, client: TestClient, test_db, test_user):
+        """Test getting reviews for a marketplace item."""
+        from src.database.models import MarketplaceReview
+
+        # Create item and reviews
+        item = MarketplaceItem(
+            seller_user_id=test_user["user_id"],
+            item_type="plugin",
+            title="Test Plugin",
+            description="Test",
+            price=2900,
+            status="active",
+        )
+        test_db.add(item)
+        test_db.commit()
+
+        review = MarketplaceReview(
+            marketplace_item_id=item.id,
+            user_id=test_user["user_id"],
+            rating=5,
+            title="Great!",
+            review_text="Love it",
+            status="published",
+        )
+        test_db.add(review)
+        test_db.commit()
+
+        response = client.get(
+            f"/api/v1/monetization/marketplace/items/{item.id}/reviews"
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "reviews" in data
+        assert len(data["reviews"]) == 1
+        assert data["reviews"][0]["rating"] == 5
+
+    def test_create_item_version(
+        self, client: TestClient, auth_headers: dict, test_db, test_user
+    ):
+        """Test creating a new version for a marketplace item."""
+        # Create marketplace item
+        item = MarketplaceItem(
+            seller_user_id=test_user["user_id"],
+            item_type="plugin",
+            title="Test Plugin",
+            description="Test",
+            price=2900,
+            status="active",
+        )
+        test_db.add(item)
+        test_db.commit()
+
+        request_data = {
+            "version_number": "2.0.0",
+            "file_url": "https://example.com/plugin-v2.zip",
+            "release_notes": "Major update with new features",
+        }
+
+        response = client.post(
+            f"/api/v1/monetization/marketplace/items/{item.id}/versions",
+            json=request_data,
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["version_number"] == "2.0.0"
+        assert data["is_latest"] is True
+
+    def test_search_marketplace(self, client: TestClient, test_db, test_user):
+        """Test searching marketplace items."""
+        # Create multiple items
+        items = [
+            MarketplaceItem(
+                seller_user_id=test_user["user_id"],
+                item_type="plugin",
+                title="Audio Analyzer Plugin",
+                description="Advanced audio analysis",
+                price=4900,
+                status="active",
+                tags=["audio", "analysis"],
+            ),
+            MarketplaceItem(
+                seller_user_id=test_user["user_id"],
+                item_type="theme",
+                title="Dark Theme",
+                description="Professional dark theme",
+                price=2900,
+                status="active",
+                tags=["theme", "dark"],
+            ),
+        ]
+        for item in items:
+            test_db.add(item)
+        test_db.commit()
+
+        request_data = {
+            "query": "audio",
+            "sort_by": "relevance",
+            "limit": 20,
+            "offset": 0,
+        }
+
+        response = client.post(
+            "/api/v1/monetization/marketplace/search", json=request_data
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any("audio" in item["title"].lower() for item in data["items"])
+
+    def test_get_seller_analytics(
+        self, client: TestClient, auth_headers: dict, test_db, test_user
+    ):
+        """Test getting seller analytics."""
+        # Create items and transactions
+        item = MarketplaceItem(
+            seller_user_id=test_user["user_id"],
+            item_type="plugin",
+            title="Test Plugin",
+            description="Test",
+            price=4900,
+            status="active",
+            purchase_count=10,
+            total_revenue=49000,
+        )
+        test_db.add(item)
+        test_db.commit()
+
+        response = client.get(
+            "/api/v1/monetization/marketplace/seller/analytics", headers=auth_headers
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_items"] >= 1
+        assert data["total_purchases"] >= 0
+        assert "top_items" in data
+
 
 class TestRewardsEndpoints:
     """Tests for rewards and gamification endpoints."""

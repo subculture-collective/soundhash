@@ -1648,6 +1648,164 @@ class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
+class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
+    """Reviews and ratings for marketplace items."""
+
+    __tablename__ = "marketplace_reviews"
+
+    id = Column(Integer, primary_key=True)
+    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    transaction_id = Column(Integer, ForeignKey("marketplace_transactions.id"))
+
+    # Review content
+    rating = Column(Integer, nullable=False)  # 1-5 stars
+    title = Column(String(255))
+    review_text = Column(Text)
+
+    # Review metadata
+    is_verified_purchase = Column(Boolean, default=False)
+    helpful_count = Column(Integer, default=0)
+    reported_count = Column(Integer, default=0)
+
+    # Moderation
+    status = Column(String(50), default="published")  # published, hidden, flagged, removed
+    moderated_by = Column(Integer, ForeignKey("users.id"))
+    moderated_at = Column(DateTime)
+    moderation_reason = Column(Text)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
+    """Version history for marketplace items."""
+
+    __tablename__ = "marketplace_item_versions"
+
+    id = Column(Integer, primary_key=True)
+    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
+
+    # Version details
+    version_number = Column(String(50), nullable=False)
+    release_notes = Column(Text)
+    changelog = Column(JSON)  # Structured changelog
+
+    # Files
+    file_url = Column(String(500), nullable=False)
+    file_size_mb = Column(Float)
+    file_hash = Column(String(128))  # SHA-256 hash for integrity
+
+    # Compatibility
+    min_platform_version = Column(String(50))
+    max_platform_version = Column(String(50))
+    requires_migration = Column(Boolean, default=False)
+
+    # Status
+    status = Column(String(50), default="active")  # active, deprecated, yanked
+    is_latest = Column(Boolean, default=False)
+    download_count = Column(Integer, default=0)
+
+    # Quality checks
+    quality_check_status = Column(String(50))  # pending, passed, failed
+    quality_check_results = Column(JSON)
+    quality_check_at = Column(DateTime)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class MarketplaceQualityCheck(Base):  # type: ignore[misc,valid-type]
+    """Automated quality checks for marketplace submissions."""
+
+    __tablename__ = "marketplace_quality_checks"
+
+    id = Column(Integer, primary_key=True)
+    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"))
+    version_id = Column(Integer, ForeignKey("marketplace_item_versions.id"))
+
+    # Check details
+    check_type = Column(String(50), nullable=False)  # security_scan, malware_scan, format_validation, etc.
+    status = Column(String(50), default="pending")  # pending, running, passed, failed, error
+    severity = Column(String(50))  # info, warning, error, critical
+
+    # Results
+    result_summary = Column(Text)
+    detailed_results = Column(JSON)
+    issues_found = Column(Integer, default=0)
+    warnings_count = Column(Integer, default=0)
+    errors_count = Column(Integer, default=0)
+
+    # Execution info
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    duration_seconds = Column(Float)
+    checker_version = Column(String(50))
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
+    """Categories for organizing marketplace items."""
+
+    __tablename__ = "marketplace_categories"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)
+    description = Column(Text)
+    icon = Column(String(100))  # Icon identifier
+    parent_id = Column(Integer, ForeignKey("marketplace_categories.id"))
+
+    # Display order
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+
+    # Statistics
+    item_count = Column(Integer, default=0)
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
+    """Stripe Connect account information for marketplace sellers."""
+
+    __tablename__ = "seller_stripe_accounts"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Stripe Connect details
+    stripe_account_id = Column(String(255), unique=True, nullable=False)
+    account_type = Column(String(50))  # standard, express, custom
+    charges_enabled = Column(Boolean, default=False)
+    payouts_enabled = Column(Boolean, default=False)
+
+    # Account status
+    details_submitted = Column(Boolean, default=False)
+    verification_status = Column(String(50))  # unverified, pending, verified
+    requirements_due = Column(JSON)  # Required information for verification
+
+    # Payout settings
+    default_currency = Column(String(3), default="usd")
+    payout_schedule = Column(String(50), default="monthly")  # daily, weekly, monthly, manual
+
+    # Statistics
+    lifetime_payouts = Column(Integer, default=0)  # In cents
+    pending_balance = Column(Integer, default=0)  # In cents
+    available_balance = Column(Integer, default=0)  # In cents
+
+    # Timestamps
+    connected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_payout_at = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
     """White-label reseller program for agencies and enterprises."""
 
@@ -1873,6 +2031,18 @@ Index("idx_marketplace_items_type", MarketplaceItem.item_type)
 Index("idx_marketplace_transactions_item", MarketplaceTransaction.marketplace_item_id)
 Index("idx_marketplace_transactions_buyer", MarketplaceTransaction.buyer_user_id)
 Index("idx_marketplace_transactions_seller", MarketplaceTransaction.seller_user_id)
+Index("idx_marketplace_reviews_item", MarketplaceReview.marketplace_item_id)
+Index("idx_marketplace_reviews_user", MarketplaceReview.user_id)
+Index("idx_marketplace_reviews_status", MarketplaceReview.status)
+Index("idx_marketplace_item_versions_item", MarketplaceItemVersion.marketplace_item_id)
+Index("idx_marketplace_item_versions_latest", MarketplaceItemVersion.is_latest)
+Index("idx_marketplace_quality_checks_item", MarketplaceQualityCheck.marketplace_item_id)
+Index("idx_marketplace_quality_checks_version", MarketplaceQualityCheck.version_id)
+Index("idx_marketplace_quality_checks_status", MarketplaceQualityCheck.status)
+Index("idx_marketplace_categories_slug", MarketplaceCategory.slug)
+Index("idx_marketplace_categories_parent", MarketplaceCategory.parent_id)
+Index("idx_seller_stripe_accounts_user", SellerStripeAccount.user_id)
+Index("idx_seller_stripe_accounts_stripe_id", SellerStripeAccount.stripe_account_id)
 Index("idx_white_label_user", WhiteLabelReseller.user_id)
 Index("idx_white_label_domain", WhiteLabelReseller.custom_domain)
 Index("idx_white_label_status", WhiteLabelReseller.status)
