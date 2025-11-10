@@ -51,7 +51,7 @@ requests==2.32.5
 python-dateutil==2.9.0.post0
 tqdm==4.67.1
 colorlog==6.10.1
-redis==5.2.1  # Optional: for query result caching
+redis==7.0.1  # Optional: for query result caching
 
 # CDN & Image Optimization
 Pillow==11.0.0  # For image optimization and WebP conversion
