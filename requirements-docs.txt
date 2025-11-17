@@ -1,9 +1,9 @@
 # Documentation dependencies
 mkdocs==1.6.1
-mkdocs-material==9.5.47
+mkdocs-material==9.7.0
 mkdocs-gen-files==0.5.0
-mkdocs-literate-nav==0.6.1
-mkdocs-section-index==0.3.9
-pymdown-extensions==10.12
-mkdocs-swagger-ui-tag==0.6.10
-mkdocs-mermaid2-plugin==1.1.1
+mkdocs-literate-nav==0.6.2
+mkdocs-section-index==0.3.10
+pymdown-extensions==10.17.1
+mkdocs-swagger-ui-tag==0.7.2
+mkdocs-mermaid2-plugin==1.2.3
