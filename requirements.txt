@@ -74,7 +74,7 @@ flake8==7.3.0
 httpx==0.28.1  # For FastAPI testing
 
 # Async support
-aiohttp==3.13.1
+aiohttp==3.13.3
 
 # Email services
 sendgrid==6.11.0
