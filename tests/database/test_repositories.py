@@ -388,6 +388,17 @@ class TestJobRepository:
         # Should not query database for empty list
         mock_session.query.assert_not_called()
 
+    def test_jobs_exist_batch_empty_list_no_statuses(self):
+        """Test that batch checking with empty list and no statuses returns empty set."""
+        mock_session = MagicMock()
+        job_repo = JobRepository(mock_session)
+
+        result = job_repo.jobs_exist_batch("video_process", [], statuses=None)
+
+        assert result == set()
+        # Should not query database for empty list
+        mock_session.query.assert_not_called()
+
     def test_jobs_exist_batch_with_results(self):
         """Test that batch checking returns correct set of existing job IDs."""
         mock_session = MagicMock()

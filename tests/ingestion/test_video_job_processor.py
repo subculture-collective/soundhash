@@ -112,9 +112,9 @@ class TestVideoJobProcessor:
             patch("src.ingestion.channel_ingester.get_video_repository", return_value=mock_video_repo),
             patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread,
         ):
-            # Configure mock_to_thread to call the function directly
+            # Configure mock_to_thread to call the function directly (simulate async execution)
             async def fake_to_thread(func, *args, **kwargs):
-                return func(*args, **kwargs) if callable(func) else func
+                return func(*args, **kwargs)
 
             mock_to_thread.side_effect = fake_to_thread
 
