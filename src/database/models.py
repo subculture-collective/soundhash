@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     JSON,
     Boolean,
-    Column,
     DateTime,
     Float,
     ForeignKey,
@@ -13,10 +12,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import DeclarativeMeta, Mapped, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-Base: DeclarativeMeta = declarative_base()  # type: ignore[assignment]
+
+class Base(DeclarativeBase):
+    """Base class for all database models."""
+
+    pass
 
 
 class Tenant(Base):  # type: ignore[misc,valid-type]
@@ -24,32 +26,32 @@ class Tenant(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "tenants"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    slug = Column(String(100), unique=True, nullable=False)  # URL-safe identifier
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    slug: Mapped[str] = mapped_column(String(100), unique=True)  # URL-safe identifier
 
     # Contact
-    admin_email = Column(String(255), nullable=False)
-    admin_name = Column(String(255))
+    admin_email: Mapped[str] = mapped_column(String(255))
+    admin_name: Mapped[str | None] = mapped_column(String(255))
 
     # Branding
-    logo_url = Column(String(500))
-    primary_color = Column(String(7))  # Hex color
-    custom_domain = Column(String(255), unique=True)
+    logo_url: Mapped[str | None] = mapped_column(String(500))
+    primary_color: Mapped[str | None] = mapped_column(String(7))  # Hex color
+    custom_domain: Mapped[str | None] = mapped_column(String(255), unique=True)
 
     # Status
-    is_active = Column(Boolean, default=True, nullable=False)
-    plan_tier = Column(String(50))  # Links to subscription plan
+    is_active: Mapped[bool] = mapped_column(default=True)
+    plan_tier: Mapped[str | None] = mapped_column(String(50))  # Links to subscription plan
 
     # Limits (can override plan defaults)
-    max_users = Column(Integer)
-    max_api_calls_per_month = Column(Integer)
-    max_storage_gb = Column(Integer)
+    max_users: Mapped[int | None] = mapped_column()
+    max_api_calls_per_month: Mapped[int | None] = mapped_column()
+    max_storage_gb: Mapped[int | None] = mapped_column()
 
     # Metadata
-    settings = Column(JSON)  # Tenant-specific settings
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    settings: Mapped[dict | None] = mapped_column(JSON)  # Tenant-specific settings
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     users: Mapped[list["User"]] = relationship("User", back_populates="tenant")  # type: ignore[assignment]
@@ -61,28 +63,28 @@ class Tenant(Base):  # type: ignore[misc,valid-type]
 class User(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String(100), unique=True, nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    full_name = Column(String(255))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), unique=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    full_name: Mapped[str | None] = mapped_column(String(255))
 
     # Multi-tenant support
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    role = Column(String(50), default="member")  # owner, admin, member
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    role: Mapped[str | None] = mapped_column(String(50), default="member")  # owner, admin, member
 
     # User status
-    is_active = Column(Boolean, default=True, nullable=False)
-    is_admin = Column(Boolean, default=False, nullable=False)
-    is_verified = Column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_admin: Mapped[bool] = mapped_column(default=False)
+    is_verified: Mapped[bool] = mapped_column(default=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
-    last_login = Column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_login: Mapped[datetime | None] = mapped_column()
 
     # Stripe customer ID for billing
-    stripe_customer_id = Column(String(255), unique=True)
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="users")  # type: ignore[assignment]
@@ -96,26 +98,26 @@ class User(Base):  # type: ignore[misc,valid-type]
 class APIKey(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "api_keys"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    key_name = Column(String(100), nullable=False)
-    key_hash = Column(String(255), unique=True, nullable=False)
-    key_prefix = Column(String(20), nullable=False)  # First few chars for identification
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    key_name: Mapped[str] = mapped_column(String(100))
+    key_hash: Mapped[str] = mapped_column(String(255), unique=True)
+    key_prefix: Mapped[str] = mapped_column(String(20))  # First few chars for identification
 
     # Permissions
-    scopes = Column(JSON)  # ["read", "write", "admin"]
+    scopes: Mapped[dict | None] = mapped_column(JSON)  # ["read", "write", "admin"]
 
     # Rate limiting
-    rate_limit_per_minute = Column(Integer, default=60, nullable=False)
+    rate_limit_per_minute: Mapped[int] = mapped_column(default=60)
 
     # Status
-    is_active = Column(Boolean, default=True, nullable=False)
-    expires_at = Column(DateTime)
-    last_used_at = Column(DateTime)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    expires_at: Mapped[datetime | None] = mapped_column()
+    last_used_at: Mapped[datetime | None] = mapped_column()
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant")  # type: ignore[assignment]
@@ -125,17 +127,17 @@ class APIKey(Base):  # type: ignore[misc,valid-type]
 class Channel(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "channels"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    channel_id = Column(String(255), unique=True, nullable=False)
-    channel_name = Column(String(500))
-    description = Column(Text)
-    subscriber_count = Column(Integer)
-    video_count = Column(Integer)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    last_processed = Column(DateTime)
-    is_active = Column(Boolean, default=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    channel_id: Mapped[str] = mapped_column(String(255), unique=True)
+    channel_name: Mapped[str | None] = mapped_column(String(500))
+    description: Mapped[str | None] = mapped_column(Text)
+    subscriber_count: Mapped[int | None] = mapped_column()
+    video_count: Mapped[int | None] = mapped_column()
+    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_processed: Mapped[datetime | None] = mapped_column()
+    is_active: Mapped[bool | None] = mapped_column(default=True)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="channels")  # type: ignore[assignment]
@@ -145,28 +147,28 @@ class Channel(Base):  # type: ignore[misc,valid-type]
 class Video(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "videos"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    video_id = Column(String(255), unique=True, nullable=False)  # YouTube video ID
-    channel_id = Column(Integer, ForeignKey("channels.id"), nullable=False)
-    title = Column(String(1000))
-    description = Column(Text)
-    duration = Column(Float)  # Duration in seconds
-    view_count = Column(Integer)
-    like_count = Column(Integer)
-    upload_date = Column(DateTime)
-    url = Column(String(500))
-    thumbnail_url = Column(String(500))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    video_id: Mapped[str] = mapped_column(String(255), unique=True)  # YouTube video ID
+    channel_id: Mapped[int] = mapped_column(ForeignKey("channels.id"))
+    title: Mapped[str | None] = mapped_column(String(1000))
+    description: Mapped[str | None] = mapped_column(Text)
+    duration: Mapped[float | None] = mapped_column()  # Duration in seconds
+    view_count: Mapped[int | None] = mapped_column()
+    like_count: Mapped[int | None] = mapped_column()
+    upload_date: Mapped[datetime | None] = mapped_column()
+    url: Mapped[str | None] = mapped_column(String(500))
+    thumbnail_url: Mapped[str | None] = mapped_column(String(500))
 
     # Processing status
-    processed = Column(Boolean, default=False)
-    processing_started = Column(DateTime)
-    processing_completed = Column(DateTime)
-    processing_error = Column(Text)
+    processed: Mapped[bool | None] = mapped_column(default=False)
+    processing_started: Mapped[datetime | None] = mapped_column()
+    processing_completed: Mapped[datetime | None] = mapped_column()
+    processing_error: Mapped[str | None] = mapped_column(Text)
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="videos")  # type: ignore[assignment]
@@ -177,32 +179,32 @@ class Video(Base):  # type: ignore[misc,valid-type]
 class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "audio_fingerprints"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    video_id = Column(Integer, ForeignKey("videos.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    video_id: Mapped[int] = mapped_column(ForeignKey("videos.id"))
 
     # Time segments
-    start_time = Column(Float, nullable=False)  # Start time in seconds
-    end_time = Column(Float, nullable=False)  # End time in seconds
+    start_time: Mapped[float] = mapped_column()  # Start time in seconds
+    end_time: Mapped[float] = mapped_column()  # End time in seconds
 
     # Fingerprint data
-    fingerprint_hash = Column(String(64), nullable=False)  # MD5 hash for quick lookup
-    fingerprint_data = Column(LargeBinary)  # Serialized fingerprint data
+    fingerprint_hash: Mapped[str] = mapped_column(String(64))  # MD5 hash for quick lookup
+    fingerprint_data: Mapped[bytes | None] = mapped_column(LargeBinary)  # Serialized fingerprint data
 
     # Audio characteristics
-    sample_rate = Column(Integer, default=22050)
-    segment_length = Column(Float)  # Length of this segment
+    sample_rate: Mapped[int | None] = mapped_column(default=22050)
+    segment_length: Mapped[float | None] = mapped_column()  # Length of this segment
 
     # Fingerprint extraction parameters (for cache invalidation)
-    n_fft = Column(Integer, nullable=False, default=2048)  # FFT window size used for extraction
-    hop_length = Column(Integer, nullable=False, default=512)  # Hop length used for extraction
+    n_fft: Mapped[int] = mapped_column(default=2048)  # FFT window size used for extraction
+    hop_length: Mapped[int] = mapped_column(default=512)  # Hop length used for extraction
 
     # Quality metrics
-    confidence_score = Column(Float)  # Confidence in fingerprint quality
-    peak_count = Column(Integer)  # Number of spectral peaks detected
+    confidence_score: Mapped[float | None] = mapped_column()  # Confidence in fingerprint quality
+    peak_count: Mapped[int | None] = mapped_column()  # Number of spectral peaks detected
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="fingerprints")  # type: ignore[assignment]
@@ -212,50 +214,50 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
 class MatchResult(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "match_results"
 
-    id = Column(Integer, primary_key=True)
-    query_fingerprint_id = Column(Integer, ForeignKey("audio_fingerprints.id"))
-    matched_fingerprint_id = Column(Integer, ForeignKey("audio_fingerprints.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    query_fingerprint_id: Mapped[int | None] = mapped_column(ForeignKey("audio_fingerprints.id"))
+    matched_fingerprint_id: Mapped[int | None] = mapped_column(ForeignKey("audio_fingerprints.id"))
 
     # Match quality
-    similarity_score = Column(Float, nullable=False)
-    match_confidence = Column(Float)
+    similarity_score: Mapped[float] = mapped_column()
+    match_confidence: Mapped[float | None] = mapped_column()
 
     # Query metadata
-    query_source = Column(String(50))  # 'twitter', 'reddit', 'manual'
-    query_url = Column(String(1000))  # Original query URL
-    query_user = Column(String(100))  # Username who requested
+    query_source: Mapped[str | None] = mapped_column(String(50))  # 'twitter', 'reddit', 'manual'
+    query_url: Mapped[str | None] = mapped_column(String(1000))  # Original query URL
+    query_user: Mapped[str | None] = mapped_column(String(100))  # Username who requested
 
     # Response metadata
-    responded = Column(Boolean, default=False)
-    response_sent_at = Column(DateTime)
+    responded: Mapped[bool | None] = mapped_column(default=False)
+    response_sent_at: Mapped[datetime | None] = mapped_column()
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class ProcessingJob(Base):  # type: ignore[misc,valid-type]
     __tablename__ = "processing_jobs"
 
-    id = Column(Integer, primary_key=True)
-    job_type = Column(String(50))  # 'channel_ingest', 'video_process', 'fingerprint_extract'
-    status = Column(String(20))  # 'pending', 'running', 'completed', 'failed'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_type: Mapped[str | None] = mapped_column(String(50))  # 'channel_ingest', 'video_process', 'fingerprint_extract'
+    status: Mapped[str | None] = mapped_column(String(20))  # 'pending', 'running', 'completed', 'failed'
 
     # Job data
-    target_id = Column(String(255))  # Channel ID or Video ID
-    parameters = Column(Text)  # JSON parameters
+    target_id: Mapped[str | None] = mapped_column(String(255))  # Channel ID or Video ID
+    parameters: Mapped[str | None] = mapped_column(Text)  # JSON parameters
 
     # Progress tracking
-    progress = Column(Float, default=0.0)  # 0.0 to 1.0
-    current_step = Column(String(200))
+    progress: Mapped[float | None] = mapped_column(default=0.0)  # 0.0 to 1.0
+    current_step: Mapped[str | None] = mapped_column(String(200))
 
     # Timing
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
+    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    started_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
 
     # Error handling
-    error_message = Column(Text)
-    retry_count = Column(Integer, default=0)
-    max_retries = Column(Integer, default=3)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    retry_count: Mapped[int | None] = mapped_column(default=0)
+    max_retries: Mapped[int | None] = mapped_column(default=3)
 
 
 # Indexes for performance
@@ -305,39 +307,39 @@ class EmailPreference(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "email_preferences"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     # Transactional emails (always enabled for security)
-    receive_welcome = Column(Boolean, default=True, nullable=False)
-    receive_password_reset = Column(Boolean, default=True, nullable=False)
-    receive_security_alerts = Column(Boolean, default=True, nullable=False)
+    receive_welcome: Mapped[bool] = mapped_column(default=True)
+    receive_password_reset: Mapped[bool] = mapped_column(default=True)
+    receive_security_alerts: Mapped[bool] = mapped_column(default=True)
 
     # Product emails
-    receive_match_found = Column(Boolean, default=True, nullable=False)
-    receive_processing_complete = Column(Boolean, default=True, nullable=False)
-    receive_quota_warnings = Column(Boolean, default=True, nullable=False)
-    receive_api_key_generated = Column(Boolean, default=True, nullable=False)
+    receive_match_found: Mapped[bool] = mapped_column(default=True)
+    receive_processing_complete: Mapped[bool] = mapped_column(default=True)
+    receive_quota_warnings: Mapped[bool] = mapped_column(default=True)
+    receive_api_key_generated: Mapped[bool] = mapped_column(default=True)
 
     # Marketing emails
-    receive_feature_announcements = Column(Boolean, default=True, nullable=False)
-    receive_tips_tricks = Column(Boolean, default=True, nullable=False)
-    receive_case_studies = Column(Boolean, default=False, nullable=False)
+    receive_feature_announcements: Mapped[bool] = mapped_column(default=True)
+    receive_tips_tricks: Mapped[bool] = mapped_column(default=True)
+    receive_case_studies: Mapped[bool] = mapped_column(default=False)
 
     # Digest emails
-    receive_daily_digest = Column(Boolean, default=False, nullable=False)
-    receive_weekly_digest = Column(Boolean, default=True, nullable=False)
+    receive_daily_digest: Mapped[bool] = mapped_column(default=False)
+    receive_weekly_digest: Mapped[bool] = mapped_column(default=True)
 
     # Language preference
-    preferred_language = Column(String(10), default="en", nullable=False)
+    preferred_language: Mapped[str] = mapped_column(String(10), default="en")
 
     # Global unsubscribe
-    unsubscribed_at = Column(DateTime)
-    unsubscribe_token = Column(String(255), unique=True)
+    unsubscribed_at: Mapped[datetime | None] = mapped_column()
+    unsubscribe_token: Mapped[str | None] = mapped_column(String(255), unique=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_preferences")  # type: ignore[assignment]
@@ -348,26 +350,26 @@ class EmailTemplate(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "email_templates"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), unique=True, nullable=False)  # e.g., 'welcome', 'password_reset'
-    category = Column(String(50), nullable=False)  # 'transactional', 'product', 'marketing', 'admin'
-    subject = Column(String(500), nullable=False)
-    html_body = Column(Text, nullable=False)
-    text_body = Column(Text)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)  # e.g., 'welcome', 'password_reset'
+    category: Mapped[str] = mapped_column(String(50))  # 'transactional', 'product', 'marketing', 'admin'
+    subject: Mapped[str] = mapped_column(String(500))
+    html_body: Mapped[str] = mapped_column(Text)
+    text_body: Mapped[str | None] = mapped_column(Text)
 
     # Template variables
-    variables = Column(Text)  # JSON array of required variables
+    variables: Mapped[str | None] = mapped_column(Text)  # JSON array of required variables
 
     # A/B Testing
-    variant = Column(String(20), default="A")  # A, B, C, etc.
-    is_active = Column(Boolean, default=True, nullable=False)
+    variant: Mapped[str | None] = mapped_column(String(20), default="A")  # A, B, C, etc.
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     # Multi-language support
-    language = Column(String(10), default="en", nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class EmailLog(Base):  # type: ignore[misc,valid-type]
@@ -375,34 +377,34 @@ class EmailLog(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "email_logs"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    recipient_email = Column(String(255), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    recipient_email: Mapped[str] = mapped_column(String(255))
 
     # Email details
-    template_name = Column(String(100))
-    template_variant = Column(String(20))
-    subject = Column(String(500))
-    category = Column(String(50))  # 'transactional', 'product', 'marketing', 'admin'
+    template_name: Mapped[str | None] = mapped_column(String(100))
+    template_variant: Mapped[str | None] = mapped_column(String(20))
+    subject: Mapped[str | None] = mapped_column(String(500))
+    category: Mapped[str | None] = mapped_column(String(50))  # 'transactional', 'product', 'marketing', 'admin'
 
     # Sending status
-    status = Column(String(20), default="pending")  # pending, sent, failed, bounced
-    provider_message_id = Column(String(255))  # ID from SendGrid/SES
-    error_message = Column(Text)
+    status: Mapped[str | None] = mapped_column(String(20), default="pending")  # pending, sent, failed, bounced
+    provider_message_id: Mapped[str | None] = mapped_column(String(255))  # ID from SendGrid/SES
+    error_message: Mapped[str | None] = mapped_column(Text)
 
     # Tracking
-    sent_at = Column(DateTime)
-    opened_at = Column(DateTime)
-    clicked_at = Column(DateTime)
-    open_count = Column(Integer, default=0)
-    click_count = Column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column()
+    opened_at: Mapped[datetime | None] = mapped_column()
+    clicked_at: Mapped[datetime | None] = mapped_column()
+    open_count: Mapped[int | None] = mapped_column(default=0)
+    click_count: Mapped[int | None] = mapped_column(default=0)
 
     # Campaign tracking
-    campaign_id = Column(String(100))
-    ab_test_group = Column(String(20))
+    campaign_id: Mapped[str | None] = mapped_column(String(100))
+    ab_test_group: Mapped[str | None] = mapped_column(String(20))
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_logs")  # type: ignore[assignment]
@@ -413,40 +415,40 @@ class EmailCampaign(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "email_campaigns"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text)
 
     # Campaign settings
-    template_name = Column(String(100), nullable=False)
-    category = Column(String(50), default="marketing")
+    template_name: Mapped[str] = mapped_column(String(100))
+    category: Mapped[str | None] = mapped_column(String(50), default="marketing")
 
     # Scheduling
-    scheduled_at = Column(DateTime)
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
+    scheduled_at: Mapped[datetime | None] = mapped_column()
+    started_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
 
     # Status
-    status = Column(String(20), default="draft")  # draft, scheduled, running, completed, cancelled
+    status: Mapped[str | None] = mapped_column(String(20), default="draft")  # draft, scheduled, running, completed, cancelled
 
     # A/B Testing
-    ab_test_enabled = Column(Boolean, default=False)
-    ab_test_variants = Column(Text)  # JSON array of variant configs
-    ab_test_split_percentage = Column(Integer, default=50)  # % for variant A
+    ab_test_enabled: Mapped[bool | None] = mapped_column(default=False)
+    ab_test_variants: Mapped[str | None] = mapped_column(Text)  # JSON array of variant configs
+    ab_test_split_percentage: Mapped[int | None] = mapped_column(default=50)  # % for variant A
 
     # Targeting
-    target_segment = Column(String(100))  # e.g., 'all_users', 'premium_users', 'inactive_users'
+    target_segment: Mapped[str | None] = mapped_column(String(100))  # e.g., 'all_users', 'premium_users', 'inactive_users'
 
     # Analytics
-    total_recipients = Column(Integer, default=0)
-    emails_sent = Column(Integer, default=0)
-    emails_opened = Column(Integer, default=0)
-    emails_clicked = Column(Integer, default=0)
-    emails_failed = Column(Integer, default=0)
+    total_recipients: Mapped[int | None] = mapped_column(default=0)
+    emails_sent: Mapped[int | None] = mapped_column(default=0)
+    emails_opened: Mapped[int | None] = mapped_column(default=0)
+    emails_clicked: Mapped[int | None] = mapped_column(default=0)
+    emails_failed: Mapped[int | None] = mapped_column(default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 # Additional indexes for email tables
@@ -473,32 +475,32 @@ class AuditLog(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "audit_logs"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # Action details
-    action = Column(String(100), nullable=False)  # e.g., 'user.login', 'data.export', 'user.delete'
-    resource_type = Column(String(100))  # e.g., 'user', 'video', 'fingerprint'
-    resource_id = Column(String(255))  # ID of the affected resource
+    action: Mapped[str] = mapped_column(String(100))  # e.g., 'user.login', 'data.export', 'user.delete'
+    resource_type: Mapped[str | None] = mapped_column(String(100))  # e.g., 'user', 'video', 'fingerprint'
+    resource_id: Mapped[str | None] = mapped_column(String(255))  # ID of the affected resource
     
     # Request context
-    ip_address = Column(String(45))  # IPv4 or IPv6
-    user_agent = Column(String(500))
-    request_method = Column(String(10))  # GET, POST, etc.
-    request_path = Column(String(500))
+    ip_address: Mapped[str | None] = mapped_column(String(45))  # IPv4 or IPv6
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    request_method: Mapped[str | None] = mapped_column(String(10))  # GET, POST, etc.
+    request_path: Mapped[str | None] = mapped_column(String(500))
     
     # Changes made (for audit trail)
-    old_values = Column(JSON)  # Previous state
-    new_values = Column(JSON)  # New state
+    old_values: Mapped[dict | None] = mapped_column(JSON)  # Previous state
+    new_values: Mapped[dict | None] = mapped_column(JSON)  # New state
     
     # Status
-    status = Column(String(20))  # 'success', 'failure', 'partial'
-    error_message = Column(Text)
+    status: Mapped[str | None] = mapped_column(String(20))  # 'success', 'failure', 'partial'
+    error_message: Mapped[str | None] = mapped_column(Text)
     
     # Additional context
-    extra_metadata = Column(JSON)  # Additional context
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    extra_metadata: Mapped[dict | None] = mapped_column(JSON)  # Additional context
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), index=True)
 
 
 class UserConsent(Base):  # type: ignore[misc,valid-type]
@@ -506,27 +508,27 @@ class UserConsent(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "user_consents"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     
     # Consent type
-    consent_type = Column(String(100), nullable=False)  # e.g., 'terms_of_service', 'privacy_policy', 'marketing', 'data_processing'
-    consent_version = Column(String(50), nullable=False)  # Version of the document consented to
+    consent_type: Mapped[str] = mapped_column(String(100))  # e.g., 'terms_of_service', 'privacy_policy', 'marketing', 'data_processing'
+    consent_version: Mapped[str] = mapped_column(String(50))  # Version of the document consented to
     
     # Consent details
-    given = Column(Boolean, nullable=False)  # True = consented, False = withdrawn
-    given_at = Column(DateTime, nullable=False)
-    withdrawn_at = Column(DateTime)
+    given: Mapped[bool] = mapped_column()  # True = consented, False = withdrawn
+    given_at: Mapped[datetime] = mapped_column()
+    withdrawn_at: Mapped[datetime | None] = mapped_column()
     
     # Evidence
-    ip_address = Column(String(45))
-    user_agent = Column(String(500))
-    method = Column(String(50))  # e.g., 'web_form', 'api', 'email_link'
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    method: Mapped[str | None] = mapped_column(String(50))  # e.g., 'web_form', 'api', 'email_link'
     
     # Additional context
-    extra_metadata = Column(JSON)  # Additional context
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    extra_metadata: Mapped[dict | None] = mapped_column(JSON)  # Additional context
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class DataExportRequest(Base):  # type: ignore[misc,valid-type]
@@ -534,33 +536,33 @@ class DataExportRequest(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "data_export_requests"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     
     # Request details
-    request_type = Column(String(50), default="full_export")  # 'full_export', 'specific_data'
-    data_types = Column(JSON)  # List of specific data types requested
-    format = Column(String(20), default="json")  # 'json', 'csv', 'xml'
+    request_type: Mapped[str | None] = mapped_column(String(50), default="full_export")  # 'full_export', 'specific_data'
+    data_types: Mapped[dict | None] = mapped_column(JSON)  # List of specific data types requested
+    format: Mapped[str | None] = mapped_column(String(20), default="json")  # 'json', 'csv', 'xml'
     
     # Status tracking
-    status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'expired'
-    requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
-    expires_at = Column(DateTime)  # Export file expiration (e.g., 30 days)
+    status: Mapped[str | None] = mapped_column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'expired'
+    requested_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    started_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
+    expires_at: Mapped[datetime | None] = mapped_column()
     
     # Result
-    file_path = Column(String(500))  # Path to generated export file
-    file_size_bytes = Column(Integer)
-    download_count = Column(Integer, default=0)
-    last_downloaded_at = Column(DateTime)
+    file_path: Mapped[str | None] = mapped_column(String(500))  # Path to generated export file
+    file_size_bytes: Mapped[int | None] = mapped_column()
+    download_count: Mapped[int | None] = mapped_column(default=0)
+    last_downloaded_at: Mapped[datetime | None] = mapped_column()
     
     # Error handling
-    error_message = Column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
     
     # Metadata
-    ip_address = Column(String(45))
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
@@ -568,36 +570,36 @@ class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "data_deletion_requests"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     
     # Request details
-    deletion_type = Column(String(50), default="full")  # 'full', 'partial', 'anonymize'
-    data_types = Column(JSON)  # Specific data types to delete/anonymize
-    reason = Column(Text)  # Optional reason for deletion
+    deletion_type: Mapped[str | None] = mapped_column(String(50), default="full")  # 'full', 'partial', 'anonymize'
+    data_types: Mapped[dict | None] = mapped_column(JSON)  # Specific data types to delete/anonymize
+    reason: Mapped[str | None] = mapped_column(Text)  # Optional reason for deletion
     
     # Status tracking
-    status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'cancelled'
-    requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    approved_at = Column(DateTime)  # Manual approval for compliance
-    approved_by = Column(Integer, ForeignKey("users.id"))  # Admin who approved
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
+    status: Mapped[str | None] = mapped_column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'cancelled'
+    requested_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    approved_at: Mapped[datetime | None] = mapped_column()  # Manual approval for compliance
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))  # Admin who approved
+    started_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
     
     # Verification
-    verification_token = Column(String(255))  # Token to confirm deletion request
-    verified_at = Column(DateTime)
+    verification_token: Mapped[str | None] = mapped_column(String(255))  # Token to confirm deletion request
+    verified_at: Mapped[datetime | None] = mapped_column()
     
     # Result summary
-    items_deleted = Column(JSON)  # Summary of deleted items by type
-    items_anonymized = Column(JSON)  # Summary of anonymized items
+    items_deleted: Mapped[dict | None] = mapped_column(JSON)  # Summary of deleted items by type
+    items_anonymized: Mapped[dict | None] = mapped_column(JSON)  # Summary of anonymized items
     
     # Error handling
-    error_message = Column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
     
     # Metadata
-    ip_address = Column(String(45))
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class DataRetentionPolicy(Base):  # type: ignore[misc,valid-type]
@@ -605,26 +607,26 @@ class DataRetentionPolicy(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "data_retention_policies"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
     
     # Policy details
-    policy_name = Column(String(200), nullable=False)
-    data_type = Column(String(100), nullable=False)  # e.g., 'user_data', 'audit_logs', 'fingerprints'
-    retention_days = Column(Integer, nullable=False)  # Days to retain data
+    policy_name: Mapped[str] = mapped_column(String(200))
+    data_type: Mapped[str] = mapped_column(String(100))  # e.g., 'user_data', 'audit_logs', 'fingerprints'
+    retention_days: Mapped[int] = mapped_column()  # Days to retain data
     
     # Action after retention period
-    action = Column(String(50), default="delete")  # 'delete', 'archive', 'anonymize'
+    action: Mapped[str | None] = mapped_column(String(50), default="delete")  # 'delete', 'archive', 'anonymize'
     
     # Status
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
     
     # Metadata
-    description = Column(Text)
-    legal_basis = Column(String(500))  # Legal reason for retention period
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
-    last_applied_at = Column(DateTime)  # Last time policy was executed
+    description: Mapped[str | None] = mapped_column(Text)
+    legal_basis: Mapped[str | None] = mapped_column(String(500))  # Legal reason for retention period
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_applied_at: Mapped[datetime | None] = mapped_column()  # Last time policy was executed
 
 
 class PrivacyPolicy(Base):  # type: ignore[misc,valid-type]
@@ -632,29 +634,29 @@ class PrivacyPolicy(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "privacy_policies"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     
     # Policy details
-    policy_type = Column(String(50), nullable=False)  # 'privacy_policy', 'terms_of_service', 'cookie_policy', 'dpa'
-    version = Column(String(50), nullable=False)
-    title = Column(String(500), nullable=False)
-    content = Column(Text, nullable=False)  # Full policy text (markdown or HTML)
+    policy_type: Mapped[str] = mapped_column(String(50))  # 'privacy_policy', 'terms_of_service', 'cookie_policy', 'dpa'
+    version: Mapped[str] = mapped_column(String(50))
+    title: Mapped[str] = mapped_column(String(500))
+    content: Mapped[str | None] = mapped_column(Text)
     
     # Effective dates
-    effective_from = Column(DateTime, nullable=False)
-    effective_until = Column(DateTime)
+    effective_from: Mapped[datetime] = mapped_column()
+    effective_until: Mapped[datetime | None] = mapped_column()
     
     # Status
-    is_active = Column(Boolean, default=False, nullable=False)
-    requires_consent = Column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=False)
+    requires_consent: Mapped[bool] = mapped_column(default=True)
     
     # Localization
-    language = Column(String(10), default="en", nullable=False)
+    language: Mapped[str] = mapped_column(String(10), default="en")
     
     # Metadata
-    created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class DataProcessingAgreement(Base):  # type: ignore[misc,valid-type]
@@ -662,41 +664,41 @@ class DataProcessingAgreement(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "data_processing_agreements"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"))
     
     # Agreement details
-    agreement_name = Column(String(200), nullable=False)
-    processor_name = Column(String(200), nullable=False)  # Third-party processor
-    processor_contact = Column(String(500))
+    agreement_name: Mapped[str] = mapped_column(String(200))
+    processor_name: Mapped[str] = mapped_column(String(200))  # Third-party processor
+    processor_contact: Mapped[str | None] = mapped_column(String(500))
     
     # Agreement content
-    agreement_text = Column(Text)
-    signed_document_url = Column(String(500))  # URL to signed PDF
+    agreement_text: Mapped[str | None] = mapped_column(Text)
+    signed_document_url: Mapped[str | None] = mapped_column(String(500))  # URL to signed PDF
     
     # Status
-    status = Column(String(50), default="draft")  # 'draft', 'pending_signature', 'active', 'expired', 'terminated'
-    signed_at = Column(DateTime)
-    signed_by = Column(String(200))  # Name of person who signed
+    status: Mapped[str | None] = mapped_column(String(50), default="draft")  # 'draft', 'pending_signature', 'active', 'expired', 'terminated'
+    signed_at: Mapped[datetime | None] = mapped_column()
+    signed_by: Mapped[str | None] = mapped_column(String(200))  # Name of person who signed
     
     # Validity
-    effective_from = Column(DateTime)
-    effective_until = Column(DateTime)
+    effective_from: Mapped[datetime | None] = mapped_column()
+    effective_until: Mapped[datetime | None] = mapped_column()
     
     # Data processing details
-    data_types_processed = Column(JSON)  # List of data types processed
-    processing_purposes = Column(JSON)  # List of purposes
-    data_retention_period = Column(String(200))
+    data_types_processed: Mapped[dict | None] = mapped_column(JSON)  # List of data types processed
+    processing_purposes: Mapped[dict | None] = mapped_column(JSON)  # List of purposes
+    data_retention_period: Mapped[str | None] = mapped_column(String(200))
     
     # Security measures
-    security_measures = Column(JSON)  # List of security measures in place
+    security_measures: Mapped[dict | None] = mapped_column(JSON)  # List of security measures in place
     
     # Sub-processors
-    sub_processors = Column(JSON)  # List of sub-processors
+    sub_processors: Mapped[dict | None] = mapped_column(JSON)  # List of sub-processors
     
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
@@ -704,37 +706,37 @@ class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "third_party_data_processors"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     
     # Processor details
-    name = Column(String(200), nullable=False)
-    category = Column(String(100))  # e.g., 'email_service', 'payment_processor', 'analytics'
-    website = Column(String(500))
-    contact_email = Column(String(255))
-    contact_phone = Column(String(50))
+    name: Mapped[str] = mapped_column(String(200))
+    category: Mapped[str | None] = mapped_column(String(100))  # e.g., 'email_service', 'payment_processor', 'analytics'
+    website: Mapped[str | None] = mapped_column(String(500))
+    contact_email: Mapped[str | None] = mapped_column(String(255))
+    contact_phone: Mapped[str | None] = mapped_column(String(50))
     
     # Compliance certifications
-    certifications = Column(JSON)  # e.g., ['SOC 2', 'ISO 27001', 'GDPR compliant']
+    certifications: Mapped[dict | None] = mapped_column(JSON)  # e.g., ['SOC 2', 'ISO 27001', 'GDPR compliant']
     
     # Data processing
-    data_types_shared = Column(JSON)  # Types of data shared with processor
-    processing_location = Column(String(200))  # Geographic location of processing
+    data_types_shared: Mapped[dict | None] = mapped_column(JSON)  # Types of data shared with processor
+    processing_location: Mapped[str | None] = mapped_column(String(200))  # Geographic location of processing
     
     # Agreement
-    has_dpa = Column(Boolean, default=False)  # Has Data Processing Agreement
-    dpa_id = Column(Integer, ForeignKey("data_processing_agreements.id"))
+    has_dpa: Mapped[bool | None] = mapped_column(default=False)  # Has Data Processing Agreement
+    dpa_id: Mapped[int | None] = mapped_column(ForeignKey("data_processing_agreements.id"))
     
     # Status
-    is_active = Column(Boolean, default=True, nullable=False)
-    risk_level = Column(String(20))  # 'low', 'medium', 'high'
+    is_active: Mapped[bool] = mapped_column(default=True)
+    risk_level: Mapped[str | None] = mapped_column(String(20))  # 'low', 'medium', 'high'
     
     # Review
-    last_reviewed_at = Column(DateTime)
-    next_review_date = Column(DateTime)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column()
+    next_review_date: Mapped[datetime | None] = mapped_column()
     
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 # Indexes for compliance tables
@@ -771,29 +773,29 @@ class Subscription(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "subscriptions"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     # Stripe IDs
-    stripe_subscription_id = Column(String(255), unique=True)
-    stripe_customer_id = Column(String(255))
-    stripe_price_id = Column(String(255))
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+    stripe_customer_id: Mapped[str | None] = mapped_column(String(255))
+    stripe_price_id: Mapped[str | None] = mapped_column(String(255))
 
     # Plan details
-    plan_tier = Column(String(50), nullable=False)  # free, pro, enterprise
-    billing_period = Column(String(20))  # monthly, yearly
+    plan_tier: Mapped[str] = mapped_column(String(50))  # free, pro, enterprise
+    billing_period: Mapped[str | None] = mapped_column(String(20))  # monthly, yearly
 
     # Status
-    status = Column(String(50))  # active, cancelled, past_due, trialing, incomplete
-    trial_end = Column(DateTime)
-    current_period_start = Column(DateTime)
-    current_period_end = Column(DateTime)
-    cancel_at_period_end = Column(Boolean, default=False)
-    cancelled_at = Column(DateTime)
+    status: Mapped[str | None] = mapped_column(String(50))  # active, cancelled, past_due, trialing, incomplete
+    trial_end: Mapped[datetime | None] = mapped_column()
+    current_period_start: Mapped[datetime | None] = mapped_column()
+    current_period_end: Mapped[datetime | None] = mapped_column()
+    cancel_at_period_end: Mapped[bool | None] = mapped_column(default=False)
+    cancelled_at: Mapped[datetime | None] = mapped_column()
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="subscription")  # type: ignore[assignment]
@@ -805,23 +807,23 @@ class UsageRecord(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "usage_records"
 
-    id = Column(Integer, primary_key=True)
-    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id"))
 
     # Usage metrics
-    api_calls = Column(Integer, default=0)
-    videos_processed = Column(Integer, default=0)
-    matches_performed = Column(Integer, default=0)
-    storage_used_mb = Column(Float, default=0)
+    api_calls: Mapped[int | None] = mapped_column(default=0)
+    videos_processed: Mapped[int | None] = mapped_column(default=0)
+    matches_performed: Mapped[int | None] = mapped_column(default=0)
+    storage_used_mb: Mapped[float | None] = mapped_column(default=0)
 
     # Billing period
-    period_start = Column(DateTime, nullable=False)
-    period_end = Column(DateTime, nullable=False)
+    period_start: Mapped[datetime] = mapped_column()
+    period_end: Mapped[datetime] = mapped_column()
 
     # Stripe
-    stripe_usage_record_id = Column(String(255))
+    stripe_usage_record_id: Mapped[str | None] = mapped_column(String(255))
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     subscription: Mapped["Subscription"] = relationship("Subscription", back_populates="usage_records")  # type: ignore[assignment]
@@ -832,34 +834,34 @@ class Invoice(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "invoices"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"))
 
     # Stripe
-    stripe_invoice_id = Column(String(255), unique=True)
-    stripe_payment_intent_id = Column(String(255))
+    stripe_invoice_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
 
     # Details
-    amount_due = Column(Integer)  # In cents
-    amount_paid = Column(Integer)
-    amount_remaining = Column(Integer)
-    currency = Column(String(3), default="usd")
+    amount_due: Mapped[int | None] = mapped_column()  # In cents
+    amount_paid: Mapped[int | None] = mapped_column()
+    amount_remaining: Mapped[int | None] = mapped_column()
+    currency: Mapped[str | None] = mapped_column(String(3), default="usd")
 
     # Status
-    status = Column(String(50))  # draft, open, paid, void, uncollectible
-    paid = Column(Boolean, default=False)
+    status: Mapped[str | None] = mapped_column(String(50))  # draft, open, paid, void, uncollectible
+    paid: Mapped[bool | None] = mapped_column(default=False)
 
     # URLs
-    invoice_pdf = Column(String(500))
-    hosted_invoice_url = Column(String(500))
+    invoice_pdf: Mapped[str | None] = mapped_column(String(500))
+    hosted_invoice_url: Mapped[str | None] = mapped_column(String(500))
 
     # Dates
-    created = Column(DateTime)
-    due_date = Column(DateTime)
-    paid_at = Column(DateTime)
+    created: Mapped[datetime | None] = mapped_column()
+    due_date: Mapped[datetime | None] = mapped_column()
+    paid_at: Mapped[datetime | None] = mapped_column()
 
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="invoices")  # type: ignore[assignment]
@@ -870,36 +872,36 @@ class Webhook(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "webhooks"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Webhook configuration
-    url = Column(String(2048), nullable=False)
-    description = Column(String(500))
-    secret = Column(String(255), nullable=False)  # HMAC secret for signature verification
+    url: Mapped[str] = mapped_column(String(2048))
+    description: Mapped[str | None] = mapped_column(String(500))
+    secret: Mapped[str] = mapped_column(String(255))  # HMAC secret for signature verification
 
     # Event subscriptions (array of event types)
-    events = Column(JSON, nullable=False)  # e.g., ["match.found", "video.processed"]
+    events: Mapped[dict] = mapped_column(JSON)  # e.g., ["match.found", "video.processed"]
 
     # Status and rate limiting
-    is_active = Column(Boolean, default=True, nullable=False)
-    rate_limit_per_minute = Column(Integer, default=60)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    rate_limit_per_minute: Mapped[int | None] = mapped_column(default=60)
 
     # Custom headers (JSON object)
-    custom_headers = Column(JSON)
+    custom_headers: Mapped[dict | None] = mapped_column(JSON)
 
     # Statistics
-    total_deliveries = Column(Integer, default=0)
-    successful_deliveries = Column(Integer, default=0)
-    failed_deliveries = Column(Integer, default=0)
-    last_delivery_at = Column(DateTime)
-    last_success_at = Column(DateTime)
-    last_failure_at = Column(DateTime)
+    total_deliveries: Mapped[int | None] = mapped_column(default=0)
+    successful_deliveries: Mapped[int | None] = mapped_column(default=0)
+    failed_deliveries: Mapped[int | None] = mapped_column(default=0)
+    last_delivery_at: Mapped[datetime | None] = mapped_column()
+    last_success_at: Mapped[datetime | None] = mapped_column()
+    last_failure_at: Mapped[datetime | None] = mapped_column()
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
@@ -911,21 +913,21 @@ class WebhookEvent(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "webhook_events"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Event information
-    event_type = Column(String(100), nullable=False)  # e.g., "match.found"
-    event_data = Column(JSON, nullable=False)  # Full event payload
-    resource_id = Column(String(255))  # ID of the resource (e.g., match_id, video_id)
-    resource_type = Column(String(100))  # Type of resource (e.g., "match", "video")
+    event_type: Mapped[str] = mapped_column(String(100))  # e.g., "match.found"
+    event_data: Mapped[dict] = mapped_column(JSON)  # Full event payload
+    resource_id: Mapped[str | None] = mapped_column(String(255))  # ID of the resource (e.g.)
+    resource_type: Mapped[str | None] = mapped_column(String(100))  # Type of resource (e.g.)
 
     # Processing status
-    processed = Column(Boolean, default=False, nullable=False)
-    processed_at = Column(DateTime)
+    processed: Mapped[bool] = mapped_column(default=False)
+    processed_at: Mapped[datetime | None] = mapped_column()
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     deliveries: Mapped[list["WebhookDelivery"]] = relationship("WebhookDelivery", back_populates="event", cascade="all, delete-orphan")  # type: ignore[assignment]
@@ -936,30 +938,30 @@ class WebhookDelivery(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "webhook_deliveries"
 
-    id = Column(Integer, primary_key=True)
-    webhook_id = Column(Integer, ForeignKey("webhooks.id", ondelete="CASCADE"), nullable=False)
-    event_id = Column(Integer, ForeignKey("webhook_events.id", ondelete="CASCADE"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    webhook_id: Mapped[int] = mapped_column(ForeignKey("webhooks.id", ondelete="CASCADE"))
+    event_id: Mapped[int] = mapped_column(ForeignKey("webhook_events.id", ondelete="CASCADE"))
 
     # Delivery details
-    attempt_number = Column(Integer, default=1, nullable=False)
-    status = Column(String(50), nullable=False)  # "pending", "success", "failed", "retrying"
+    attempt_number: Mapped[int] = mapped_column(default=1)
+    status: Mapped[str] = mapped_column(String(50))  # "pending", "success", "failed", "retrying"
     
     # Request/Response
-    request_headers = Column(JSON)
-    request_body = Column(Text)
-    response_status_code = Column(Integer)
-    response_headers = Column(JSON)
-    response_body = Column(Text)
-    error_message = Column(Text)
+    request_headers: Mapped[dict | None] = mapped_column(JSON)
+    request_body: Mapped[str | None] = mapped_column(Text)
+    response_status_code: Mapped[int | None] = mapped_column()
+    response_headers: Mapped[dict | None] = mapped_column(JSON)
+    response_body: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
 
     # Timing
-    duration_ms = Column(Integer)  # Response time in milliseconds
-    next_retry_at = Column(DateTime)  # For failed deliveries with retry
+    duration_ms: Mapped[int | None] = mapped_column()  # Response time in milliseconds
+    next_retry_at: Mapped[datetime | None] = mapped_column()  # For failed deliveries with retry
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    delivered_at = Column(DateTime)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    delivered_at: Mapped[datetime | None] = mapped_column()
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     webhook: Mapped["Webhook"] = relationship("Webhook", back_populates="deliveries")  # type: ignore[assignment]
@@ -971,35 +973,35 @@ class OnboardingProgress(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "onboarding_progress"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     # Onboarding state
-    is_completed = Column(Boolean, default=False, nullable=False)
-    current_step = Column(Integer, default=0, nullable=False)  # 0-5 for 6-step flow
-    use_case = Column(String(50))  # content_creator, developer, enterprise
+    is_completed: Mapped[bool] = mapped_column(default=False)
+    current_step: Mapped[int] = mapped_column(default=0)  # 0-5 for 6-step flow
+    use_case: Mapped[str | None] = mapped_column(String(50))  # content_creator, developer, enterprise
 
     # Milestone tracking
-    welcome_completed = Column(Boolean, default=False, nullable=False)
-    use_case_selected = Column(Boolean, default=False, nullable=False)
-    api_key_generated = Column(Boolean, default=False, nullable=False)
-    first_upload_completed = Column(Boolean, default=False, nullable=False)
-    dashboard_explored = Column(Boolean, default=False, nullable=False)
-    integration_started = Column(Boolean, default=False, nullable=False)
+    welcome_completed: Mapped[bool] = mapped_column(default=False)
+    use_case_selected: Mapped[bool] = mapped_column(default=False)
+    api_key_generated: Mapped[bool] = mapped_column(default=False)
+    first_upload_completed: Mapped[bool] = mapped_column(default=False)
+    dashboard_explored: Mapped[bool] = mapped_column(default=False)
+    integration_started: Mapped[bool] = mapped_column(default=False)
 
     # Tour tracking
-    tour_completed = Column(Boolean, default=False, nullable=False)
-    tour_dismissed = Column(Boolean, default=False, nullable=False)
-    tour_last_step = Column(Integer, default=0)
+    tour_completed: Mapped[bool] = mapped_column(default=False)
+    tour_dismissed: Mapped[bool] = mapped_column(default=False)
+    tour_last_step: Mapped[int | None] = mapped_column(default=0)
 
     # Sample data
-    sample_data_generated = Column(Boolean, default=False, nullable=False)
+    sample_data_generated: Mapped[bool] = mapped_column(default=False)
 
     # Metadata
-    custom_data = Column(JSON)  # Store additional progress data
-    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    completed_at = Column(DateTime)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    custom_data: Mapped[dict | None] = mapped_column(JSON)  # Store additional progress data
+    started_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    completed_at: Mapped[datetime | None] = mapped_column()
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="onboarding_progress")  # type: ignore[assignment]
@@ -1010,20 +1012,20 @@ class TutorialProgress(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "tutorial_progress"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tutorial_id = Column(String(100), nullable=False)  # Unique identifier for tutorial
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tutorial_id: Mapped[str] = mapped_column(String(100))  # Unique identifier for tutorial
 
     # Progress
-    is_completed = Column(Boolean, default=False, nullable=False)
-    progress_percent = Column(Integer, default=0)  # 0-100
-    current_step = Column(Integer, default=0)
-    total_steps = Column(Integer)
+    is_completed: Mapped[bool] = mapped_column(default=False)
+    progress_percent: Mapped[int | None] = mapped_column(default=0)  # 0-100
+    current_step: Mapped[int | None] = mapped_column(default=0)
+    total_steps: Mapped[int | None] = mapped_column()
 
     # Tracking
-    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    completed_at = Column(DateTime)
-    last_viewed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    completed_at: Mapped[datetime | None] = mapped_column()
+    last_viewed_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="tutorial_progress")  # type: ignore[assignment]
@@ -1034,30 +1036,30 @@ class UserPreference(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "user_preferences"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     # Help & onboarding
-    show_tooltips = Column(Boolean, default=True, nullable=False)
-    show_contextual_help = Column(Boolean, default=True, nullable=False)
-    auto_start_tours = Column(Boolean, default=True, nullable=False)
+    show_tooltips: Mapped[bool] = mapped_column(default=True)
+    show_contextual_help: Mapped[bool] = mapped_column(default=True)
+    auto_start_tours: Mapped[bool] = mapped_column(default=True)
 
     # Notifications
-    show_onboarding_tips = Column(Boolean, default=True, nullable=False)
-    daily_tips_enabled = Column(Boolean, default=True, nullable=False)
+    show_onboarding_tips: Mapped[bool] = mapped_column(default=True)
+    daily_tips_enabled: Mapped[bool] = mapped_column(default=True)
 
     # Display preferences
-    theme = Column(String(20), default="system")  # light, dark, system
-    language = Column(String(10), default="en")
-    timezone = Column(String(50))
+    theme: Mapped[str | None] = mapped_column(String(20), default="system")  # light, dark, system
+    language: Mapped[str | None] = mapped_column(String(10), default="en")
+    timezone: Mapped[str | None] = mapped_column(String(50))
 
     # Feature flags
-    beta_features_enabled = Column(Boolean, default=False, nullable=False)
+    beta_features_enabled: Mapped[bool] = mapped_column(default=False)
 
     # Metadata
-    preferences_data = Column(JSON)  # Store additional custom preferences
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    preferences_data: Mapped[dict | None] = mapped_column(JSON)  # Store additional custom preferences
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="preferences")  # type: ignore[assignment]
@@ -1068,30 +1070,30 @@ class AnalyticsEvent(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "analytics_events"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # Event details
-    event_type = Column(String(100), nullable=False)  # 'page_view', 'api_call', 'upload', 'match', etc.
-    event_category = Column(String(100), nullable=False)  # 'user_action', 'api', 'system'
-    event_name = Column(String(200), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100))  # 'page_view', 'api_call', 'upload', 'match', etc.
+    event_category: Mapped[str] = mapped_column(String(100))  # 'user_action', 'api', 'system'
+    event_name: Mapped[str] = mapped_column(String(200))
     
     # Context
-    session_id = Column(String(255))
-    ip_address = Column(String(45))
-    user_agent = Column(String(500))
-    referrer = Column(String(1000))
+    session_id: Mapped[str | None] = mapped_column(String(255))
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    referrer: Mapped[str | None] = mapped_column(String(1000))
     
     # Properties
-    properties = Column(JSON)  # Flexible event properties
+    properties: Mapped[dict | None] = mapped_column(JSON)  # Flexible event properties
     
     # Metrics
-    duration_ms = Column(Integer)  # For timed events
-    value = Column(Float)  # Numeric value (e.g., revenue, count)
+    duration_ms: Mapped[int | None] = mapped_column()  # For timed events
+    value: Mapped[float | None] = mapped_column()
     
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class DashboardConfig(Base):  # type: ignore[misc,valid-type]
@@ -1099,26 +1101,26 @@ class DashboardConfig(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "dashboard_configs"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Config details
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    is_default = Column(Boolean, default=False, nullable=False)
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text)
+    is_default: Mapped[bool] = mapped_column(default=False)
     
     # Layout configuration (JSON with widget positions and settings)
-    layout = Column(JSON, nullable=False)
+    layout: Mapped[dict] = mapped_column(JSON)
     
     # Sharing
-    is_public = Column(Boolean, default=False, nullable=False)
-    share_token = Column(String(255), unique=True)
+    is_public: Mapped[bool] = mapped_column(default=False)
+    share_token: Mapped[str | None] = mapped_column(String(255), unique=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
-    last_viewed_at = Column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    last_viewed_at: Mapped[datetime | None] = mapped_column()
 
     # Relationships
     user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
@@ -1129,27 +1131,27 @@ class ReportConfig(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "report_configs"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Report details
-    name = Column(String(200), nullable=False)
-    description = Column(Text)
-    report_type = Column(String(50), nullable=False)  # 'usage', 'revenue', 'matches', 'api', 'custom'
+    name: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text)
+    report_type: Mapped[str] = mapped_column(String(50))  # 'usage', 'revenue', 'matches', 'api', 'custom'
     
     # Configuration
-    filters = Column(JSON)  # Report filters
-    metrics = Column(JSON)  # Metrics to include
-    dimensions = Column(JSON)  # Grouping dimensions
-    visualization_type = Column(String(50))  # 'table', 'chart', 'both'
+    filters: Mapped[dict | None] = mapped_column(JSON)  # Report filters
+    metrics: Mapped[dict | None] = mapped_column(JSON)  # Metrics to include
+    dimensions: Mapped[dict | None] = mapped_column(JSON)  # Grouping dimensions
+    visualization_type: Mapped[str | None] = mapped_column(String(50))  # 'table', 'chart', 'both'
     
     # Export settings
-    export_format = Column(String(20))  # 'pdf', 'csv', 'excel'
+    export_format: Mapped[str | None] = mapped_column(String(20))  # 'pdf', 'csv', 'excel'
     
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
@@ -1161,33 +1163,33 @@ class ScheduledReport(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "scheduled_reports"
 
-    id = Column(Integer, primary_key=True)
-    report_config_id = Column(Integer, ForeignKey("report_configs.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    report_config_id: Mapped[int] = mapped_column(ForeignKey("report_configs.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Schedule settings
-    is_active = Column(Boolean, default=True, nullable=False)
-    frequency = Column(String(20), nullable=False)  # 'daily', 'weekly', 'monthly'
-    day_of_week = Column(Integer)  # 0-6 for weekly reports
-    day_of_month = Column(Integer)  # 1-31 for monthly reports
-    time_of_day = Column(String(5))  # HH:MM format
-    timezone = Column(String(50), default="UTC")
+    is_active: Mapped[bool] = mapped_column(default=True)
+    frequency: Mapped[str] = mapped_column(String(20))  # 'daily', 'weekly', 'monthly'
+    day_of_week: Mapped[int | None] = mapped_column()  # 0-6 for weekly reports
+    day_of_month: Mapped[int | None] = mapped_column()  # 1-31 for monthly reports
+    time_of_day: Mapped[str | None] = mapped_column(String(5))  # HH:MM format
+    timezone: Mapped[str | None] = mapped_column(String(50), default="UTC")
     
     # Delivery settings
-    recipients = Column(JSON, nullable=False)  # List of email addresses
-    subject_template = Column(String(500))
-    message_template = Column(Text)
+    recipients: Mapped[dict] = mapped_column(JSON)  # List of email addresses
+    subject_template: Mapped[str | None] = mapped_column(String(500))
+    message_template: Mapped[str | None] = mapped_column(Text)
     
     # Execution tracking
-    last_run_at = Column(DateTime)
-    last_run_status = Column(String(20))  # 'success', 'failed'
-    last_run_error = Column(Text)
-    next_run_at = Column(DateTime)
-    run_count = Column(Integer, default=0)
+    last_run_at: Mapped[datetime | None] = mapped_column()
+    last_run_status: Mapped[str | None] = mapped_column(String(20))  # 'success', 'failed'
+    last_run_error: Mapped[str | None] = mapped_column(Text)
+    next_run_at: Mapped[datetime | None] = mapped_column()
+    run_count: Mapped[int | None] = mapped_column(default=0)
     
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     report_config: Mapped["ReportConfig"] = relationship("ReportConfig", back_populates="scheduled_reports")  # type: ignore[assignment]
@@ -1199,32 +1201,32 @@ class APIUsageLog(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "api_usage_logs"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    api_key_id: Mapped[int | None] = mapped_column(ForeignKey("api_keys.id"))
 
     # Request details
-    endpoint = Column(String(500), nullable=False)
-    method = Column(String(10), nullable=False)  # GET, POST, etc.
-    path_params = Column(JSON)
-    query_params = Column(JSON)
+    endpoint: Mapped[str] = mapped_column(String(500))
+    method: Mapped[str] = mapped_column(String(10))  # GET, POST, etc.
+    path_params: Mapped[dict | None] = mapped_column(JSON)
+    query_params: Mapped[dict | None] = mapped_column(JSON)
     
     # Response details
-    status_code = Column(Integer, nullable=False)
-    response_time_ms = Column(Integer)
-    response_size_bytes = Column(Integer)
+    status_code: Mapped[int] = mapped_column()
+    response_time_ms: Mapped[int | None] = mapped_column()
+    response_size_bytes: Mapped[int | None] = mapped_column()
     
     # Context
-    ip_address = Column(String(45))
-    user_agent = Column(String(500))
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(String(500))
     
     # Error tracking
-    error_message = Column(Text)
-    error_type = Column(String(100))
+    error_message: Mapped[str | None] = mapped_column(Text)
+    error_type: Mapped[str | None] = mapped_column(String(100))
     
     # Timestamps
-    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class UserJourney(Base):  # type: ignore[misc,valid-type]
@@ -1232,31 +1234,31 @@ class UserJourney(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "user_journeys"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    session_id = Column(String(255), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    session_id: Mapped[str] = mapped_column(String(255))
 
     # Journey details
-    journey_type = Column(String(50), nullable=False)  # 'signup', 'upload', 'match', etc.
-    current_step = Column(String(100), nullable=False)
-    is_completed = Column(Boolean, default=False, nullable=False)
+    journey_type: Mapped[str] = mapped_column(String(50))  # 'signup', 'upload', 'match', etc.
+    current_step: Mapped[str] = mapped_column(String(100))
+    is_completed: Mapped[bool] = mapped_column(default=False)
     
     # Steps tracking
-    steps_completed = Column(JSON)  # List of completed steps
-    total_steps = Column(Integer)
+    steps_completed: Mapped[dict | None] = mapped_column(JSON)  # List of completed steps
+    total_steps: Mapped[int | None] = mapped_column()
     
     # Drop-off analysis
-    dropped_off = Column(Boolean, default=False, nullable=False)
-    drop_off_step = Column(String(100))
-    drop_off_reason = Column(String(200))
+    dropped_off: Mapped[bool] = mapped_column(default=False)
+    drop_off_step: Mapped[str | None] = mapped_column(String(100))
+    drop_off_reason: Mapped[str | None] = mapped_column(String(200))
     
     # Extra data
-    extra_data = Column(JSON)
+    extra_data: Mapped[dict | None] = mapped_column(JSON)
     
     # Timestamps
-    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    completed_at = Column(DateTime)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    completed_at: Mapped[datetime | None] = mapped_column()
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
@@ -1264,29 +1266,29 @@ class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "cohort_analysis"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Cohort definition
-    cohort_name = Column(String(200), nullable=False)
-    cohort_date = Column(DateTime, nullable=False)  # Date when cohort was created
-    cohort_type = Column(String(50), nullable=False)  # 'signup', 'first_upload', etc.
+    cohort_name: Mapped[str] = mapped_column(String(200))
+    cohort_date: Mapped[datetime] = mapped_column()  # Date when cohort was created
+    cohort_type: Mapped[str] = mapped_column(String(50))  # 'signup', 'first_upload', etc.
     
     # Metrics by period
-    period_number = Column(Integer, nullable=False)  # 0, 1, 2, ... (days/weeks/months after cohort_date)
-    period_type = Column(String(20), nullable=False)  # 'day', 'week', 'month'
+    period_number: Mapped[int | None] = mapped_column()
+    period_type: Mapped[str] = mapped_column(String(20))  # 'day', 'week', 'month'
     
     # Cohort metrics
-    cohort_size = Column(Integer, nullable=False)  # Initial size
-    active_users = Column(Integer)
-    retention_rate = Column(Float)
-    revenue = Column(Float)
+    cohort_size: Mapped[int] = mapped_column()  # Initial size
+    active_users: Mapped[int | None] = mapped_column()
+    retention_rate: Mapped[float | None] = mapped_column()
+    revenue: Mapped[float | None] = mapped_column()
     
     # Additional metrics
-    metrics = Column(JSON)
+    metrics: Mapped[dict | None] = mapped_column(JSON)
     
     # Timestamps
-    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    calculated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class RevenueMetric(Base):  # type: ignore[misc,valid-type]
@@ -1294,39 +1296,39 @@ class RevenueMetric(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "revenue_metrics"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Period
-    period_type = Column(String(20), nullable=False)  # 'daily', 'weekly', 'monthly'
-    period_start = Column(DateTime, nullable=False)
-    period_end = Column(DateTime, nullable=False)
+    period_type: Mapped[str] = mapped_column(String(20))  # 'daily', 'weekly', 'monthly'
+    period_start: Mapped[datetime] = mapped_column()
+    period_end: Mapped[datetime] = mapped_column()
     
     # Revenue metrics
-    total_revenue = Column(Float, default=0.0)
-    mrr = Column(Float)  # Monthly Recurring Revenue
-    arr = Column(Float)  # Annual Recurring Revenue
+    total_revenue: Mapped[float | None] = mapped_column(default=0.0)
+    mrr: Mapped[float | None] = mapped_column()  # Monthly Recurring Revenue
+    arr: Mapped[float | None] = mapped_column()  # Annual Recurring Revenue
     
     # Customer metrics
-    new_customers = Column(Integer, default=0)
-    churned_customers = Column(Integer, default=0)
-    active_customers = Column(Integer, default=0)
+    new_customers: Mapped[int | None] = mapped_column(default=0)
+    churned_customers: Mapped[int | None] = mapped_column(default=0)
+    active_customers: Mapped[int | None] = mapped_column(default=0)
     
     # Growth metrics
-    revenue_growth_rate = Column(Float)
-    customer_growth_rate = Column(Float)
-    churn_rate = Column(Float)
+    revenue_growth_rate: Mapped[float | None] = mapped_column()
+    customer_growth_rate: Mapped[float | None] = mapped_column()
+    churn_rate: Mapped[float | None] = mapped_column()
     
     # Forecasting
-    forecasted_revenue = Column(Float)
-    confidence_interval_lower = Column(Float)
-    confidence_interval_upper = Column(Float)
+    forecasted_revenue: Mapped[float | None] = mapped_column()
+    confidence_interval_lower: Mapped[float | None] = mapped_column()
+    confidence_interval_upper: Mapped[float | None] = mapped_column()
     
     # Metadata
-    metrics = Column(JSON)  # Additional custom metrics
+    metrics: Mapped[dict | None] = mapped_column(JSON)  # Additional custom metrics
     
     # Timestamps
-    calculated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    calculated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 # Indexes for billing tables
@@ -1408,42 +1410,42 @@ class AffiliateProgram(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "affiliate_programs"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Affiliate details
-    affiliate_code = Column(String(50), unique=True, nullable=False)  # Unique tracking code
-    affiliate_name = Column(String(255))
-    company_name = Column(String(255))
-    website = Column(String(500))
+    affiliate_code: Mapped[str] = mapped_column(String(50), unique=True)  # Unique tracking code
+    affiliate_name: Mapped[str | None] = mapped_column(String(255))
+    company_name: Mapped[str | None] = mapped_column(String(255))
+    website: Mapped[str | None] = mapped_column(String(500))
 
     # Commission structure
-    commission_rate = Column(Float, default=0.20, nullable=False)  # Default 20%
-    commission_duration_months = Column(Integer, default=3)  # First 3 months
-    is_lifetime_commission = Column(Boolean, default=False)
+    commission_rate: Mapped[float] = mapped_column(default=0.20)  # Default 20%
+    commission_duration_months: Mapped[int | None] = mapped_column(default=3)  # First 3 months
+    is_lifetime_commission: Mapped[bool | None] = mapped_column(default=False)
 
     # Status
-    status = Column(String(50), default="pending", nullable=False)  # pending, active, suspended, terminated
-    approved_at = Column(DateTime)
-    approved_by = Column(Integer, ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, active, suspended, terminated
+    approved_at: Mapped[datetime | None] = mapped_column()
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # Performance metrics
-    total_referrals = Column(Integer, default=0)
-    total_conversions = Column(Integer, default=0)
-    total_revenue_generated = Column(Integer, default=0)  # In cents
-    total_commission_earned = Column(Integer, default=0)  # In cents
-    total_commission_paid = Column(Integer, default=0)  # In cents
+    total_referrals: Mapped[int | None] = mapped_column(default=0)
+    total_conversions: Mapped[int | None] = mapped_column(default=0)
+    total_revenue_generated: Mapped[int | None] = mapped_column(default=0)  # In cents
+    total_commission_earned: Mapped[int | None] = mapped_column(default=0)  # In cents
+    total_commission_paid: Mapped[int | None] = mapped_column(default=0)  # In cents
 
     # Payment details
-    payment_method = Column(String(50))  # paypal, bank_transfer, stripe
-    payment_email = Column(String(255))
-    payment_details = Column(JSON)  # Bank account or other payment info
+    payment_method: Mapped[str | None] = mapped_column(String(50))  # paypal, bank_transfer, stripe
+    payment_email: Mapped[str | None] = mapped_column(String(255))
+    payment_details: Mapped[dict | None] = mapped_column(JSON)  # Bank account or other payment info
 
     # Metadata
-    notes = Column(Text)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class Referral(Base):  # type: ignore[misc,valid-type]
@@ -1451,31 +1453,31 @@ class Referral(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "referrals"
 
-    id = Column(Integer, primary_key=True)
-    referrer_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # User who referred
-    affiliate_id = Column(Integer, ForeignKey("affiliate_programs.id"), nullable=True)  # Or affiliate
-    referred_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # User who was referred
+    id: Mapped[int] = mapped_column(primary_key=True)
+    referrer_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))  # User who referred
+    affiliate_id: Mapped[int | None] = mapped_column(ForeignKey("affiliate_programs.id"))  # Or affiliate
+    referred_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))  # User who was referred
 
     # Referral tracking
-    referral_code = Column(String(50), nullable=False)
-    referral_source = Column(String(100))  # web, email, social, etc.
-    referral_campaign = Column(String(100))  # Campaign identifier
-    landing_page = Column(String(500))
+    referral_code: Mapped[str] = mapped_column(String(50))
+    referral_source: Mapped[str | None] = mapped_column(String(100))  # web, email, social, etc.
+    referral_campaign: Mapped[str | None] = mapped_column(String(100))  # Campaign identifier
+    landing_page: Mapped[str | None] = mapped_column(String(500))
 
     # Conversion tracking
-    converted = Column(Boolean, default=False)  # Whether referred user subscribed
-    converted_at = Column(DateTime)
-    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+    converted: Mapped[bool | None] = mapped_column(default=False)  # Whether referred user subscribed
+    converted_at: Mapped[datetime | None] = mapped_column()
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"))
 
     # Reward tracking
-    reward_type = Column(String(50))  # credits, discount, cash
-    reward_amount = Column(Integer)  # In cents or credit units
-    reward_status = Column(String(50), default="pending")  # pending, awarded, expired
-    reward_awarded_at = Column(DateTime)
+    reward_type: Mapped[str | None] = mapped_column(String(50))  # credits, discount, cash
+    reward_amount: Mapped[int | None] = mapped_column()  # In cents or credit units
+    reward_status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, awarded, expired
+    reward_awarded_at: Mapped[datetime | None] = mapped_column()
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    expires_at = Column(DateTime)  # When referral link expires
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    expires_at: Mapped[datetime | None] = mapped_column()  # When referral link expires
 
 
 class PartnerEarnings(Base):  # type: ignore[misc,valid-type]
@@ -1483,37 +1485,37 @@ class PartnerEarnings(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "partner_earnings"
 
-    id = Column(Integer, primary_key=True)
-    affiliate_id = Column(Integer, ForeignKey("affiliate_programs.id"), nullable=False)
-    referral_id = Column(Integer, ForeignKey("referrals.id"))
-    subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    affiliate_id: Mapped[int] = mapped_column(ForeignKey("affiliate_programs.id"))
+    referral_id: Mapped[int | None] = mapped_column(ForeignKey("referrals.id"))
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"))
 
     # Earning details
-    earning_type = Column(String(50), nullable=False)  # commission, bonus, reward
-    amount = Column(Integer, nullable=False)  # In cents
-    currency = Column(String(3), default="usd")
+    earning_type: Mapped[str] = mapped_column(String(50))  # commission, bonus, reward
+    amount: Mapped[int] = mapped_column()  # In cents
+    currency: Mapped[str | None] = mapped_column(String(3), default="usd")
 
     # Commission calculation
-    base_amount = Column(Integer)  # Original transaction amount
-    commission_rate = Column(Float)  # Rate applied
-    billing_period = Column(String(20))  # monthly, yearly
+    base_amount: Mapped[int | None] = mapped_column()  # Original transaction amount
+    commission_rate: Mapped[float | None] = mapped_column()  # Rate applied
+    billing_period: Mapped[str | None] = mapped_column(String(20))  # monthly, yearly
 
     # Status
-    status = Column(String(50), default="pending", nullable=False)  # pending, approved, paid, cancelled
-    approved_at = Column(DateTime)
-    approved_by = Column(Integer, ForeignKey("users.id"))
+    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, approved, paid, cancelled
+    approved_at: Mapped[datetime | None] = mapped_column()
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # Payout tracking
-    payout_id = Column(String(255))  # External payout transaction ID
-    paid_at = Column(DateTime)
-    payment_method = Column(String(50))
-    payment_reference = Column(String(255))
+    payout_id: Mapped[str | None] = mapped_column(String(255))  # External payout transaction ID
+    paid_at: Mapped[datetime | None] = mapped_column()
+    payment_method: Mapped[str | None] = mapped_column(String(50))
+    payment_reference: Mapped[str | None] = mapped_column(String(255))
 
     # Metadata
-    notes = Column(Text)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    period_start = Column(DateTime)
-    period_end = Column(DateTime)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    period_start: Mapped[datetime | None] = mapped_column()
+    period_end: Mapped[datetime | None] = mapped_column()
 
 
 class ContentCreatorRevenue(Base):  # type: ignore[misc,valid-type]
@@ -1521,39 +1523,39 @@ class ContentCreatorRevenue(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "content_creator_revenues"
 
-    id = Column(Integer, primary_key=True)
-    creator_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    channel_id = Column(Integer, ForeignKey("channels.id"))
-    video_id = Column(Integer, ForeignKey("videos.id"))
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    creator_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    channel_id: Mapped[int | None] = mapped_column(ForeignKey("channels.id"))
+    video_id: Mapped[int | None] = mapped_column(ForeignKey("videos.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Revenue details
-    revenue_type = Column(String(50), nullable=False)  # subscription, api_usage, marketplace
-    total_revenue = Column(Integer, nullable=False)  # In cents
-    creator_share = Column(Integer, nullable=False)  # Creator's 70% in cents
-    platform_share = Column(Integer, nullable=False)  # Platform's 30% in cents
-    revenue_split_percentage = Column(Float, default=70.0)  # Creator's percentage
+    revenue_type: Mapped[str] = mapped_column(String(50))  # subscription, api_usage, marketplace
+    total_revenue: Mapped[int] = mapped_column()  # In cents
+    creator_share: Mapped[int] = mapped_column()  # Creator's 70% in cents
+    platform_share: Mapped[int] = mapped_column()  # Platform's 30% in cents
+    revenue_split_percentage: Mapped[float | None] = mapped_column(default=70.0)  # Creator's percentage
 
     # Period tracking
-    period_start = Column(DateTime, nullable=False)
-    period_end = Column(DateTime, nullable=False)
-    billing_period = Column(String(20))  # daily, weekly, monthly
+    period_start: Mapped[datetime] = mapped_column()
+    period_end: Mapped[datetime] = mapped_column()
+    billing_period: Mapped[str | None] = mapped_column(String(20))  # daily, weekly, monthly
 
     # Payout status
-    payout_status = Column(String(50), default="pending")  # pending, processing, paid, failed
-    payout_date = Column(DateTime)
-    payout_method = Column(String(50))
-    payout_reference = Column(String(255))
+    payout_status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, processing, paid, failed
+    payout_date: Mapped[datetime | None] = mapped_column()
+    payout_method: Mapped[str | None] = mapped_column(String(50))
+    payout_reference: Mapped[str | None] = mapped_column(String(255))
 
     # Metrics
-    content_views = Column(Integer, default=0)
-    api_calls_attributed = Column(Integer, default=0)
-    matches_attributed = Column(Integer, default=0)
+    content_views: Mapped[int | None] = mapped_column(default=0)
+    api_calls_attributed: Mapped[int | None] = mapped_column(default=0)
+    matches_attributed: Mapped[int | None] = mapped_column(default=0)
 
     # Metadata
-    notes = Column(Text)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
@@ -1561,54 +1563,54 @@ class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_items"
 
-    id = Column(Integer, primary_key=True)
-    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    seller_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Item details
-    item_type = Column(String(50), nullable=False)  # fingerprint_db, dataset, model, tool
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    category = Column(String(100))
-    tags = Column(JSON)  # Array of tags
+    item_type: Mapped[str] = mapped_column(String(50))  # fingerprint_db, dataset, model, tool
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(String(100))
+    tags: Mapped[dict | None] = mapped_column(JSON)  # Array of tags
 
     # Pricing
-    price = Column(Integer, nullable=False)  # In cents
-    currency = Column(String(3), default="usd")
-    pricing_model = Column(String(50), default="one_time")  # one_time, subscription, usage_based
-    marketplace_fee_percentage = Column(Float, default=15.0)  # Platform takes 15%
+    price: Mapped[int] = mapped_column()  # In cents
+    currency: Mapped[str | None] = mapped_column(String(3), default="usd")
+    pricing_model: Mapped[str | None] = mapped_column(String(50), default="one_time")  # one_time, subscription, usage_based
+    marketplace_fee_percentage: Mapped[float | None] = mapped_column(default=15.0)  # Platform takes 15%
 
     # Item metadata
-    file_url = Column(String(500))  # Download URL
-    file_size_mb = Column(Float)
-    version = Column(String(50))
-    license_type = Column(String(100))  # MIT, proprietary, creative_commons, etc.
+    file_url: Mapped[str | None] = mapped_column(String(500))  # Download URL
+    file_size_mb: Mapped[float | None] = mapped_column()
+    version: Mapped[str | None] = mapped_column(String(50))
+    license_type: Mapped[str | None] = mapped_column(String(100))  # MIT, proprietary, creative_commons, etc.
 
     # Statistics
-    download_count = Column(Integer, default=0)
-    purchase_count = Column(Integer, default=0)
-    total_revenue = Column(Integer, default=0)  # In cents
-    average_rating = Column(Float)
-    review_count = Column(Integer, default=0)
+    download_count: Mapped[int | None] = mapped_column(default=0)
+    purchase_count: Mapped[int | None] = mapped_column(default=0)
+    total_revenue: Mapped[int | None] = mapped_column(default=0)  # In cents
+    average_rating: Mapped[float | None] = mapped_column()
+    review_count: Mapped[int | None] = mapped_column(default=0)
 
     # Status
-    status = Column(String(50), default="draft")  # draft, pending_review, active, suspended, archived
-    published_at = Column(DateTime)
-    approved_at = Column(DateTime)
-    approved_by = Column(Integer, ForeignKey("users.id"))
+    status: Mapped[str | None] = mapped_column(String(50), default="draft")  # draft, pending_review, active, suspended, archived
+    published_at: Mapped[datetime | None] = mapped_column()
+    approved_at: Mapped[datetime | None] = mapped_column()
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
 
     # Preview/Demo
-    preview_url = Column(String(500))
-    demo_available = Column(Boolean, default=False)
-    sample_data_url = Column(String(500))
+    preview_url: Mapped[str | None] = mapped_column(String(500))
+    demo_available: Mapped[bool | None] = mapped_column(default=False)
+    sample_data_url: Mapped[str | None] = mapped_column(String(500))
 
     # Requirements
-    min_plan_tier = Column(String(50))  # Minimum subscription tier required
-    api_access_required = Column(Boolean, default=False)
+    min_plan_tier: Mapped[str | None] = mapped_column(String(50))  # Minimum subscription tier required
+    api_access_required: Mapped[bool | None] = mapped_column(default=False)
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
@@ -1616,36 +1618,36 @@ class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_transactions"
 
-    id = Column(Integer, primary_key=True)
-    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
-    buyer_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    seller_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    marketplace_item_id: Mapped[int] = mapped_column(ForeignKey("marketplace_items.id"))
+    buyer_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    seller_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Transaction details
-    amount = Column(Integer, nullable=False)  # In cents
-    marketplace_fee = Column(Integer, nullable=False)  # Platform's 15%
-    seller_payout = Column(Integer, nullable=False)  # Seller's 85%
-    currency = Column(String(3), default="usd")
+    amount: Mapped[int] = mapped_column()  # In cents
+    marketplace_fee: Mapped[int] = mapped_column()  # Platform's 15%
+    seller_payout: Mapped[int] = mapped_column()  # Seller's 85%
+    currency: Mapped[str | None] = mapped_column(String(3), default="usd")
 
     # Payment processing
-    stripe_payment_intent_id = Column(String(255))
-    payment_status = Column(String(50), default="pending")  # pending, completed, failed, refunded
-    paid_at = Column(DateTime)
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(String(255))
+    payment_status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, completed, failed, refunded
+    paid_at: Mapped[datetime | None] = mapped_column()
 
     # Payout to seller
-    seller_payout_status = Column(String(50), default="pending")  # pending, processing, completed, failed
-    seller_payout_date = Column(DateTime)
-    seller_payout_reference = Column(String(255))
+    seller_payout_status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, processing, completed, failed
+    seller_payout_date: Mapped[datetime | None] = mapped_column()
+    seller_payout_reference: Mapped[str | None] = mapped_column(String(255))
 
     # License/Access
-    license_key = Column(String(255), unique=True)
-    access_granted = Column(Boolean, default=False)
-    download_url = Column(String(500))
-    download_expires_at = Column(DateTime)
+    license_key: Mapped[str | None] = mapped_column(String(255), unique=True)
+    access_granted: Mapped[bool | None] = mapped_column(default=False)
+    download_url: Mapped[str | None] = mapped_column(String(500))
+    download_expires_at: Mapped[datetime | None] = mapped_column()
 
     # Metadata
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
@@ -1653,30 +1655,30 @@ class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_reviews"
 
-    id = Column(Integer, primary_key=True)
-    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    transaction_id = Column(Integer, ForeignKey("marketplace_transactions.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    marketplace_item_id: Mapped[int] = mapped_column(ForeignKey("marketplace_items.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    transaction_id: Mapped[int | None] = mapped_column(ForeignKey("marketplace_transactions.id"))
 
     # Review content
-    rating = Column(Integer, nullable=False)  # 1-5 stars
-    title = Column(String(255))
-    review_text = Column(Text)
+    rating: Mapped[int] = mapped_column()  # 1-5 stars
+    title: Mapped[str | None] = mapped_column(String(255))
+    review_text: Mapped[str | None] = mapped_column(Text)
 
     # Review metadata
-    is_verified_purchase = Column(Boolean, default=False)
-    helpful_count = Column(Integer, default=0)
-    reported_count = Column(Integer, default=0)
+    is_verified_purchase: Mapped[bool | None] = mapped_column(default=False)
+    helpful_count: Mapped[int | None] = mapped_column(default=0)
+    reported_count: Mapped[int | None] = mapped_column(default=0)
 
     # Moderation
-    status = Column(String(50), default="published")  # published, hidden, flagged, removed
-    moderated_by = Column(Integer, ForeignKey("users.id"))
-    moderated_at = Column(DateTime)
-    moderation_reason = Column(Text)
+    status: Mapped[str | None] = mapped_column(String(50), default="published")  # published, hidden, flagged, removed
+    moderated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    moderated_at: Mapped[datetime | None] = mapped_column()
+    moderation_reason: Mapped[str | None] = mapped_column(Text)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
@@ -1684,37 +1686,37 @@ class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_item_versions"
 
-    id = Column(Integer, primary_key=True)
-    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    marketplace_item_id: Mapped[int] = mapped_column(ForeignKey("marketplace_items.id"))
 
     # Version details
-    version_number = Column(String(50), nullable=False)
-    release_notes = Column(Text)
-    changelog = Column(JSON)  # Structured changelog
+    version_number: Mapped[str] = mapped_column(String(50))
+    release_notes: Mapped[str | None] = mapped_column(Text)
+    changelog: Mapped[dict | None] = mapped_column(JSON)  # Structured changelog
 
     # Files
-    file_url = Column(String(500), nullable=False)
-    file_size_mb = Column(Float)
-    file_hash = Column(String(128))  # SHA-256 hash for integrity
+    file_url: Mapped[str] = mapped_column(String(500))
+    file_size_mb: Mapped[float | None] = mapped_column()
+    file_hash: Mapped[str | None] = mapped_column(String(128))  # SHA-256 hash for integrity
 
     # Compatibility
-    min_platform_version = Column(String(50))
-    max_platform_version = Column(String(50))
-    requires_migration = Column(Boolean, default=False)
+    min_platform_version: Mapped[str | None] = mapped_column(String(50))
+    max_platform_version: Mapped[str | None] = mapped_column(String(50))
+    requires_migration: Mapped[bool | None] = mapped_column(default=False)
 
     # Status
-    status = Column(String(50), default="active")  # active, deprecated, yanked
-    is_latest = Column(Boolean, default=False)
-    download_count = Column(Integer, default=0)
+    status: Mapped[str | None] = mapped_column(String(50), default="active")  # active, deprecated, yanked
+    is_latest: Mapped[bool | None] = mapped_column(default=False)
+    download_count: Mapped[int | None] = mapped_column(default=0)
 
     # Quality checks
-    quality_check_status = Column(String(50))  # pending, passed, failed
-    quality_check_results = Column(JSON)
-    quality_check_at = Column(DateTime)
+    quality_check_status: Mapped[str | None] = mapped_column(String(50))  # pending, passed, failed
+    quality_check_results: Mapped[dict | None] = mapped_column(JSON)
+    quality_check_at: Mapped[datetime | None] = mapped_column()
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceQualityCheck(Base):  # type: ignore[misc,valid-type]
@@ -1722,30 +1724,30 @@ class MarketplaceQualityCheck(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_quality_checks"
 
-    id = Column(Integer, primary_key=True)
-    marketplace_item_id = Column(Integer, ForeignKey("marketplace_items.id"))
-    version_id = Column(Integer, ForeignKey("marketplace_item_versions.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    marketplace_item_id: Mapped[int | None] = mapped_column(ForeignKey("marketplace_items.id"))
+    version_id: Mapped[int | None] = mapped_column(ForeignKey("marketplace_item_versions.id"))
 
     # Check details
-    check_type = Column(String(50), nullable=False)  # security_scan, malware_scan, format_validation, etc.
-    status = Column(String(50), default="pending")  # pending, running, passed, failed, error
-    severity = Column(String(50))  # info, warning, error, critical
+    check_type: Mapped[str] = mapped_column(String(50))  # security_scan, malware_scan, format_validation, etc.
+    status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, running, passed, failed, error
+    severity: Mapped[str | None] = mapped_column(String(50))  # info, warning, error, critical
 
     # Results
-    result_summary = Column(Text)
-    detailed_results = Column(JSON)
-    issues_found = Column(Integer, default=0)
-    warnings_count = Column(Integer, default=0)
-    errors_count = Column(Integer, default=0)
+    result_summary: Mapped[str | None] = mapped_column(Text)
+    detailed_results: Mapped[dict | None] = mapped_column(JSON)
+    issues_found: Mapped[int | None] = mapped_column(default=0)
+    warnings_count: Mapped[int | None] = mapped_column(default=0)
+    errors_count: Mapped[int | None] = mapped_column(default=0)
 
     # Execution info
-    started_at = Column(DateTime)
-    completed_at = Column(DateTime)
-    duration_seconds = Column(Float)
-    checker_version = Column(String(50))
+    started_at: Mapped[datetime | None] = mapped_column()
+    completed_at: Mapped[datetime | None] = mapped_column()
+    duration_seconds: Mapped[float | None] = mapped_column()
+    checker_version: Mapped[str | None] = mapped_column(String(50))
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
@@ -1753,23 +1755,23 @@ class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "marketplace_categories"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), unique=True, nullable=False)
-    slug = Column(String(100), unique=True, nullable=False)
-    description = Column(Text)
-    icon = Column(String(100))  # Icon identifier
-    parent_id = Column(Integer, ForeignKey("marketplace_categories.id"))
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    slug: Mapped[str] = mapped_column(String(100), unique=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    icon: Mapped[str | None] = mapped_column(String(100))  # Icon identifier
+    parent_id: Mapped[int | None] = mapped_column(ForeignKey("marketplace_categories.id"))
 
     # Display order
-    sort_order = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True)
+    sort_order: Mapped[int | None] = mapped_column(default=0)
+    is_active: Mapped[bool | None] = mapped_column(default=True)
 
     # Statistics
-    item_count = Column(Integer, default=0)
+    item_count: Mapped[int | None] = mapped_column(default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
@@ -1777,33 +1779,33 @@ class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "seller_stripe_accounts"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
     # Stripe Connect details
-    stripe_account_id = Column(String(255), unique=True, nullable=False)
-    account_type = Column(String(50))  # standard, express, custom
-    charges_enabled = Column(Boolean, default=False)
-    payouts_enabled = Column(Boolean, default=False)
+    stripe_account_id: Mapped[str] = mapped_column(String(255), unique=True)
+    account_type: Mapped[str | None] = mapped_column(String(50))  # standard, express, custom
+    charges_enabled: Mapped[bool | None] = mapped_column(default=False)
+    payouts_enabled: Mapped[bool | None] = mapped_column(default=False)
 
     # Account status
-    details_submitted = Column(Boolean, default=False)
-    verification_status = Column(String(50))  # unverified, pending, verified
-    requirements_due = Column(JSON)  # Required information for verification
+    details_submitted: Mapped[bool | None] = mapped_column(default=False)
+    verification_status: Mapped[str | None] = mapped_column(String(50))  # unverified, pending, verified
+    requirements_due: Mapped[dict | None] = mapped_column(JSON)  # Required information for verification
 
     # Payout settings
-    default_currency = Column(String(3), default="usd")
-    payout_schedule = Column(String(50), default="monthly")  # daily, weekly, monthly, manual
+    default_currency: Mapped[str | None] = mapped_column(String(3), default="usd")
+    payout_schedule: Mapped[str | None] = mapped_column(String(50), default="monthly")  # daily, weekly, monthly, manual
 
     # Statistics
-    lifetime_payouts = Column(Integer, default=0)  # In cents
-    pending_balance = Column(Integer, default=0)  # In cents
-    available_balance = Column(Integer, default=0)  # In cents
+    lifetime_payouts: Mapped[int | None] = mapped_column(default=0)  # In cents
+    pending_balance: Mapped[int | None] = mapped_column(default=0)  # In cents
+    available_balance: Mapped[int | None] = mapped_column(default=0)  # In cents
 
     # Timestamps
-    connected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    last_payout_at = Column(DateTime)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    connected_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    last_payout_at: Mapped[datetime | None] = mapped_column()
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
@@ -1811,54 +1813,54 @@ class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "white_label_resellers"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Reseller details
-    company_name = Column(String(255), nullable=False)
-    company_website = Column(String(500))
-    contact_name = Column(String(255))
-    contact_email = Column(String(255))
-    contact_phone = Column(String(50))
+    company_name: Mapped[str] = mapped_column(String(255))
+    company_website: Mapped[str | None] = mapped_column(String(500))
+    contact_name: Mapped[str | None] = mapped_column(String(255))
+    contact_email: Mapped[str | None] = mapped_column(String(255))
+    contact_phone: Mapped[str | None] = mapped_column(String(50))
 
     # Branding
-    custom_domain = Column(String(255), unique=True)
-    logo_url = Column(String(500))
-    primary_color = Column(String(7))  # Hex color
-    secondary_color = Column(String(7))
-    brand_name = Column(String(255))
+    custom_domain: Mapped[str | None] = mapped_column(String(255), unique=True)
+    logo_url: Mapped[str | None] = mapped_column(String(500))
+    primary_color: Mapped[str | None] = mapped_column(String(7))  # Hex color
+    secondary_color: Mapped[str | None] = mapped_column(String(7))
+    brand_name: Mapped[str | None] = mapped_column(String(255))
 
     # Pricing & Discounts
-    volume_discount_percentage = Column(Float, default=0.0)  # Volume discount
-    markup_percentage = Column(Float, default=0.0)  # Markup on top of cost
-    custom_pricing_enabled = Column(Boolean, default=False)
+    volume_discount_percentage: Mapped[float | None] = mapped_column(default=0.0)  # Volume discount
+    markup_percentage: Mapped[float | None] = mapped_column(default=0.0)  # Markup on top of cost
+    custom_pricing_enabled: Mapped[bool | None] = mapped_column(default=False)
 
     # Limits
-    max_end_users = Column(Integer)
-    max_api_calls_per_month = Column(Integer)
+    max_end_users: Mapped[int | None] = mapped_column()
+    max_api_calls_per_month: Mapped[int | None] = mapped_column()
 
     # Status
-    status = Column(String(50), default="pending")  # pending, active, suspended, terminated
-    approved_at = Column(DateTime)
-    approved_by = Column(Integer, ForeignKey("users.id"))
-    contract_start_date = Column(DateTime)
-    contract_end_date = Column(DateTime)
+    status: Mapped[str | None] = mapped_column(String(50), default="pending")  # pending, active, suspended, terminated
+    approved_at: Mapped[datetime | None] = mapped_column()
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    contract_start_date: Mapped[datetime | None] = mapped_column()
+    contract_end_date: Mapped[datetime | None] = mapped_column()
 
     # Performance
-    total_end_users = Column(Integer, default=0)
-    total_revenue = Column(Integer, default=0)  # In cents
-    total_api_calls = Column(Integer, default=0)
+    total_end_users: Mapped[int | None] = mapped_column(default=0)
+    total_revenue: Mapped[int | None] = mapped_column(default=0)  # In cents
+    total_api_calls: Mapped[int | None] = mapped_column(default=0)
 
     # Payment
-    payment_terms = Column(String(100))  # net_30, net_60, prepaid, etc.
-    billing_contact_email = Column(String(255))
+    payment_terms: Mapped[str | None] = mapped_column(String(100))  # net_30, net_60, prepaid, etc.
+    billing_contact_email: Mapped[str | None] = mapped_column(String(255))
 
     # Metadata
-    notes = Column(Text)
-    settings = Column(JSON)  # Custom settings
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    settings: Mapped[dict | None] = mapped_column(JSON)  # Custom settings
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class RewardTransaction(Base):  # type: ignore[misc,valid-type]
@@ -1866,36 +1868,36 @@ class RewardTransaction(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "reward_transactions"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Reward details
-    reward_type = Column(String(50), nullable=False)  # api_credits, discount, badge, points
-    amount = Column(Integer, nullable=False)  # Credits or points amount
-    reason = Column(String(255), nullable=False)  # referral, achievement, promotion, etc.
-    source = Column(String(100))  # referral, campaign, achievement, manual
+    reward_type: Mapped[str] = mapped_column(String(50))  # api_credits, discount, badge, points
+    amount: Mapped[int] = mapped_column()  # Credits or points amount
+    reason: Mapped[str] = mapped_column(String(255))  # referral, achievement, promotion, etc.
+    source: Mapped[str | None] = mapped_column(String(100))  # referral, campaign, achievement, manual
 
     # Transaction type
-    transaction_type = Column(String(20), nullable=False)  # credit, debit
-    balance_before = Column(Integer, default=0)
-    balance_after = Column(Integer, default=0)
+    transaction_type: Mapped[str] = mapped_column(String(20))  # credit, debit
+    balance_before: Mapped[int | None] = mapped_column(default=0)
+    balance_after: Mapped[int | None] = mapped_column(default=0)
 
     # Related entities
-    referral_id = Column(Integer, ForeignKey("referrals.id"))
-    campaign_id = Column(Integer, ForeignKey("campaigns.id"))
-    achievement_id = Column(String(100))  # Achievement identifier
+    referral_id: Mapped[int | None] = mapped_column(ForeignKey("referrals.id"))
+    campaign_id: Mapped[int | None] = mapped_column(ForeignKey("campaigns.id"))
+    achievement_id: Mapped[str | None] = mapped_column(String(100))  # Achievement identifier
 
     # Expiration
-    expires_at = Column(DateTime)
-    expired = Column(Boolean, default=False)
+    expires_at: Mapped[datetime | None] = mapped_column()
+    expired: Mapped[bool | None] = mapped_column(default=False)
 
     # Status
-    status = Column(String(50), default="active")  # active, used, expired, cancelled
+    status: Mapped[str | None] = mapped_column(String(50), default="active")  # active, used, expired, cancelled
 
     # Extra data
-    extra_data = Column(JSON)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    extra_data: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class UserBadge(Base):  # type: ignore[misc,valid-type]
@@ -1903,27 +1905,27 @@ class UserBadge(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "user_badges"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Badge details
-    badge_id = Column(String(100), nullable=False)  # Unique badge identifier
-    badge_name = Column(String(255), nullable=False)
-    badge_description = Column(Text)
-    badge_icon_url = Column(String(500))
-    badge_tier = Column(String(50))  # bronze, silver, gold, platinum
+    badge_id: Mapped[str] = mapped_column(String(100))  # Unique badge identifier
+    badge_name: Mapped[str] = mapped_column(String(255))
+    badge_description: Mapped[str | None] = mapped_column(Text)
+    badge_icon_url: Mapped[str | None] = mapped_column(String(500))
+    badge_tier: Mapped[str | None] = mapped_column(String(50))  # bronze, silver, gold, platinum
 
     # Achievement criteria
-    achievement_type = Column(String(100))  # referrals, api_usage, content_creator, etc.
-    achievement_value = Column(Integer)  # Number of referrals, API calls, etc.
+    achievement_type: Mapped[str | None] = mapped_column(String(100))  # referrals, api_usage, content_creator, etc.
+    achievement_value: Mapped[int | None] = mapped_column()  # Number of referrals, API calls, etc.
 
     # Display
-    is_featured = Column(Boolean, default=False)
-    display_order = Column(Integer, default=0)
+    is_featured: Mapped[bool | None] = mapped_column(default=False)
+    display_order: Mapped[int | None] = mapped_column(default=0)
 
     # Extra data
-    earned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    extra_data = Column(JSON)
+    earned_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    extra_data: Mapped[dict | None] = mapped_column(JSON)
 
 
 class Leaderboard(Base):  # type: ignore[misc,valid-type]
@@ -1931,31 +1933,31 @@ class Leaderboard(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "leaderboards"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
 
     # Leaderboard category
-    category = Column(String(100), nullable=False)  # referrals, api_usage, revenue, content
-    period_type = Column(String(50), nullable=False)  # daily, weekly, monthly, all_time
+    category: Mapped[str] = mapped_column(String(100))  # referrals, api_usage, revenue, content
+    period_type: Mapped[str] = mapped_column(String(50))  # daily, weekly, monthly, all_time
 
     # Metrics
-    score = Column(Integer, nullable=False, default=0)
-    rank = Column(Integer)
-    previous_rank = Column(Integer)
+    score: Mapped[int] = mapped_column(default=0)
+    rank: Mapped[int | None] = mapped_column()
+    previous_rank: Mapped[int | None] = mapped_column()
 
     # Period
-    period_start = Column(DateTime, nullable=False)
-    period_end = Column(DateTime, nullable=False)
+    period_start: Mapped[datetime] = mapped_column()
+    period_end: Mapped[datetime] = mapped_column()
 
     # Additional metrics
-    total_referrals = Column(Integer, default=0)
-    total_api_calls = Column(Integer, default=0)
-    total_revenue = Column(Integer, default=0)
-    total_content_views = Column(Integer, default=0)
+    total_referrals: Mapped[int | None] = mapped_column(default=0)
+    total_api_calls: Mapped[int | None] = mapped_column(default=0)
+    total_revenue: Mapped[int | None] = mapped_column(default=0)
+    total_content_views: Mapped[int | None] = mapped_column(default=0)
 
     # Metadata
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class Campaign(Base):  # type: ignore[misc,valid-type]
@@ -1963,52 +1965,52 @@ class Campaign(Base):  # type: ignore[misc,valid-type]
 
     __tablename__ = "campaigns"
 
-    id = Column(Integer, primary_key=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[int | None] = mapped_column(ForeignKey("tenants.id"))
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Campaign details
-    name = Column(String(255), nullable=False)
-    campaign_code = Column(String(50), unique=True, nullable=False)
-    description = Column(Text)
-    campaign_type = Column(String(50), nullable=False)  # referral, discount, promotion, launch
+    name: Mapped[str] = mapped_column(String(255))
+    campaign_code: Mapped[str] = mapped_column(String(50), unique=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    campaign_type: Mapped[str] = mapped_column(String(50))  # referral, discount, promotion, launch
 
     # Offer details
-    offer_type = Column(String(50), nullable=False)  # discount, credits, free_trial, bonus
-    discount_percentage = Column(Float)
-    discount_amount = Column(Integer)  # In cents
-    credit_amount = Column(Integer)  # API credits
-    free_trial_days = Column(Integer)
+    offer_type: Mapped[str] = mapped_column(String(50))  # discount, credits, free_trial, bonus
+    discount_percentage: Mapped[float | None] = mapped_column()
+    discount_amount: Mapped[int | None] = mapped_column()  # In cents
+    credit_amount: Mapped[int | None] = mapped_column()  # API credits
+    free_trial_days: Mapped[int | None] = mapped_column()
 
     # Targeting
-    target_audience = Column(String(100))  # all, new_users, existing_users, specific_tier
-    target_plan_tiers = Column(JSON)  # Array of plan tiers
-    target_regions = Column(JSON)  # Array of regions
+    target_audience: Mapped[str | None] = mapped_column(String(100))  # all, new_users, existing_users, specific_tier
+    target_plan_tiers: Mapped[dict | None] = mapped_column(JSON)  # Array of plan tiers
+    target_regions: Mapped[dict | None] = mapped_column(JSON)  # Array of regions
 
     # Duration
-    start_date = Column(DateTime, nullable=False)
-    end_date = Column(DateTime, nullable=False)
-    timezone = Column(String(50), default="UTC")
+    start_date: Mapped[datetime] = mapped_column()
+    end_date: Mapped[datetime] = mapped_column()
+    timezone: Mapped[str | None] = mapped_column(String(50), default="UTC")
 
     # Limits
-    max_uses = Column(Integer)  # Max total uses
-    max_uses_per_user = Column(Integer)  # Max uses per user
-    current_uses = Column(Integer, default=0)
+    max_uses: Mapped[int | None] = mapped_column()  # Max total uses
+    max_uses_per_user: Mapped[int | None] = mapped_column()  # Max uses per user
+    current_uses: Mapped[int | None] = mapped_column(default=0)
 
     # Performance metrics
-    total_clicks = Column(Integer, default=0)
-    total_conversions = Column(Integer, default=0)
-    total_revenue = Column(Integer, default=0)  # In cents
-    conversion_rate = Column(Float, default=0.0)
+    total_clicks: Mapped[int | None] = mapped_column(default=0)
+    total_conversions: Mapped[int | None] = mapped_column(default=0)
+    total_revenue: Mapped[int | None] = mapped_column(default=0)  # In cents
+    conversion_rate: Mapped[float | None] = mapped_column(default=0.0)
 
     # Status
-    status = Column(String(50), default="draft")  # draft, scheduled, active, paused, completed, cancelled
-    is_active = Column(Boolean, default=False)
+    status: Mapped[str | None] = mapped_column(String(50), default="draft")  # draft, scheduled, active, paused, completed, cancelled
+    is_active: Mapped[bool | None] = mapped_column(default=False)
 
     # Extra data
-    extra_data = Column(JSON)  # Additional campaign data
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    extra_data: Mapped[dict | None] = mapped_column(JSON)  # Additional campaign data
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 # Indexes for monetization models
