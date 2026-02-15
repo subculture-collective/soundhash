@@ -536,6 +536,43 @@ class JobRepository:
             raise
 
     @db_retry()
+    def jobs_exist_batch(
+        self, job_type: str, target_ids: list[str], statuses: list[str] | None = None
+    ) -> set[str]:
+        """Batch check if jobs exist for multiple target_ids.
+
+        Returns a set of target_ids that have existing jobs matching the criteria.
+        This is more efficient than calling job_exists() in a loop (N+1 query avoidance).
+
+        Args:
+            job_type: Type of job to check for
+            target_ids: List of target IDs to check
+            statuses: Optional list of statuses to filter by
+
+        Returns:
+            Set of target_ids that have existing jobs
+        """
+        if not target_ids:
+            return set()
+
+        try:
+            query = self.session.query(ProcessingJob.target_id).filter(
+                ProcessingJob.job_type == job_type,
+                ProcessingJob.target_id.in_(target_ids),
+            )
+            if statuses:
+                query = query.filter(ProcessingJob.status.in_(statuses))
+
+            existing_ids = {row[0] for row in query.all()}
+            logger.debug(
+                f"Batch job exists check: type={job_type}, checked={len(target_ids)}, existing={len(existing_ids)}"
+            )
+            return existing_ids
+        except (OperationalError, DBAPIError) as e:
+            logger.error(f"Failed to batch check jobs existence: {e}")
+            raise
+
+    @db_retry()
     def update_job_status(
         self,
         job_id: int,

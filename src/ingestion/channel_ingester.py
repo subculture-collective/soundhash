@@ -215,6 +215,12 @@ class ChannelIngester:
             duplicate_videos = 0
             failed_videos = 0
 
+            # Batch-check existing jobs to avoid N+1 queries
+            all_video_ids = [video_info["id"] for video_info in videos_info]
+            existing_job_ids = job_repo.jobs_exist_batch(
+                "video_process", all_video_ids, statuses=["pending", "running"]
+            )
+
             # Create progress tracker for videos in this channel
             video_progress = get_progress_logger(
                 self.logger, len(videos_info), f"Videos for {channel_id}"
@@ -222,14 +228,13 @@ class ChannelIngester:
 
             for idx, video_info in enumerate(videos_info):
                 try:
+                    video_id = video_info["id"]
                     # Check if video already exists
-                    existing_video = video_repo.get_video_by_id(video_info["id"])
+                    existing_video = video_repo.get_video_by_id(video_id)
 
                     if existing_video:
-                        # Check if job already exists before deciding on update
-                        job_already_exists = job_repo.job_exists(
-                            "video_process", video_info["id"], statuses=["pending", "running"]
-                        )
+                        # Use batch-checked result instead of individual query
+                        job_already_exists = video_id in existing_job_ids
 
                         is_duplicate = False
                         if job_already_exists:
@@ -244,11 +249,11 @@ class ChannelIngester:
 
                         if is_duplicate:
                             duplicate_videos += 1
-                            self.logger.debug(f"Video {video_info['id']} {duplicate_reason}")
+                            self.logger.debug(f"Video {video_id} {duplicate_reason}")
                     else:
                         # Create new video record
                         video_repo.create_video(
-                            video_id=video_info["id"],
+                            video_id=video_id,
                             channel_id=int(channel.id),  # type: ignore[arg-type]
                             title=video_info.get("title"),
                             description=video_info.get("description"),
@@ -268,20 +273,18 @@ class ChannelIngester:
                         if metrics:
                             metrics.videos_ingested.inc()
 
-                        # Create processing job for this video (idempotent check)
-                        if not job_repo.job_exists(
-                            "video_process", video_info["id"], statuses=["pending", "running"]
-                        ):
+                        # Create processing job for this video using batch-checked result
+                        if video_id not in existing_job_ids:
                             job_repo.create_job(
                                 job_type="video_process",
-                                target_id=video_info["id"],
+                                target_id=video_id,
                                 parameters=json.dumps(
                                     {"url": video_info.get("webpage_url"), "channel_id": channel_id}
                                 ),
                             )
                         else:
                             self.logger.debug(
-                                f"Job already exists for video {video_info['id']}, skipping job creation"
+                                f"Job already exists for video {video_id}, skipping job creation"
                             )
 
                         new_videos += 1
@@ -451,8 +454,10 @@ class VideoJobProcessor:
 
             job_repo.update_job_status(job.id, "running", 0.2, "Downloading and segmenting audio")
 
-            # Process video and get segments
-            segments = self.video_processor.process_video_for_fingerprinting(video_url)
+            # Process video and get segments (blocking I/O - run in thread)
+            segments = await asyncio.to_thread(
+                self.video_processor.process_video_for_fingerprinting, video_url
+            )
 
             if not segments:
                 raise ValueError("Failed to process video or no segments created")
@@ -471,9 +476,11 @@ class VideoJobProcessor:
 
             for i, (segment_file, start_time, end_time) in enumerate(segments):
                 try:
-                    # Extract fingerprint
+                    # Extract fingerprint (blocking I/O - run in thread)
                     fingerprint_start = time.time()
-                    fingerprint_data = self.fingerprinter.extract_fingerprint(segment_file)
+                    fingerprint_data = await asyncio.to_thread(
+                        self.fingerprinter.extract_fingerprint, segment_file
+                    )
 
                     # Track fingerprint extraction time
                     if metrics:
@@ -525,9 +532,9 @@ class VideoJobProcessor:
             else:
                 fingerprints_created = 0
 
-            # Clean up segments based on configuration
+            # Clean up segments based on configuration (blocking I/O - run in thread)
             if Config.CLEANUP_SEGMENTS_AFTER_PROCESSING:
-                self.video_processor.cleanup_segments(segments)
+                await asyncio.to_thread(self.video_processor.cleanup_segments, segments)
 
             # Mark video as processed
             if video.id:

@@ -186,8 +186,8 @@ class TestChannelIngester:
         mock_video_repo.get_channel_by_id.return_value = mock_channel
         mock_video_repo.get_video_by_id.return_value = None  # New video
 
-        # Simulate job already exists
-        mock_job_repo.job_exists.return_value = True
+        # Simulate job already exists using batch method
+        mock_job_repo.jobs_exist_batch.return_value = {'video1'}
 
         with (
             patch.object(ingester.video_processor, 'get_channel_videos', return_value=test_videos),
@@ -197,10 +197,58 @@ class TestChannelIngester:
             ingester._db_initialized = True
             await ingester.ingest_channel('test_channel', max_videos=1, dry_run=False)
 
-            # Verify job_exists was called
-            mock_job_repo.job_exists.assert_called()
+            # Verify jobs_exist_batch was called with all video IDs
+            mock_job_repo.jobs_exist_batch.assert_called_once_with(
+                'video_process', ['video1'], statuses=['pending', 'running']
+            )
             # Verify create_job was NOT called since job exists
             mock_job_repo.create_job.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_batch_job_checking(self, ingester):
+        """Test that batch job checking is used instead of individual queries."""
+        test_videos = [
+            {
+                'id': f'video{i}',
+                'title': f'Test Video {i}',
+                'duration': 100,
+                'webpage_url': f'https://youtube.com/watch?v=video{i}',
+            }
+            for i in range(1, 6)
+        ]
+
+        mock_video_repo = MagicMock()
+        mock_job_repo = MagicMock()
+        mock_channel = MagicMock()
+        mock_channel.id = 1
+        mock_channel.channel_name = 'Test Channel'
+
+        mock_video_repo.get_channel_by_id.return_value = mock_channel
+        mock_video_repo.get_video_by_id.return_value = None  # New videos
+
+        # Simulate some jobs exist (video2, video4)
+        mock_job_repo.jobs_exist_batch.return_value = {'video2', 'video4'}
+
+        with (
+            patch.object(ingester.video_processor, 'get_channel_videos', return_value=test_videos),
+            patch('src.ingestion.channel_ingester.get_video_repository', return_value=mock_video_repo),
+            patch('src.ingestion.channel_ingester.get_job_repository', return_value=mock_job_repo),
+        ):
+            ingester._db_initialized = True
+            await ingester.ingest_channel('test_channel', max_videos=5, dry_run=False)
+
+            # Verify jobs_exist_batch was called ONCE with all video IDs
+            mock_job_repo.jobs_exist_batch.assert_called_once()
+            call_args = mock_job_repo.jobs_exist_batch.call_args
+            assert call_args[0][0] == 'video_process'
+            assert set(call_args[0][1]) == {'video1', 'video2', 'video3', 'video4', 'video5'}
+            assert call_args[1]['statuses'] == ['pending', 'running']
+
+            # Verify create_job was called only for videos without existing jobs (1, 3, 5)
+            assert mock_job_repo.create_job.call_count == 3
+            created_video_ids = {call.kwargs['target_id'] for call in mock_job_repo.create_job.call_args_list}
+            assert created_video_ids == {'video1', 'video3', 'video5'}
+
 
     @pytest.mark.asyncio
     async def test_video_counting_no_double_count(self, ingester):
