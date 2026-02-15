@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
@@ -65,7 +65,7 @@ class DataDeletionService:
                 data_types=data_types,
                 reason=reason,
                 status="pending",
-                requested_at=datetime.utcnow(),
+                requested_at=datetime.now(timezone.utc),
                 verification_token=verification_token,
                 ip_address=ip_address,
             )
@@ -120,7 +120,7 @@ class DataDeletionService:
                 and deletion_request.verification_token == verification_token
                 and deletion_request.status == "pending"
             ):
-                deletion_request.verified_at = datetime.utcnow()
+                deletion_request.verified_at = datetime.now(timezone.utc)
                 deletion_request.status = "processing"
                 session.commit()
                 return True
@@ -162,7 +162,7 @@ class DataDeletionService:
                 return False
 
             # Update status
-            deletion_request.started_at = datetime.utcnow()
+            deletion_request.started_at = datetime.now(timezone.utc)
             session.commit()
 
             user_id = deletion_request.user_id
@@ -179,7 +179,7 @@ class DataDeletionService:
 
             # Update deletion request
             deletion_request.status = "completed"
-            deletion_request.completed_at = datetime.utcnow()
+            deletion_request.completed_at = datetime.now(timezone.utc)
             deletion_request.items_deleted = deletion_summary.get("deleted", {})
             deletion_request.items_anonymized = deletion_summary.get("anonymized", {})
             session.commit()

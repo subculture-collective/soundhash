@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
 
 from sqlalchemy.orm import Session
@@ -60,7 +60,7 @@ class ReferralService:
             referral_code=referral_code,
             referral_source=referral_source,
             referral_campaign=referral_campaign,
-            expires_at=datetime.utcnow() + timedelta(days=30),  # 30-day expiry
+            expires_at=datetime.now(timezone.utc) + timedelta(days=30),  # 30-day expiry
         )
 
         session.add(referral)
@@ -95,7 +95,7 @@ class ReferralService:
             raise ValueError(f"Referral {referral_id} not found")
 
         referral.converted = True
-        referral.converted_at = datetime.utcnow()
+        referral.converted_at = datetime.now(timezone.utc)
         referral.subscription_id = subscription_id
 
         session.commit()
@@ -161,7 +161,7 @@ class ReferralService:
         referral.reward_type = reward_type
         referral.reward_amount = reward_amount
         referral.reward_status = "awarded"
-        referral.reward_awarded_at = datetime.utcnow()
+        referral.reward_awarded_at = datetime.now(timezone.utc)
 
         session.commit()
 

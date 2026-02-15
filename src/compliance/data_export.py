@@ -3,7 +3,7 @@
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -68,8 +68,8 @@ class DataExportService:
                 data_types=data_types,
                 format=format,
                 status="pending",
-                requested_at=datetime.utcnow(),
-                expires_at=datetime.utcnow() + timedelta(days=30),
+                requested_at=datetime.now(timezone.utc),
+                expires_at=datetime.now(timezone.utc) + timedelta(days=30),
                 ip_address=ip_address,
             )
             session.add(export_request)
@@ -123,7 +123,7 @@ class DataExportService:
 
             # Update status
             export_request.status = "processing"
-            export_request.started_at = datetime.utcnow()
+            export_request.started_at = datetime.now(timezone.utc)
             session.commit()
 
             # Collect user data
@@ -136,7 +136,7 @@ class DataExportService:
 
             # Update export request
             export_request.status = "completed"
-            export_request.completed_at = datetime.utcnow()
+            export_request.completed_at = datetime.now(timezone.utc)
             export_request.file_path = str(file_path)
             export_request.file_size_bytes = os.path.getsize(file_path)
             session.commit()
@@ -263,7 +263,7 @@ class DataExportService:
         self, user_id: int, data: Dict[str, Any], format: str
     ) -> Path:
         """Generate export file in requested format."""
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"user_data_export_{user_id}_{timestamp}.{format}"
         file_path = self.export_dir / filename
 
@@ -288,7 +288,7 @@ class DataExportService:
             export_request = session.query(DataExportRequest).filter_by(id=request_id).first()
             if export_request:
                 export_request.download_count = (export_request.download_count or 0) + 1
-                export_request.last_downloaded_at = datetime.utcnow()
+                export_request.last_downloaded_at = datetime.now(timezone.utc)
                 session.commit()
 
                 # Log download

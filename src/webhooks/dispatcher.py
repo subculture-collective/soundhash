@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import aiohttp
@@ -190,14 +190,14 @@ class WebhookDispatcher:
                                 response_headers=dict(response.headers),
                                 response_body=response_body[:10000],  # Limit size
                                 duration_ms=duration_ms,
-                                delivered_at=datetime.utcnow(),
+                                delivered_at=datetime.now(timezone.utc),
                             )
 
                             # Update webhook stats
                             webhook_repo.update_webhook_stats(
                                 webhook_id=webhook.id,
                                 success=success,
-                                delivery_time=datetime.utcnow(),
+                                delivery_time=datetime.now(timezone.utc),
                             )
 
                         if success:
@@ -226,13 +226,13 @@ class WebhookDispatcher:
                         status="failed",
                         error_message=error_msg,
                         duration_ms=duration_ms,
-                        delivered_at=datetime.utcnow(),
+                        delivered_at=datetime.now(timezone.utc),
                     )
 
                     webhook_repo.update_webhook_stats(
                         webhook_id=webhook.id,
                         success=False,
-                        delivery_time=datetime.utcnow(),
+                        delivery_time=datetime.now(timezone.utc),
                     )
 
                 # Schedule retry
@@ -250,13 +250,13 @@ class WebhookDispatcher:
                         status="failed",
                         error_message=error_msg[:1000],
                         duration_ms=duration_ms,
-                        delivered_at=datetime.utcnow(),
+                        delivered_at=datetime.now(timezone.utc),
                     )
 
                     webhook_repo.update_webhook_stats(
                         webhook_id=webhook.id,
                         success=False,
-                        delivery_time=datetime.utcnow(),
+                        delivery_time=datetime.now(timezone.utc),
                     )
 
                 # Schedule retry
@@ -284,7 +284,7 @@ class WebhookDispatcher:
             delivery_id: Delivery record ID
         """
         backoff_seconds = self.calculate_backoff(attempt)
-        next_retry_at = datetime.utcnow() + timedelta(seconds=backoff_seconds)
+        next_retry_at = datetime.now(timezone.utc) + timedelta(seconds=backoff_seconds)
 
         logger.info(
             f"Scheduling retry {attempt + 1}/{self.max_retries} for webhook {webhook.id} "

@@ -1,7 +1,7 @@
 """Data retention policy enforcement service."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Optional
 
 from sqlalchemy import and_
@@ -111,7 +111,7 @@ class DataRetentionService:
                     results[policy.data_type] = count
 
                     # Update last applied timestamp
-                    policy.last_applied_at = datetime.utcnow()
+                    policy.last_applied_at = datetime.now(timezone.utc)
                     session.commit()
                 except Exception as e:
                     logger.error(f"Failed to apply policy {policy.policy_name}: {e}")
@@ -125,7 +125,7 @@ class DataRetentionService:
     @staticmethod
     def _apply_single_policy(policy: DataRetentionPolicy, session: Session) -> int:
         """Apply a single retention policy."""
-        cutoff_date = datetime.utcnow() - timedelta(days=policy.retention_days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=policy.retention_days)
         count = 0
 
         if policy.data_type == "audit_logs":

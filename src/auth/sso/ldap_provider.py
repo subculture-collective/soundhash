@@ -1,7 +1,7 @@
 """LDAP/Active Directory authentication provider implementation."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -369,8 +369,8 @@ class LDAPProvider:
             # Update user info if changed
             if "full_name" in user_data and user_data["full_name"] != user.full_name:
                 user.full_name = user_data["full_name"]
-                user.updated_at = datetime.utcnow()
-            user.last_login = datetime.utcnow()
+                user.updated_at = datetime.now(timezone.utc)
+            user.last_login = datetime.now(timezone.utc)
             self.db.commit()
             return user
 

@@ -1,7 +1,7 @@
 """Stripe webhook event handler."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 import stripe
@@ -159,7 +159,7 @@ class WebhookHandler:
             # Update subscription status
             db_subscription.status = "cancelled"
             db_subscription.cancelled_at = datetime.fromtimestamp(
-                subscription.get("canceled_at", int(datetime.utcnow().timestamp()))
+                subscription.get("canceled_at", int(datetime.now(timezone.utc).timestamp()))
             )
 
             session.commit()
@@ -283,7 +283,7 @@ class WebhookHandler:
             db_invoice.amount_remaining = invoice.get("amount_remaining", 0)
             db_invoice.paid_at = datetime.fromtimestamp(
                 invoice.get("status_transitions", {}).get(
-                    "paid_at", int(datetime.utcnow().timestamp())
+                    "paid_at", int(datetime.now(timezone.utc).timestamp())
                 )
             )
 

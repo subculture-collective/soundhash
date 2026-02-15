@@ -1,6 +1,6 @@
 """Database models for Enterprise SSO (SAML, OAuth, LDAP) integration."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     JSON,
@@ -85,9 +85,9 @@ class SSOProvider(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     config_metadata = Column(JSON)  # Additional provider-specific settings
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
     )
     created_by = Column(Integer, ForeignKey("users.id"))
 
@@ -132,9 +132,9 @@ class SSOSession(Base):  # type: ignore[misc,valid-type]
     mfa_verified_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     last_activity = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False
     )
     terminated_at = Column(DateTime)
 
@@ -177,7 +177,7 @@ class SSOAuditLog(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     event_metadata = Column(JSON)  # Additional context
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant")  # type: ignore[assignment, name-defined]
@@ -229,7 +229,7 @@ class MFADevice(Base):  # type: ignore[misc,valid-type]
     use_count = Column(Integer, default=0, nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     verified_at = Column(DateTime)
 
     # Relationships

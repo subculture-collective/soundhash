@@ -1,6 +1,6 @@
 """Tests for monetization endpoints."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
@@ -188,7 +188,7 @@ class TestCreatorRevenueEndpoints:
         self, client: TestClient, auth_headers: dict, test_db, test_user
     ):
         """Test getting creator earnings with revenue records."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Create revenue record
         revenue = ContentCreatorRevenue(
             creator_user_id=test_user["user_id"],
@@ -556,7 +556,7 @@ class TestCampaignEndpoints:
         self, client: TestClient, auth_headers: dict
     ):
         """Test that non-admin users cannot create campaigns."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         request_data = {
             "name": "Test Campaign",
             "campaign_type": "promotion",
@@ -577,7 +577,7 @@ class TestCampaignEndpoints:
         self, client: TestClient, admin_headers: dict, test_db
     ):
         """Test creating a campaign as admin."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         request_data = {
             "name": "Test Campaign",
             "campaign_type": "promotion",
@@ -606,7 +606,7 @@ class TestCampaignEndpoints:
 
     def test_get_campaign(self, client: TestClient, test_db, admin_user):
         """Test getting campaign details."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Create campaign
         campaign = Campaign(
             created_by=admin_user["user_id"],
@@ -633,7 +633,7 @@ class TestCampaignEndpoints:
 
     def test_list_active_campaigns(self, client: TestClient, test_db, admin_user):
         """Test listing active campaigns."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Create active campaign
         campaign = Campaign(
             created_by=admin_user["user_id"],

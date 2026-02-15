@@ -65,13 +65,13 @@ async def find_matches(
 
     processing_time = (time.time() - start_time) * 1000
 
-    from datetime import datetime
+    from datetime import datetime, timezone
     return MatchResponse(
         query_id=0,  # Would be actual query ID
         total_matches=len(mock_matches),
         matches=mock_matches,
         processing_time_ms=processing_time,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
 
 

@@ -1,7 +1,7 @@
 """Consent management service for GDPR compliance."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -56,8 +56,8 @@ class ConsentManager:
                 consent_type=consent_type,
                 consent_version=consent_version,
                 given=given,
-                given_at=datetime.utcnow(),
-                withdrawn_at=None if given else datetime.utcnow(),
+                given_at=datetime.now(timezone.utc),
+                withdrawn_at=None if given else datetime.now(timezone.utc),
                 ip_address=ip_address,
                 user_agent=user_agent,
                 method=method,
@@ -141,8 +141,8 @@ class ConsentManager:
                 consent_type=consent_type,
                 consent_version=consent.consent_version,
                 given=False,
-                given_at=datetime.utcnow(),
-                withdrawn_at=datetime.utcnow(),
+                given_at=datetime.now(timezone.utc),
+                withdrawn_at=datetime.now(timezone.utc),
                 ip_address=ip_address,
                 user_agent=user_agent,
                 method="web_form",

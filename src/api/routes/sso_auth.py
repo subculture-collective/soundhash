@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -61,7 +61,7 @@ async def initiate_sso_login(
     state = secrets.token_urlsafe(32)
     auth_states[state] = {
         "provider_id": provider_id,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
     }
 
     # Handle different provider types

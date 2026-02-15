@@ -3,7 +3,7 @@ Health check functionality for monitoring system status.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import text
@@ -129,7 +129,7 @@ class HealthChecker:
         Returns:
             Dict with all health check results
         """
-        self.last_check_time = datetime.utcnow()
+        self.last_check_time = datetime.now(timezone.utc)
 
         results = {
             "timestamp": self.last_check_time.isoformat(),

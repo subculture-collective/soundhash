@@ -1,7 +1,7 @@
 """Audit logging service for SOC 2 compliance."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -77,7 +77,7 @@ class AuditLogger:
                 status=status,
                 error_message=error_message,
                 extra_metadata=metadata,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             )
             session.add(audit_entry)
             session.commit()

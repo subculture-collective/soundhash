@@ -1,6 +1,6 @@
 """Tests for data retention service."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -83,7 +83,7 @@ def test_deactivate_retention_policy(db_session: Session):
 def test_apply_audit_log_retention_policy(db_session: Session):
     """Test applying retention policy for audit logs."""
     # Create old audit logs
-    old_date = datetime.utcnow() - timedelta(days=400)
+    old_date = datetime.now(timezone.utc) - timedelta(days=400)
     for i in range(5):
         audit_log = AuditLog(
             action=f"old_action_{i}",
@@ -94,7 +94,7 @@ def test_apply_audit_log_retention_policy(db_session: Session):
     db_session.commit()
 
     # Create recent audit logs
-    recent_date = datetime.utcnow() - timedelta(days=10)
+    recent_date = datetime.now(timezone.utc) - timedelta(days=10)
     for i in range(3):
         audit_log = AuditLog(
             action=f"recent_action_{i}",
@@ -129,7 +129,7 @@ def test_apply_audit_log_retention_policy(db_session: Session):
 def test_apply_email_log_retention_policy(db_session: Session):
     """Test applying retention policy for email logs."""
     # Create old email logs
-    old_date = datetime.utcnow() - timedelta(days=100)
+    old_date = datetime.now(timezone.utc) - timedelta(days=100)
     for i in range(3):
         email_log = EmailLog(
             recipient_email=f"old_{i}@test.com",
@@ -141,7 +141,7 @@ def test_apply_email_log_retention_policy(db_session: Session):
     db_session.commit()
 
     # Create recent email logs
-    recent_date = datetime.utcnow() - timedelta(days=10)
+    recent_date = datetime.now(timezone.utc) - timedelta(days=10)
     for i in range(2):
         email_log = EmailLog(
             recipient_email=f"recent_{i}@test.com",

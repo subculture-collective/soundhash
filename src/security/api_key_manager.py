@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -47,7 +47,7 @@ class APIKeyManager:
         # Calculate expiration
         expires_at = None
         if expires_days:
-            expires_at = datetime.utcnow() + timedelta(days=expires_days)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
 
         # Create key record
         api_key = APIKey(
@@ -95,7 +95,7 @@ class APIKeyManager:
         # Create new key with same expiration policy
         expires_days = None
         if old_key.expires_at:
-            delta = old_key.expires_at - datetime.utcnow()
+            delta = old_key.expires_at - datetime.now(timezone.utc)
             expires_days = max(1, delta.days)
 
         new_key, plain_key = self.create_key(
@@ -165,7 +165,7 @@ class APIKeyManager:
         Returns:
             Number of keys deactivated
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         expired_keys = (
             self.db.query(APIKey)
@@ -219,14 +219,14 @@ class APIKeyManager:
         for key in candidate_keys:
             if verify_password(plain_key, key.key_hash):
                 # Check expiration
-                if key.expires_at and key.expires_at < datetime.utcnow():
+                if key.expires_at and key.expires_at < datetime.now(timezone.utc):
                     logger.warning(f"API key {key.id} is expired")
                     key.is_active = False
                     self.db.commit()
                     return None
 
                 # Update last used
-                key.last_used_at = datetime.utcnow()
+                key.last_used_at = datetime.now(timezone.utc)
                 self.db.commit()
 
                 return key
@@ -248,7 +248,7 @@ class APIKeyManager:
             "last_used_at": key.last_used_at.isoformat() if key.last_used_at else None,
             "expires_at": key.expires_at.isoformat() if key.expires_at else None,
             "is_active": key.is_active,
-            "days_until_expiry": (key.expires_at - datetime.utcnow()).days
+            "days_until_expiry": (key.expires_at - datetime.now(timezone.utc)).days
             if key.expires_at
             else None,
         }

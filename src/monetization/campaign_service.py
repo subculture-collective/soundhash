@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -65,7 +65,7 @@ class CampaignService:
         if not campaign:
             raise ValueError(f"Campaign {campaign_id} not found")
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if now < campaign.start_date:
             campaign.status = "scheduled"
         elif now >= campaign.start_date and now <= campaign.end_date:
@@ -139,7 +139,7 @@ class CampaignService:
     @staticmethod
     def get_active_campaigns(session: Session) -> List[Campaign]:
         """Get all active campaigns."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return (
             session.query(Campaign)
             .filter(

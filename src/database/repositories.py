@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -218,7 +218,7 @@ class VideoRepository:
             video = self.session.get(Video, video_id)
             if video:
                 video.processed = success
-                video.processing_completed = datetime.utcnow()
+                video.processing_completed = datetime.now(timezone.utc)
                 if error_message:
                     video.processing_error = error_message
                 self.session.commit()
@@ -557,9 +557,9 @@ class JobRepository:
                     job.error_message = error_message
 
                 if status == "running" and not job.started_at:
-                    job.started_at = datetime.utcnow()
+                    job.started_at = datetime.now(timezone.utc)
                 elif status in ["completed", "failed"]:
-                    job.completed_at = datetime.utcnow()
+                    job.completed_at = datetime.now(timezone.utc)
 
                 self.session.commit()
                 logger.debug(f"Updated job {job_id}: status={status}, progress={progress}")
@@ -773,7 +773,7 @@ class WebhookRepository:
         if rate_limit_per_minute is not None:
             webhook.rate_limit_per_minute = rate_limit_per_minute
 
-        webhook.updated_at = datetime.utcnow()
+        webhook.updated_at = datetime.now(timezone.utc)
         self.session.commit()
         logger.info(f"Updated webhook {webhook_id}")
         return webhook
@@ -822,12 +822,12 @@ class WebhookRepository:
         webhook.total_deliveries += 1
         if success:
             webhook.successful_deliveries += 1
-            webhook.last_success_at = delivery_time or datetime.utcnow()
+            webhook.last_success_at = delivery_time or datetime.now(timezone.utc)
         else:
             webhook.failed_deliveries += 1
-            webhook.last_failure_at = delivery_time or datetime.utcnow()
+            webhook.last_failure_at = delivery_time or datetime.now(timezone.utc)
 
-        webhook.last_delivery_at = delivery_time or datetime.utcnow()
+        webhook.last_delivery_at = delivery_time or datetime.now(timezone.utc)
         self.session.commit()
 
     @db_retry()
@@ -901,7 +901,7 @@ class WebhookRepository:
         event = self.session.query(WebhookEvent).filter(WebhookEvent.id == event_id).first()
         if event:
             event.processed = True
-            event.processed_at = datetime.utcnow()
+            event.processed_at = datetime.now(timezone.utc)
             self.session.commit()
 
     @db_retry()
@@ -1012,7 +1012,7 @@ class WebhookRepository:
         if next_retry_at is not None:
             delivery.next_retry_at = next_retry_at
 
-        delivery.updated_at = datetime.utcnow()
+        delivery.updated_at = datetime.now(timezone.utc)
         self.session.commit()
         return delivery
 
@@ -1028,7 +1028,7 @@ class WebhookRepository:
         """
         from .models import WebhookDelivery
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return (
             self.session.query(WebhookDelivery)
             .filter(

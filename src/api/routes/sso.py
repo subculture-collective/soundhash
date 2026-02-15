@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -197,7 +197,7 @@ async def update_sso_provider(
     for field, value in provider_data.dict(exclude_unset=True).items():
         setattr(provider, field, value)
 
-    provider.updated_at = datetime.utcnow()
+    provider.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(provider)
 

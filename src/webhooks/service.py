@@ -139,12 +139,12 @@ class WebhookService:
         Returns:
             Standardized event payload
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         payload = {
             "id": secrets.token_urlsafe(16),
             "type": event_type,
-            "created_at": datetime.utcnow().isoformat() + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat() + "Z",
             "data": data,
         }
 

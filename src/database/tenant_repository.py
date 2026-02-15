@@ -1,7 +1,7 @@
 """Repository for tenant management operations."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError
@@ -93,7 +93,7 @@ class TenantRepository:
                     tenant.primary_color = primary_color
                 if custom_domain is not None:
                     tenant.custom_domain = custom_domain
-                tenant.updated_at = datetime.utcnow()
+                tenant.updated_at = datetime.now(timezone.utc)
                 self.session.commit()
                 logger.debug(f"Updated branding for tenant {tenant_id}")
             return tenant
@@ -108,7 +108,7 @@ class TenantRepository:
             tenant = self.session.get(Tenant, tenant_id)
             if tenant:
                 tenant.settings = settings
-                tenant.updated_at = datetime.utcnow()
+                tenant.updated_at = datetime.now(timezone.utc)
                 self.session.commit()
                 logger.debug(f"Updated settings for tenant {tenant_id}")
             return tenant
@@ -179,7 +179,7 @@ class TenantRepository:
             tenant = self.session.get(Tenant, tenant_id)
             if tenant:
                 tenant.is_active = False
-                tenant.updated_at = datetime.utcnow()
+                tenant.updated_at = datetime.now(timezone.utc)
                 self.session.commit()
                 logger.info(f"Deactivated tenant {tenant_id}")
             return tenant
