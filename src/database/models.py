@@ -134,10 +134,10 @@ class Channel(Base):  # type: ignore[misc,valid-type]
     description: Mapped[str | None] = mapped_column(Text)
     subscriber_count: Mapped[int | None] = mapped_column()
     video_count: Mapped[int | None] = mapped_column()
-    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_processed: Mapped[datetime | None] = mapped_column()
-    is_active: Mapped[bool | None] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="channels")  # type: ignore[assignment]
@@ -161,14 +161,14 @@ class Video(Base):  # type: ignore[misc,valid-type]
     thumbnail_url: Mapped[str | None] = mapped_column(String(500))
 
     # Processing status
-    processed: Mapped[bool | None] = mapped_column(default=False)
+    processed: Mapped[bool] = mapped_column(default=False)
     processing_started: Mapped[datetime | None] = mapped_column()
     processing_completed: Mapped[datetime | None] = mapped_column()
     processing_error: Mapped[str | None] = mapped_column(Text)
 
     # Metadata
-    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
-    updated_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="videos")  # type: ignore[assignment]
@@ -204,7 +204,7 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     peak_count: Mapped[int | None] = mapped_column()  # Number of spectral peaks detected
 
     # Metadata
-    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="fingerprints")  # type: ignore[assignment]
@@ -228,10 +228,10 @@ class MatchResult(Base):  # type: ignore[misc,valid-type]
     query_user: Mapped[str | None] = mapped_column(String(100))  # Username who requested
 
     # Response metadata
-    responded: Mapped[bool | None] = mapped_column(default=False)
+    responded: Mapped[bool] = mapped_column(default=False)
     response_sent_at: Mapped[datetime | None] = mapped_column()
 
-    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
 
 
 class ProcessingJob(Base):  # type: ignore[misc,valid-type]
@@ -246,18 +246,18 @@ class ProcessingJob(Base):  # type: ignore[misc,valid-type]
     parameters: Mapped[str | None] = mapped_column(Text)  # JSON parameters
 
     # Progress tracking
-    progress: Mapped[float | None] = mapped_column(default=0.0)  # 0.0 to 1.0
+    progress: Mapped[float] = mapped_column(default=0.0)  # 0.0 to 1.0
     current_step: Mapped[str | None] = mapped_column(String(200))
 
     # Timing
-    created_at: Mapped[datetime | None] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
     started_at: Mapped[datetime | None] = mapped_column()
     completed_at: Mapped[datetime | None] = mapped_column()
 
     # Error handling
     error_message: Mapped[str | None] = mapped_column(Text)
-    retry_count: Mapped[int | None] = mapped_column(default=0)
-    max_retries: Mapped[int | None] = mapped_column(default=3)
+    retry_count: Mapped[int] = mapped_column(default=0)
+    max_retries: Mapped[int] = mapped_column(default=3)
 
 
 # Indexes for performance
@@ -432,7 +432,7 @@ class EmailCampaign(Base):  # type: ignore[misc,valid-type]
     status: Mapped[str | None] = mapped_column(String(20), default="draft")  # draft, scheduled, running, completed, cancelled
 
     # A/B Testing
-    ab_test_enabled: Mapped[bool | None] = mapped_column(default=False)
+    ab_test_enabled: Mapped[bool] = mapped_column(default=False)
     ab_test_variants: Mapped[str | None] = mapped_column(Text)  # JSON array of variant configs
     ab_test_split_percentage: Mapped[int | None] = mapped_column(default=50)  # % for variant A
 
@@ -640,7 +640,7 @@ class PrivacyPolicy(Base):  # type: ignore[misc,valid-type]
     policy_type: Mapped[str] = mapped_column(String(50))  # 'privacy_policy', 'terms_of_service', 'cookie_policy', 'dpa'
     version: Mapped[str] = mapped_column(String(50))
     title: Mapped[str] = mapped_column(String(500))
-    content: Mapped[str | None] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text)
     
     # Effective dates
     effective_from: Mapped[datetime] = mapped_column()
@@ -723,7 +723,7 @@ class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
     processing_location: Mapped[str | None] = mapped_column(String(200))  # Geographic location of processing
     
     # Agreement
-    has_dpa: Mapped[bool | None] = mapped_column(default=False)  # Has Data Processing Agreement
+    has_dpa: Mapped[bool] = mapped_column(default=False)  # Has Data Processing Agreement
     dpa_id: Mapped[int | None] = mapped_column(ForeignKey("data_processing_agreements.id"))
     
     # Status
@@ -790,7 +790,7 @@ class Subscription(Base):  # type: ignore[misc,valid-type]
     trial_end: Mapped[datetime | None] = mapped_column()
     current_period_start: Mapped[datetime | None] = mapped_column()
     current_period_end: Mapped[datetime | None] = mapped_column()
-    cancel_at_period_end: Mapped[bool | None] = mapped_column(default=False)
+    cancel_at_period_end: Mapped[bool] = mapped_column(default=False)
     cancelled_at: Mapped[datetime | None] = mapped_column()
 
     # Metadata
@@ -850,7 +850,7 @@ class Invoice(Base):  # type: ignore[misc,valid-type]
 
     # Status
     status: Mapped[str | None] = mapped_column(String(50))  # draft, open, paid, void, uncollectible
-    paid: Mapped[bool | None] = mapped_column(default=False)
+    paid: Mapped[bool] = mapped_column(default=False)
 
     # URLs
     invoice_pdf: Mapped[str | None] = mapped_column(String(500))
@@ -1275,7 +1275,7 @@ class CohortAnalysis(Base):  # type: ignore[misc,valid-type]
     cohort_type: Mapped[str] = mapped_column(String(50))  # 'signup', 'first_upload', etc.
     
     # Metrics by period
-    period_number: Mapped[int | None] = mapped_column()
+    period_number: Mapped[int] = mapped_column()  # 0, 1, 2, ... (days/weeks/months after cohort_date)
     period_type: Mapped[str] = mapped_column(String(20))  # 'day', 'week', 'month'
     
     # Cohort metrics
@@ -1423,7 +1423,7 @@ class AffiliateProgram(Base):  # type: ignore[misc,valid-type]
     # Commission structure
     commission_rate: Mapped[float] = mapped_column(default=0.20)  # Default 20%
     commission_duration_months: Mapped[int | None] = mapped_column(default=3)  # First 3 months
-    is_lifetime_commission: Mapped[bool | None] = mapped_column(default=False)
+    is_lifetime_commission: Mapped[bool] = mapped_column(default=False)
 
     # Status
     status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, active, suspended, terminated
@@ -1465,7 +1465,7 @@ class Referral(Base):  # type: ignore[misc,valid-type]
     landing_page: Mapped[str | None] = mapped_column(String(500))
 
     # Conversion tracking
-    converted: Mapped[bool | None] = mapped_column(default=False)  # Whether referred user subscribed
+    converted: Mapped[bool] = mapped_column(default=False)  # Whether referred user subscribed
     converted_at: Mapped[datetime | None] = mapped_column()
     subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id"))
 
@@ -1601,12 +1601,12 @@ class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
 
     # Preview/Demo
     preview_url: Mapped[str | None] = mapped_column(String(500))
-    demo_available: Mapped[bool | None] = mapped_column(default=False)
+    demo_available: Mapped[bool] = mapped_column(default=False)
     sample_data_url: Mapped[str | None] = mapped_column(String(500))
 
     # Requirements
     min_plan_tier: Mapped[str | None] = mapped_column(String(50))  # Minimum subscription tier required
-    api_access_required: Mapped[bool | None] = mapped_column(default=False)
+    api_access_required: Mapped[bool] = mapped_column(default=False)
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
@@ -1641,7 +1641,7 @@ class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
 
     # License/Access
     license_key: Mapped[str | None] = mapped_column(String(255), unique=True)
-    access_granted: Mapped[bool | None] = mapped_column(default=False)
+    access_granted: Mapped[bool] = mapped_column(default=False)
     download_url: Mapped[str | None] = mapped_column(String(500))
     download_expires_at: Mapped[datetime | None] = mapped_column()
 
@@ -1666,7 +1666,7 @@ class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
     review_text: Mapped[str | None] = mapped_column(Text)
 
     # Review metadata
-    is_verified_purchase: Mapped[bool | None] = mapped_column(default=False)
+    is_verified_purchase: Mapped[bool] = mapped_column(default=False)
     helpful_count: Mapped[int | None] = mapped_column(default=0)
     reported_count: Mapped[int | None] = mapped_column(default=0)
 
@@ -1702,11 +1702,11 @@ class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
     # Compatibility
     min_platform_version: Mapped[str | None] = mapped_column(String(50))
     max_platform_version: Mapped[str | None] = mapped_column(String(50))
-    requires_migration: Mapped[bool | None] = mapped_column(default=False)
+    requires_migration: Mapped[bool] = mapped_column(default=False)
 
     # Status
     status: Mapped[str | None] = mapped_column(String(50), default="active")  # active, deprecated, yanked
-    is_latest: Mapped[bool | None] = mapped_column(default=False)
+    is_latest: Mapped[bool] = mapped_column(default=False)
     download_count: Mapped[int | None] = mapped_column(default=0)
 
     # Quality checks
@@ -1764,7 +1764,7 @@ class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
 
     # Display order
     sort_order: Mapped[int | None] = mapped_column(default=0)
-    is_active: Mapped[bool | None] = mapped_column(default=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     # Statistics
     item_count: Mapped[int | None] = mapped_column(default=0)
@@ -1785,11 +1785,11 @@ class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
     # Stripe Connect details
     stripe_account_id: Mapped[str] = mapped_column(String(255), unique=True)
     account_type: Mapped[str | None] = mapped_column(String(50))  # standard, express, custom
-    charges_enabled: Mapped[bool | None] = mapped_column(default=False)
-    payouts_enabled: Mapped[bool | None] = mapped_column(default=False)
+    charges_enabled: Mapped[bool] = mapped_column(default=False)
+    payouts_enabled: Mapped[bool] = mapped_column(default=False)
 
     # Account status
-    details_submitted: Mapped[bool | None] = mapped_column(default=False)
+    details_submitted: Mapped[bool] = mapped_column(default=False)
     verification_status: Mapped[str | None] = mapped_column(String(50))  # unverified, pending, verified
     requirements_due: Mapped[dict | None] = mapped_column(JSON)  # Required information for verification
 
@@ -1834,7 +1834,7 @@ class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
     # Pricing & Discounts
     volume_discount_percentage: Mapped[float | None] = mapped_column(default=0.0)  # Volume discount
     markup_percentage: Mapped[float | None] = mapped_column(default=0.0)  # Markup on top of cost
-    custom_pricing_enabled: Mapped[bool | None] = mapped_column(default=False)
+    custom_pricing_enabled: Mapped[bool] = mapped_column(default=False)
 
     # Limits
     max_end_users: Mapped[int | None] = mapped_column()
@@ -1890,7 +1890,7 @@ class RewardTransaction(Base):  # type: ignore[misc,valid-type]
 
     # Expiration
     expires_at: Mapped[datetime | None] = mapped_column()
-    expired: Mapped[bool | None] = mapped_column(default=False)
+    expired: Mapped[bool] = mapped_column(default=False)
 
     # Status
     status: Mapped[str | None] = mapped_column(String(50), default="active")  # active, used, expired, cancelled
@@ -1920,7 +1920,7 @@ class UserBadge(Base):  # type: ignore[misc,valid-type]
     achievement_value: Mapped[int | None] = mapped_column()  # Number of referrals, API calls, etc.
 
     # Display
-    is_featured: Mapped[bool | None] = mapped_column(default=False)
+    is_featured: Mapped[bool] = mapped_column(default=False)
     display_order: Mapped[int | None] = mapped_column(default=0)
 
     # Extra data
@@ -2005,7 +2005,7 @@ class Campaign(Base):  # type: ignore[misc,valid-type]
 
     # Status
     status: Mapped[str | None] = mapped_column(String(50), default="draft")  # draft, scheduled, active, paused, completed, cancelled
-    is_active: Mapped[bool | None] = mapped_column(default=False)
+    is_active: Mapped[bool] = mapped_column(default=False)
 
     # Extra data
     extra_data: Mapped[dict | None] = mapped_column(JSON)  # Additional campaign data
