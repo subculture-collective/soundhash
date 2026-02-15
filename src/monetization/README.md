@@ -232,8 +232,8 @@ campaign = CampaignService.create_campaign(
     name="Spring Sale",
     campaign_type="promotion",
     offer_type="discount",
-    start_date=datetime.utcnow(),
-    end_date=datetime.utcnow() + timedelta(days=30),
+    start_date=datetime.now(timezone.utc),
+    end_date=datetime.now(timezone.utc) + timedelta(days=30),
     discount_percentage=20.0,
     max_uses=100
 )

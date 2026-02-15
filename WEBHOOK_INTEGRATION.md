@@ -58,7 +58,7 @@ from datetime import datetime
 def complete_video_processing(video, fingerprints):
     # Mark video as processed
     video.processed = True
-    video.processing_completed = datetime.utcnow()
+    video.processing_completed = datetime.now(timezone.utc)
     db.commit()
     
     # Calculate processing time
@@ -156,7 +156,7 @@ from datetime import datetime, timedelta
 
 def check_usage_limits(user, usage_record):
     if usage_record.api_calls >= usage_record.api_limit * 0.9:  # 90% threshold
-        reset_time = (datetime.utcnow() + timedelta(days=30)).isoformat() + "Z"
+        reset_time = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat() + "Z"
         
         emit_api_limit_reached(
             user_id=user.id,
