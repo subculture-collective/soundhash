@@ -376,3 +376,93 @@ class TestJobRepository:
         # Test setting status to completed
         job_repo.update_job_status(1, 'completed')
         assert mock_job.completed_at is not None
+
+    def test_jobs_exist_batch_empty_list(self):
+        """Test that batch checking with empty list returns empty set without querying."""
+        mock_session = MagicMock()
+        job_repo = JobRepository(mock_session)
+
+        result = job_repo.jobs_exist_batch("video_process", [], statuses=["pending", "running"])
+
+        assert result == set()
+        # Should not query database for empty list
+        mock_session.query.assert_not_called()
+
+    def test_jobs_exist_batch_with_results(self):
+        """Test that batch checking returns correct set of existing job IDs."""
+        mock_session = MagicMock()
+
+        # Mock query chain
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+
+        # Simulate 2 out of 3 videos having jobs
+        mock_query.all.return_value = [("video1",), ("video3",)]
+
+        job_repo = JobRepository(mock_session)
+        result = job_repo.jobs_exist_batch(
+            "video_process",
+            ["video1", "video2", "video3"],
+            statuses=["pending", "running"]
+        )
+
+        assert result == {"video1", "video3"}
+        assert "video2" not in result
+
+        # Verify query was constructed properly
+        mock_session.query.assert_called_once()
+        assert mock_query.filter.call_count == 2  # Two filter calls
+
+    def test_jobs_exist_batch_no_status_filter(self):
+        """Test batch checking without status filter."""
+        mock_session = MagicMock()
+
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.return_value = [("video1",)]
+
+        job_repo = JobRepository(mock_session)
+        result = job_repo.jobs_exist_batch("video_process", ["video1", "video2"])
+
+        assert result == {"video1"}
+        # Should only have one filter call when no statuses
+        assert mock_query.filter.call_count == 1
+
+    def test_jobs_exist_batch_all_exist(self):
+        """Test batch checking when all jobs exist."""
+        mock_session = MagicMock()
+
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.return_value = [("video1",), ("video2",), ("video3",)]
+
+        job_repo = JobRepository(mock_session)
+        result = job_repo.jobs_exist_batch(
+            "video_process",
+            ["video1", "video2", "video3"],
+            statuses=["pending", "running"]
+        )
+
+        assert result == {"video1", "video2", "video3"}
+
+    def test_jobs_exist_batch_none_exist(self):
+        """Test batch checking when no jobs exist."""
+        mock_session = MagicMock()
+
+        mock_query = MagicMock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.return_value = []
+
+        job_repo = JobRepository(mock_session)
+        result = job_repo.jobs_exist_batch(
+            "video_process",
+            ["video1", "video2", "video3"],
+            statuses=["pending", "running"]
+        )
+
+        assert result == set()
+
