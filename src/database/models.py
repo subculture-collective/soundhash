@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timezone
 
 from sqlalchemy import (
     JSON,
@@ -48,8 +48,8 @@ class Tenant(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     settings = Column(JSON)  # Tenant-specific settings
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     users: Mapped[list["User"]] = relationship("User", back_populates="tenant")  # type: ignore[assignment]
@@ -77,8 +77,8 @@ class User(Base):  # type: ignore[misc,valid-type]
     is_verified = Column(Boolean, default=False, nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     last_login = Column(DateTime)
 
     # Stripe customer ID for billing
@@ -115,7 +115,7 @@ class APIKey(Base):  # type: ignore[misc,valid-type]
     last_used_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant")  # type: ignore[assignment]
@@ -132,8 +132,8 @@ class Channel(Base):  # type: ignore[misc,valid-type]
     description = Column(Text)
     subscriber_count = Column(Integer)
     video_count = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_processed = Column(DateTime)
     is_active = Column(Boolean, default=True)
 
@@ -165,8 +165,8 @@ class Video(Base):  # type: ignore[misc,valid-type]
     processing_error = Column(Text)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="videos")  # type: ignore[assignment]
@@ -202,7 +202,7 @@ class AudioFingerprint(Base):  # type: ignore[misc,valid-type]
     peak_count = Column(Integer)  # Number of spectral peaks detected
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="fingerprints")  # type: ignore[assignment]
@@ -229,7 +229,7 @@ class MatchResult(Base):  # type: ignore[misc,valid-type]
     responded = Column(Boolean, default=False)
     response_sent_at = Column(DateTime)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class ProcessingJob(Base):  # type: ignore[misc,valid-type]
@@ -248,7 +248,7 @@ class ProcessingJob(Base):  # type: ignore[misc,valid-type]
     current_step = Column(String(200))
 
     # Timing
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
 
@@ -336,8 +336,8 @@ class EmailPreference(Base):  # type: ignore[misc,valid-type]
     unsubscribe_token = Column(String(255), unique=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_preferences")  # type: ignore[assignment]
@@ -366,8 +366,8 @@ class EmailTemplate(Base):  # type: ignore[misc,valid-type]
     language = Column(String(10), default="en", nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class EmailLog(Base):  # type: ignore[misc,valid-type]
@@ -402,7 +402,7 @@ class EmailLog(Base):  # type: ignore[misc,valid-type]
     ab_test_group = Column(String(20))
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="email_logs")  # type: ignore[assignment]
@@ -445,8 +445,8 @@ class EmailCampaign(Base):  # type: ignore[misc,valid-type]
     emails_failed = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 # Additional indexes for email tables
@@ -498,7 +498,7 @@ class AuditLog(Base):  # type: ignore[misc,valid-type]
     
     # Additional context
     extra_metadata = Column(JSON)  # Additional context
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
 
 class UserConsent(Base):  # type: ignore[misc,valid-type]
@@ -525,8 +525,8 @@ class UserConsent(Base):  # type: ignore[misc,valid-type]
     
     # Additional context
     extra_metadata = Column(JSON)  # Additional context
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class DataExportRequest(Base):  # type: ignore[misc,valid-type]
@@ -544,7 +544,7 @@ class DataExportRequest(Base):  # type: ignore[misc,valid-type]
     
     # Status tracking
     status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'expired'
-    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
     expires_at = Column(DateTime)  # Export file expiration (e.g., 30 days)
@@ -560,7 +560,7 @@ class DataExportRequest(Base):  # type: ignore[misc,valid-type]
     
     # Metadata
     ip_address = Column(String(45))
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
@@ -578,7 +578,7 @@ class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
     
     # Status tracking
     status = Column(String(20), default="pending")  # 'pending', 'processing', 'completed', 'failed', 'cancelled'
-    requested_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    requested_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     approved_at = Column(DateTime)  # Manual approval for compliance
     approved_by = Column(Integer, ForeignKey("users.id"))  # Admin who approved
     started_at = Column(DateTime)
@@ -597,7 +597,7 @@ class DataDeletionRequest(Base):  # type: ignore[misc,valid-type]
     
     # Metadata
     ip_address = Column(String(45))
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class DataRetentionPolicy(Base):  # type: ignore[misc,valid-type]
@@ -622,8 +622,8 @@ class DataRetentionPolicy(Base):  # type: ignore[misc,valid-type]
     # Metadata
     description = Column(Text)
     legal_basis = Column(String(500))  # Legal reason for retention period
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     last_applied_at = Column(DateTime)  # Last time policy was executed
 
 
@@ -653,8 +653,8 @@ class PrivacyPolicy(Base):  # type: ignore[misc,valid-type]
     
     # Metadata
     created_by = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class DataProcessingAgreement(Base):  # type: ignore[misc,valid-type]
@@ -695,8 +695,8 @@ class DataProcessingAgreement(Base):  # type: ignore[misc,valid-type]
     sub_processors = Column(JSON)  # List of sub-processors
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
@@ -733,8 +733,8 @@ class ThirdPartyDataProcessor(Base):  # type: ignore[misc,valid-type]
     next_review_date = Column(DateTime)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 # Indexes for compliance tables
@@ -792,8 +792,8 @@ class Subscription(Base):  # type: ignore[misc,valid-type]
     cancelled_at = Column(DateTime)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="subscription")  # type: ignore[assignment]
@@ -821,7 +821,7 @@ class UsageRecord(Base):  # type: ignore[misc,valid-type]
     # Stripe
     stripe_usage_record_id = Column(String(255))
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     subscription: Mapped["Subscription"] = relationship("Subscription", back_populates="usage_records")  # type: ignore[assignment]
@@ -859,7 +859,7 @@ class Invoice(Base):  # type: ignore[misc,valid-type]
     due_date = Column(DateTime)
     paid_at = Column(DateTime)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="invoices")  # type: ignore[assignment]
@@ -898,8 +898,8 @@ class Webhook(Base):  # type: ignore[misc,valid-type]
     last_failure_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User")  # type: ignore[assignment]
@@ -925,7 +925,7 @@ class WebhookEvent(Base):  # type: ignore[misc,valid-type]
     processed_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     deliveries: Mapped[list["WebhookDelivery"]] = relationship("WebhookDelivery", back_populates="event", cascade="all, delete-orphan")  # type: ignore[assignment]
@@ -957,9 +957,9 @@ class WebhookDelivery(Base):  # type: ignore[misc,valid-type]
     next_retry_at = Column(DateTime)  # For failed deliveries with retry
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     delivered_at = Column(DateTime)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     webhook: Mapped["Webhook"] = relationship("Webhook", back_populates="deliveries")  # type: ignore[assignment]
@@ -997,9 +997,9 @@ class OnboardingProgress(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     custom_data = Column(JSON)  # Store additional progress data
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     completed_at = Column(DateTime)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="onboarding_progress")  # type: ignore[assignment]
@@ -1021,9 +1021,9 @@ class TutorialProgress(Base):  # type: ignore[misc,valid-type]
     total_steps = Column(Integer)
 
     # Tracking
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     completed_at = Column(DateTime)
-    last_viewed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_viewed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="tutorial_progress")  # type: ignore[assignment]
@@ -1056,8 +1056,8 @@ class UserPreference(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     preferences_data = Column(JSON)  # Store additional custom preferences
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", backref="preferences")  # type: ignore[assignment]
@@ -1442,8 +1442,8 @@ class AffiliateProgram(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Referral(Base):  # type: ignore[misc,valid-type]
@@ -1474,7 +1474,7 @@ class Referral(Base):  # type: ignore[misc,valid-type]
     reward_awarded_at = Column(DateTime)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     expires_at = Column(DateTime)  # When referral link expires
 
 
@@ -1511,7 +1511,7 @@ class PartnerEarnings(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     period_start = Column(DateTime)
     period_end = Column(DateTime)
 
@@ -1552,8 +1552,8 @@ class ContentCreatorRevenue(Base):  # type: ignore[misc,valid-type]
 
     # Metadata
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
@@ -1607,8 +1607,8 @@ class MarketplaceItem(Base):  # type: ignore[misc,valid-type]
     api_access_required = Column(Boolean, default=False)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
@@ -1644,8 +1644,8 @@ class MarketplaceTransaction(Base):  # type: ignore[misc,valid-type]
     download_expires_at = Column(DateTime)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
@@ -1675,8 +1675,8 @@ class MarketplaceReview(Base):  # type: ignore[misc,valid-type]
     moderation_reason = Column(Text)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
@@ -1713,8 +1713,8 @@ class MarketplaceItemVersion(Base):  # type: ignore[misc,valid-type]
     quality_check_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceQualityCheck(Base):  # type: ignore[misc,valid-type]
@@ -1745,7 +1745,7 @@ class MarketplaceQualityCheck(Base):  # type: ignore[misc,valid-type]
     checker_version = Column(String(50))
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
@@ -1768,8 +1768,8 @@ class MarketplaceCategory(Base):  # type: ignore[misc,valid-type]
     item_count = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
@@ -1801,9 +1801,9 @@ class SellerStripeAccount(Base):  # type: ignore[misc,valid-type]
     available_balance = Column(Integer, default=0)  # In cents
 
     # Timestamps
-    connected_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    connected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     last_payout_at = Column(DateTime)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
@@ -1857,8 +1857,8 @@ class WhiteLabelReseller(Base):  # type: ignore[misc,valid-type]
     # Metadata
     notes = Column(Text)
     settings = Column(JSON)  # Custom settings
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class RewardTransaction(Base):  # type: ignore[misc,valid-type]
@@ -1895,7 +1895,7 @@ class RewardTransaction(Base):  # type: ignore[misc,valid-type]
 
     # Extra data
     extra_data = Column(JSON)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class UserBadge(Base):  # type: ignore[misc,valid-type]
@@ -1922,7 +1922,7 @@ class UserBadge(Base):  # type: ignore[misc,valid-type]
     display_order = Column(Integer, default=0)
 
     # Extra data
-    earned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    earned_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     extra_data = Column(JSON)
 
 
@@ -1955,7 +1955,7 @@ class Leaderboard(Base):  # type: ignore[misc,valid-type]
     total_content_views = Column(Integer, default=0)
 
     # Metadata
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Campaign(Base):  # type: ignore[misc,valid-type]
@@ -2007,8 +2007,8 @@ class Campaign(Base):  # type: ignore[misc,valid-type]
 
     # Extra data
     extra_data = Column(JSON)  # Additional campaign data
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 # Indexes for monetization models
