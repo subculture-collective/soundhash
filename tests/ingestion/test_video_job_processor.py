@@ -126,9 +126,12 @@ class TestVideoJobProcessor:
             processor.fingerprinter.serialize_fingerprint = MagicMock(return_value=b"serialized")
             processor.video_processor.cleanup_segments = MagicMock()
 
-            # Process one job
-            await processor.process_video_job(mock_job, mock_video_repo, mock_job_repo)
+            # Enable cleanup to test all three blocking operations
+            with patch("src.ingestion.channel_ingester.Config.CLEANUP_SEGMENTS_AFTER_PROCESSING", True):
+                # Process one job
+                await processor.process_video_job(mock_job, mock_video_repo, mock_job_repo)
 
             # Verify asyncio.to_thread was called for blocking operations
             # Should be called 3 times: process_video, extract_fingerprint, cleanup_segments
-            assert mock_to_thread.call_count >= 2  # At least process_video and extract_fingerprint
+            assert mock_to_thread.call_count == 3, f"Expected 3 calls to asyncio.to_thread, got {mock_to_thread.call_count}"
+
