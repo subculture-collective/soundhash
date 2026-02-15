@@ -11,7 +11,11 @@ from config.settings import Config
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError, AttributeError):
+        # Invalid hash format, type, or None - treat as verification failure
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -64,7 +68,11 @@ def hash_api_key(api_key: str) -> str:
 
 def verify_api_key(plain_key: str, hashed_key: str) -> bool:
     """Verify an API key against its hash."""
-    return bcrypt.checkpw(plain_key.encode("utf-8"), hashed_key.encode("utf-8"))
+    try:
+        return bcrypt.checkpw(plain_key.encode("utf-8"), hashed_key.encode("utf-8"))
+    except (ValueError, TypeError, AttributeError):
+        # Invalid hash format, type, or None - treat as verification failure
+        return False
 
 
 def get_api_key_prefix(api_key: str) -> str:
