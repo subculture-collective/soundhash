@@ -1,7 +1,7 @@
 """SAML 2.0 authentication provider implementation."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
@@ -209,8 +209,8 @@ class SAMLProvider:
             # Update user info if changed
             if "full_name" in user_data and user_data["full_name"] != user.full_name:
                 user.full_name = user_data["full_name"]
-                user.updated_at = datetime.utcnow()
-            user.last_login = datetime.utcnow()
+                user.updated_at = datetime.now(timezone.utc)
+            user.last_login = datetime.now(timezone.utc)
             self.db.commit()
             return user
 

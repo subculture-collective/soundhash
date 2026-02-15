@@ -1,7 +1,7 @@
 """Email digest generation and scheduling."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from config.settings import Config
 from src.database.connection import db_manager
@@ -38,7 +38,7 @@ async def generate_daily_digest(user_id: int) -> dict | None:
             return None
 
         # Get activity from last 24 hours
-        yesterday = datetime.utcnow() - timedelta(days=1)
+        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
 
         # Get match results
         matches = (
@@ -108,7 +108,7 @@ async def generate_weekly_digest(user_id: int) -> dict | None:
             return None
 
         # Get activity from last 7 days
-        last_week = datetime.utcnow() - timedelta(days=7)
+        last_week = datetime.now(timezone.utc) - timedelta(days=7)
 
         # Get match statistics
         matches = (
@@ -149,7 +149,7 @@ async def generate_weekly_digest(user_id: int) -> dict | None:
         return {
             "username": user.username,
             "week_start": last_week.strftime("%Y-%m-%d"),
-            "week_end": datetime.utcnow().strftime("%Y-%m-%d"),
+            "week_end": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "total_matches": len(matches),
             "top_matches": [
                 {
@@ -282,7 +282,7 @@ def should_send_daily_digest() -> bool:
     if not Config.DIGEST_DAILY_ENABLED:
         return False
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     target_time = Config.DIGEST_DAILY_TIME.split(":")
     target_hour = int(target_time[0])
     target_minute = int(target_time[1]) if len(target_time) > 1 else 0
@@ -301,7 +301,7 @@ def should_send_weekly_digest() -> bool:
     if not Config.DIGEST_WEEKLY_ENABLED:
         return False
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     target_day = Config.DIGEST_WEEKLY_DAY
     target_time = Config.DIGEST_WEEKLY_TIME.split(":")
     target_hour = int(target_time[0])

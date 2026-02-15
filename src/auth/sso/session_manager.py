@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
@@ -58,7 +58,7 @@ class SSOSessionManager:
         session_token = secrets.token_urlsafe(64)
 
         # Calculate expiration
-        expires_at = datetime.utcnow() + timedelta(hours=session_duration_hours)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=session_duration_hours)
 
         # Create session
         session = SSOSession(
@@ -110,13 +110,13 @@ class SSOSessionManager:
         if not session:
             return None
 
-        if check_expiration and session.expires_at < datetime.utcnow():
+        if check_expiration and session.expires_at < datetime.now(timezone.utc):
             logger.info(f"Session {session.id} has expired")
             self.terminate_session(session.id)
             return None
 
         # Update last activity
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
         self.db.commit()
 
         return session
@@ -147,13 +147,13 @@ class SSOSessionManager:
         if not session:
             return None
 
-        if check_expiration and session.expires_at < datetime.utcnow():
+        if check_expiration and session.expires_at < datetime.now(timezone.utc):
             logger.info(f"Session {session.id} has expired")
             self.terminate_session(session.id)
             return None
 
         # Update last activity
-        session.last_activity = datetime.utcnow()
+        session.last_activity = datetime.now(timezone.utc)
         self.db.commit()
 
         return session
@@ -177,7 +177,7 @@ class SSOSessionManager:
         if active_only:
             query = query.filter(
                 SSOSession.is_active == True,
-                SSOSession.expires_at > datetime.utcnow(),
+                SSOSession.expires_at > datetime.now(timezone.utc),
             )
 
         return query.order_by(SSOSession.last_activity.desc()).all()
@@ -204,7 +204,7 @@ class SSOSessionManager:
 
         session.mfa_verified = True
         session.mfa_method = mfa_method
-        session.mfa_verified_at = datetime.utcnow()
+        session.mfa_verified_at = datetime.now(timezone.utc)
         self.db.commit()
 
         logger.info(f"Marked session {session_id} as MFA verified")
@@ -229,7 +229,7 @@ class SSOSessionManager:
             return False
 
         session.is_active = False
-        session.terminated_at = datetime.utcnow()
+        session.terminated_at = datetime.now(timezone.utc)
         self.db.commit()
 
         logger.info(f"Terminated session {session_id}")
@@ -261,7 +261,7 @@ class SSOSessionManager:
 
         for session in sessions:
             session.is_active = False
-            session.terminated_at = datetime.utcnow()
+            session.terminated_at = datetime.now(timezone.utc)
 
         self.db.commit()
 
@@ -304,14 +304,14 @@ class SSOSessionManager:
             self.db.query(SSOSession)
             .filter(
                 SSOSession.is_active == True,
-                SSOSession.expires_at < datetime.utcnow(),
+                SSOSession.expires_at < datetime.now(timezone.utc),
             )
             .all()
         )
 
         for session in expired_sessions:
             session.is_active = False
-            session.terminated_at = datetime.utcnow()
+            session.terminated_at = datetime.now(timezone.utc)
 
         self.db.commit()
 

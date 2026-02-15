@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from config.settings import Config
@@ -122,7 +122,7 @@ class EmailService:
             email_log.status = "sent" if result.success else "failed"
             email_log.provider_message_id = result.message_id
             email_log.error_message = result.error_message
-            email_log.sent_at = datetime.utcnow() if result.success else None
+            email_log.sent_at = datetime.now(timezone.utc) if result.success else None
             session.commit()
 
             if result.success:
@@ -297,7 +297,7 @@ class EmailService:
             email_log = session.query(EmailLog).filter_by(id=email_log_id).first()
             if email_log:
                 if not email_log.opened_at:
-                    email_log.opened_at = datetime.utcnow()
+                    email_log.opened_at = datetime.now(timezone.utc)
                 email_log.open_count += 1
                 session.commit()
                 return True
@@ -312,7 +312,7 @@ class EmailService:
             email_log = session.query(EmailLog).filter_by(id=email_log_id).first()
             if email_log:
                 if not email_log.clicked_at:
-                    email_log.clicked_at = datetime.utcnow()
+                    email_log.clicked_at = datetime.now(timezone.utc)
                 email_log.click_count += 1
                 session.commit()
                 return True

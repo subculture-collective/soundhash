@@ -3,7 +3,7 @@
 import hashlib
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 import pyotp
@@ -102,7 +102,7 @@ class MFAService:
         if totp.verify(code, valid_window=1):  # Allow 1 window tolerance (30s before/after)
             mfa_device.is_verified = True
             mfa_device.is_active = True
-            mfa_device.verified_at = datetime.utcnow()
+            mfa_device.verified_at = datetime.now(timezone.utc)
 
             # Make this the primary device if no other primary exists
             primary_device = (
@@ -155,7 +155,7 @@ class MFAService:
             totp = pyotp.TOTP(device.totp_secret)
             if totp.verify(code, valid_window=1):
                 # Update usage tracking
-                device.last_used_at = datetime.utcnow()
+                device.last_used_at = datetime.now(timezone.utc)
                 device.use_count += 1
                 self.db.commit()
 
@@ -249,7 +249,7 @@ class MFAService:
             attributes.flag_modified(device, "backup_codes")
 
             # Update usage tracking
-            device.last_used_at = datetime.utcnow()
+            device.last_used_at = datetime.now(timezone.utc)
             device.use_count += 1
 
             # Deactivate if no codes left

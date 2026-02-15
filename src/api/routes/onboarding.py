@@ -1,6 +1,6 @@
 """Onboarding and tutorial routes."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -71,7 +71,7 @@ async def create_onboarding_progress(
         existing.tour_dismissed = False
         existing.tour_last_step = 0
         existing.sample_data_generated = False
-        existing.started_at = datetime.utcnow()
+        existing.started_at = datetime.now(timezone.utc)
         existing.completed_at = None
         db.commit()
         db.refresh(existing)
@@ -113,7 +113,7 @@ async def update_onboarding_progress(
 
     # Set completion timestamp if completed
     if progress_data.is_completed and progress.completed_at is None:
-        progress.completed_at = datetime.utcnow()
+        progress.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(progress)
@@ -219,11 +219,11 @@ async def update_tutorial_progress(
         setattr(tutorial, field, value)
 
     # Update last viewed timestamp
-    tutorial.last_viewed_at = datetime.utcnow()
+    tutorial.last_viewed_at = datetime.now(timezone.utc)
 
     # Set completion timestamp if completed
     if tutorial_data.is_completed and tutorial.completed_at is None:
-        tutorial.completed_at = datetime.utcnow()
+        tutorial.completed_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(tutorial)

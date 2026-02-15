@@ -1,7 +1,7 @@
 """Revenue sharing service for content creators (70/30 split)."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from sqlalchemy.orm import Session
@@ -134,7 +134,7 @@ class RevenueService:
 
         for revenue in pending_revenues:
             revenue.payout_status = "paid"
-            revenue.payout_date = datetime.utcnow()
+            revenue.payout_date = datetime.now(timezone.utc)
             revenue.payout_method = payout_method
             revenue.payout_reference = payout_reference
 

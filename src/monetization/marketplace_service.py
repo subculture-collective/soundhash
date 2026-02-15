@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy import and_, or_
@@ -98,11 +98,11 @@ class MarketplaceService:
             seller_payout=seller_payout,
             stripe_payment_intent_id=stripe_payment_intent_id,
             payment_status="completed",
-            paid_at=datetime.utcnow(),
+            paid_at=datetime.now(timezone.utc),
             license_key=license_key,
             access_granted=True,
             download_url=item.file_url,
-            download_expires_at=datetime.utcnow() + timedelta(days=30),
+            download_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
 
         session.add(transaction)
@@ -312,7 +312,7 @@ class MarketplaceService:
             version_id=version_id,
             check_type=check_type,
             status="running",
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
         )
 
         session.add(check)
@@ -322,7 +322,7 @@ class MarketplaceService:
         # Placeholder for actual quality check logic
         # In production, this would call external services or run checks
         check.status = "passed"
-        check.completed_at = datetime.utcnow()
+        check.completed_at = datetime.now(timezone.utc)
         check.result_summary = "All checks passed"
         check.issues_found = 0
 
@@ -484,7 +484,7 @@ class MarketplaceService:
         if existing:
             existing.stripe_account_id = stripe_account_id
             existing.account_type = account_type
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc)
             session.commit()
             return existing
 
@@ -540,7 +540,7 @@ class MarketplaceService:
         # In production, this would call Stripe API to create transfer
         # For now, we'll mark as completed
         payout_reference = f"po_{secrets.token_urlsafe(16)}"
-        payout_date = datetime.utcnow()
+        payout_date = datetime.now(timezone.utc)
 
         for transaction in pending_transactions:
             transaction.seller_payout_status = "completed"

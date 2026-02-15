@@ -1,7 +1,7 @@
 """Marketing automation workflows."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 from src.database.connection import db_manager
@@ -46,7 +46,7 @@ class MarketingAutomation:
                 return False
 
             # Check when user was created
-            days_since_signup = (datetime.utcnow() - user.created_at).days
+            days_since_signup = (datetime.now(timezone.utc) - user.created_at).days
 
             # Send appropriate email based on signup date
             if days_since_signup == 1:
@@ -93,7 +93,7 @@ class MarketingAutomation:
 
         try:
             # Find users inactive for 30+ days
-            inactive_threshold = datetime.utcnow() - timedelta(days=30)
+            inactive_threshold = datetime.now(timezone.utc) - timedelta(days=30)
 
             inactive_users = (
                 session.query(User)
@@ -111,7 +111,7 @@ class MarketingAutomation:
                     .filter(
                         EmailLog.user_id == user.id,
                         EmailLog.template_name == "re_engagement",
-                        EmailLog.created_at > datetime.utcnow() - timedelta(days=30),
+                        EmailLog.created_at > datetime.now(timezone.utc) - timedelta(days=30),
                     )
                     .first()
                 )
@@ -122,7 +122,7 @@ class MarketingAutomation:
                         template_name="re_engagement",
                         context={
                             "username": user.username,
-                            "days_inactive": (datetime.utcnow() - user.last_login).days,
+                            "days_inactive": (datetime.now(timezone.utc) - user.last_login).days,
                         },
                         user_id=user.id,
                     )
@@ -266,7 +266,7 @@ class MarketingAutomation:
 
             # Mark as running
             campaign.status = "running"
-            campaign.started_at = datetime.utcnow()
+            campaign.started_at = datetime.now(timezone.utc)
             session.commit()
 
             # Get target users based on segment
@@ -298,7 +298,7 @@ class MarketingAutomation:
 
             # Mark as completed
             campaign.status = "completed"
-            campaign.completed_at = datetime.utcnow()
+            campaign.completed_at = datetime.now(timezone.utc)
             session.commit()
 
             logger.info(
@@ -324,10 +324,10 @@ class MarketingAutomation:
             # Could add premium user logic here
             pass
         elif target_segment == "inactive_users":
-            inactive_threshold = datetime.utcnow() - timedelta(days=30)
+            inactive_threshold = datetime.now(timezone.utc) - timedelta(days=30)
             query = query.filter(User.last_login < inactive_threshold)
         elif target_segment == "new_users":
-            new_threshold = datetime.utcnow() - timedelta(days=7)
+            new_threshold = datetime.now(timezone.utc) - timedelta(days=7)
             query = query.filter(User.created_at >= new_threshold)
 
         return query.all()

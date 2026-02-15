@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -79,7 +79,7 @@ class AffiliateService:
             raise ValueError(f"Affiliate {affiliate_id} not found")
 
         affiliate.status = "active"
-        affiliate.approved_at = datetime.utcnow()
+        affiliate.approved_at = datetime.now(timezone.utc)
         affiliate.approved_by = approved_by
 
         session.commit()
@@ -237,7 +237,7 @@ class AffiliateService:
         # Update earnings status
         for earning in earnings:
             earning.status = "paid"
-            earning.paid_at = datetime.utcnow()
+            earning.paid_at = datetime.now(timezone.utc)
             earning.payment_method = payment_method
             earning.payment_reference = payment_reference
 

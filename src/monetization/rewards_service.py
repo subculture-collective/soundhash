@@ -1,7 +1,7 @@
 """Rewards and gamification service for badges and leaderboards."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from sqlalchemy import func
@@ -146,7 +146,7 @@ class RewardsService:
     ) -> Leaderboard:
         """Update user's leaderboard entry."""
         # Calculate period dates
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if period_type == "daily":
             period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             period_end = period_start + timedelta(days=1)
@@ -221,7 +221,7 @@ class RewardsService:
         session: Session, category: str, period_type: str = "monthly", limit: int = 100
     ) -> List[Dict]:
         """Get leaderboard for a category and period."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if period_type == "daily":
             period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period_type == "weekly":

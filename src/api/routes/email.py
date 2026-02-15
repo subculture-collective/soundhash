@@ -1,7 +1,7 @@
 """Email management API routes."""
 
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -58,7 +58,7 @@ async def update_email_preferences(
     for field, value in update_data.items():
         setattr(preference, field, value)
 
-    preference.updated_at = datetime.utcnow()
+    preference.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(preference)
 
@@ -88,7 +88,7 @@ async def unsubscribe_from_emails(request: UnsubscribeRequest, db: Session = Dep
         )
 
     # Mark as unsubscribed
-    preference.unsubscribed_at = datetime.utcnow()
+    preference.unsubscribed_at = datetime.now(timezone.utc)
     if not preference.unsubscribe_token:
         preference.unsubscribe_token = secrets.token_urlsafe(32)
 

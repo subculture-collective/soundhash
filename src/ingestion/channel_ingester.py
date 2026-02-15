@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from config.logging_config import create_section_logger, get_progress_logger
@@ -304,7 +304,7 @@ class ChannelIngester:
             video_progress.complete()
 
             # Update channel last processed time
-            channel.last_processed = datetime.utcnow()
+            channel.last_processed = datetime.now(timezone.utc)
             video_repo.session.commit()
 
             self.logger.info(
@@ -343,7 +343,7 @@ class ChannelIngester:
         video.like_count = video_info.get("like_count")
         if video_info.get("duration") and not video.duration:
             video.duration = video_info.get("duration")
-        video.updated_at = datetime.utcnow()
+        video.updated_at = datetime.now(timezone.utc)
         repo.session.commit()
 
     def _parse_upload_date(self, upload_date_str: str | None) -> datetime | None:
@@ -446,7 +446,7 @@ class VideoJobProcessor:
                 return
 
             # Mark video as processing started
-            video.processing_started = datetime.utcnow()
+            video.processing_started = datetime.now(timezone.utc)
             video_repo.session.commit()
 
             job_repo.update_job_status(job.id, "running", 0.2, "Downloading and segmenting audio")

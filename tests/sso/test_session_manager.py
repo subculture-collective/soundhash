@@ -1,7 +1,7 @@
 """Tests for SSO session manager."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -142,7 +142,7 @@ def test_get_session_expired(
     )
 
     # Manually expire the session
-    session.expires_at = datetime.utcnow() - timedelta(hours=1)
+    session.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
     db_session.commit()
 
     # Should return None for expired session
@@ -282,7 +282,7 @@ def test_cleanup_expired_sessions(
     )
 
     # Expire one session
-    session1.expires_at = datetime.utcnow() - timedelta(hours=1)
+    session1.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
     db_session.commit()
 
     # Cleanup expired sessions
