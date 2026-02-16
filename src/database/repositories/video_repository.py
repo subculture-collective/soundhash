@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..models import AudioFingerprint, Channel, MatchResult, Video
+from .helpers import db_retry
 
 logger = logging.getLogger(__name__)
 

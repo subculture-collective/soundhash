@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..models import Webhook, WebhookDelivery, WebhookEvent
+from .helpers import db_retry
 
 logger = logging.getLogger(__name__)
 
@@ -442,30 +443,3 @@ class WebhookRepository:
 
         return query.order_by(WebhookDelivery.created_at.desc()).limit(limit).all()
 
-
-@contextmanager
-def get_webhook_repo_session() -> Generator[WebhookRepository, None, None]:
-    """
-    Context manager for webhook repository with automatic session cleanup.
-
-    Usage:
-        with get_webhook_repo_session() as webhook_repo:
-            webhook = webhook_repo.create_webhook(...)
-        # Session automatically committed and closed
-
-    Yields:
-        WebhookRepository instance with managed session
-    """
-    session = db_manager.get_session()
-    try:
-        yield WebhookRepository(session)
-        session.commit()
-    except SQLAlchemyError as e:
-        session.rollback()
-        logger.error(f"Webhook repository session error, rolling back: {e}")
-        raise
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()

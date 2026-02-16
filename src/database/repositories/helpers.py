@@ -9,8 +9,8 @@ from typing import Any, TypeVar
 from sqlalchemy.exc import DBAPIError, IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from .connection import db_manager
-from .models import AudioFingerprint, Channel, MatchResult, ProcessingJob, Video
+from ..connection import db_manager
+from ..models import AudioFingerprint, Channel, MatchResult, ProcessingJob, Video
 
 logger = logging.getLogger(__name__)
 
@@ -131,3 +131,32 @@ def get_job_repo_session() -> Generator["JobRepository", None, None]:
     """
     with get_db_session() as session:
         yield JobRepository(session)
+
+
+@contextmanager
+def get_webhook_repo_session() -> Generator["WebhookRepository", None, None]:
+    """
+    Context manager for webhook repository with automatic session cleanup.
+
+    Usage:
+        with get_webhook_repo_session() as webhook_repo:
+            webhook = webhook_repo.create_webhook(...)
+        # Session automatically committed and closed
+
+    Yields:
+        WebhookRepository instance with managed session
+    """
+    session = db_manager.get_session()
+    try:
+        from .webhook_repository import WebhookRepository
+        yield WebhookRepository(session)
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Webhook repository session error, rolling back: {e}")
+        raise
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
