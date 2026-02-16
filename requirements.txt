@@ -1,3 +1,14 @@
+# ⚠️ DEPRECATED: Dependencies have been migrated to pyproject.toml
+#
+# Please install dependencies using one of the following commands:
+#   - pip install -e .                    # Install package with core dependencies
+#   - pip install -e .[dev]               # Install with development dependencies
+#   - pip install -e .[docs]              # Install with documentation dependencies
+#   - pip install -e .[dev,docs]          # Install with both dev and docs dependencies
+#
+# This file is kept for backwards compatibility and will be removed in a future release.
+# See pyproject.toml [project.dependencies] for the current dependency list.
+
 # Core dependencies
 psycopg[binary]==3.2.11
 sqlalchemy==2.0.44

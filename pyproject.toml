@@ -1,3 +1,146 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soundhash"
+version = "1.0.0"
+description = "Audio fingerprinting and matching system for video clips across social media platforms"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Subculture Collective"}
+]
+keywords = ["audio", "fingerprinting", "video", "matching", "social-media"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    # Core dependencies
+    "psycopg[binary]==3.2.11",
+    "sqlalchemy==2.0.44",
+    "alembic==1.17.0",
+    "setuptools<81.0.0",
+    
+    # Audio processing
+    "librosa==0.11.0",
+    "scipy==1.16.2",
+    "numpy==2.3.4",
+    "soundfile==0.13.1",
+    "tabulate==0.9.0",
+    
+    # Video processing
+    "yt-dlp==2025.10.14",
+    "ffmpeg-python==0.2.0",
+    
+    # Social media APIs
+    "tweepy==4.16.0",
+    "praw==7.8.1",
+    
+    # Google APIs
+    "google-api-python-client==2.154.0",
+    "google-auth-httplib2==0.2.0",
+    "google-auth-oauthlib==1.2.1",
+    
+    # Web server for OAuth callbacks
+    "fastapi==0.119.0",
+    "uvicorn==0.38.0",
+    "pydantic==2.10.5",
+    "pydantic-settings==2.7.1",
+    "email-validator==2.2.0",
+    
+    # API Authentication & Security
+    "python-jose[cryptography]==3.4.0",
+    "bcrypt==4.2.1",
+    "python-multipart==0.0.20",
+    
+    # Enterprise SSO
+    "python3-saml==1.16.0",
+    "authlib==1.3.2",
+    "python-ldap==3.4.4",
+    "pyotp==2.9.0",
+    
+    # API Rate Limiting
+    "slowapi==0.1.9",
+    
+    # Utilities
+    "python-dotenv==1.1.1",
+    "requests==2.32.5",
+    "python-dateutil==2.9.0.post0",
+    "tqdm==4.67.1",
+    "colorlog==6.10.1",
+    "redis==5.2.1",
+    
+    # CDN & Image Optimization
+    "Pillow==11.0.0",
+    "boto3==1.35.86",
+    "botocore==1.35.86",
+    
+    # Observability
+    "prometheus-client==0.21.1",
+    "opentelemetry-api==1.28.2",
+    "opentelemetry-sdk==1.28.2",
+    "opentelemetry-exporter-jaeger-thrift==1.21.0",
+    "opentelemetry-exporter-otlp==1.28.2",
+    "opentelemetry-instrumentation-sqlalchemy==0.49b2",
+    "sentry-sdk[fastapi]==2.18.0",
+    
+    # Async support
+    "aiohttp==3.13.1",
+    
+    # Email services
+    "sendgrid==6.11.0",
+    "jinja2==3.1.5",
+    
+    # Payment processing
+    "stripe==11.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Development tools
+    "ruff>=0.1.0",
+    "black>=24.0.0",
+    "mypy>=1.0.0",
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "pre-commit>=3.6.0",
+    
+    # Type stubs
+    "types-requests>=2.31.0",
+    "types-python-dateutil>=2.8.19",
+    
+    # Testing utilities (from main requirements.txt)
+    "httpx==0.28.1",
+    "flake8==7.3.0",
+]
+
+docs = [
+    # Documentation dependencies
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.5.47",
+    "mkdocs-gen-files==0.5.0",
+    "mkdocs-literate-nav==0.6.1",
+    "mkdocs-section-index==0.3.9",
+    "pymdown-extensions==10.12",
+    "mkdocs-swagger-ui-tag==0.6.10",
+    "mkdocs-mermaid2-plugin==1.1.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/subculture-collective/soundhash"
+Documentation = "https://subculture-collective.github.io/soundhash/"
+Repository = "https://github.com/subculture-collective/soundhash"
+Issues = "https://github.com/subculture-collective/soundhash/issues"
+
 [tool.black]
 line-length = 100
 target-version = ['py310', 'py311', 'py312']
