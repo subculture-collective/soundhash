@@ -260,7 +260,13 @@ python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 2. Install dependencies
-pip install -r requirements.txt
+pip install -e .                    # Core dependencies
+# or for development:
+pip install -e .[dev]               # With dev tools
+# or for documentation:
+pip install -e .[docs]              # With docs tools
+# or all together:
+pip install -e .[dev,docs]          # With dev and docs tools
 
 # 3. Install system dependencies
 # Ubuntu/Debian:
@@ -732,7 +738,7 @@ docker compose exec postgres dropdb -U soundhash soundhash_test
 
 2. **Reinstall dependencies**:
    ```bash
-   pip install -r requirements.txt --upgrade
+   pip install -e .[dev] --upgrade
    ```
 
 3. **Check Python version** (requires 3.12+):

@@ -1,3 +1,11 @@
+# ⚠️ DEPRECATED: Documentation dependencies have been migrated to pyproject.toml
+#
+# Please install dependencies using:
+#   pip install -e .[docs]
+#
+# This file is kept for backwards compatibility and will be removed in a future release.
+# See pyproject.toml [project.optional-dependencies.docs] for the current dependency list.
+
 # Documentation dependencies
 mkdocs==1.6.1
 mkdocs-material==9.5.47
