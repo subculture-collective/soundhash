@@ -32,6 +32,9 @@ class VideoProcessor:
     Uses YouTube Data API for metadata when available, falls back to yt-dlp for audio download.
     """
 
+    # Test URL for cookie validation (short video that's unlikely to be removed)
+    _COOKIE_TEST_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
     def __init__(
     self,
     temp_dir: str | None = None,
@@ -106,7 +109,7 @@ class VideoProcessor:
                         "chrome",
                         "--simulate",
                         "--quiet",
-                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        self._COOKIE_TEST_URL,
                     ]
                     result = subprocess.run(test_cmd, capture_output=True, timeout=5)
                     if result.returncode == 0:
@@ -133,7 +136,7 @@ class VideoProcessor:
                         "firefox",
                         "--simulate",
                         "--quiet",
-                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        self._COOKIE_TEST_URL,
                     ]
                     result = subprocess.run(test_cmd, capture_output=True, timeout=5)
                     if result.returncode == 0:
