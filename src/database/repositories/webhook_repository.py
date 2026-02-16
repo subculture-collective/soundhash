@@ -52,7 +52,6 @@ class WebhookRepository:
         Returns:
             Created Webhook object
         """
-        from .models import Webhook
 
         webhook = Webhook(
             user_id=user_id,
@@ -79,7 +78,6 @@ class WebhookRepository:
         Returns:
             Webhook object or None if not found
         """
-        from .models import Webhook
 
         return self.session.query(Webhook).filter(Webhook.id == webhook_id).first()
 
@@ -94,7 +92,6 @@ class WebhookRepository:
         Returns:
             List of Webhook objects
         """
-        from .models import Webhook
 
         query = self.session.query(Webhook).filter(Webhook.user_id == user_id)
         if is_active is not None:
@@ -126,7 +123,6 @@ class WebhookRepository:
         Returns:
             Updated Webhook object or None if not found
         """
-        from .models import Webhook
 
         webhook = self.session.query(Webhook).filter(Webhook.id == webhook_id).first()
         if not webhook:
@@ -160,7 +156,6 @@ class WebhookRepository:
         Returns:
             True if deleted, False if not found
         """
-        from .models import Webhook
 
         webhook = self.session.query(Webhook).filter(Webhook.id == webhook_id).first()
         if not webhook:
@@ -185,7 +180,6 @@ class WebhookRepository:
             success: Whether the delivery was successful
             delivery_time: Time of delivery
         """
-        from .models import Webhook
 
         webhook = self.session.query(Webhook).filter(Webhook.id == webhook_id).first()
         if not webhook:
@@ -213,7 +207,6 @@ class WebhookRepository:
         Returns:
             List of active Webhook objects
         """
-        from .models import Webhook
 
         query = self.session.query(Webhook).filter(
             Webhook.is_active == True,  # noqa: E712
@@ -247,7 +240,6 @@ class WebhookRepository:
         Returns:
             Created WebhookEvent object
         """
-        from .models import WebhookEvent
 
         event = WebhookEvent(
             tenant_id=tenant_id,
@@ -268,7 +260,6 @@ class WebhookRepository:
         Args:
             event_id: Event ID
         """
-        from .models import WebhookEvent
 
         event = self.session.query(WebhookEvent).filter(WebhookEvent.id == event_id).first()
         if event:
@@ -311,7 +302,6 @@ class WebhookRepository:
         Returns:
             Created WebhookDelivery object
         """
-        from .models import WebhookDelivery
 
         delivery = WebhookDelivery(
             webhook_id=webhook_id,
@@ -361,7 +351,6 @@ class WebhookRepository:
         Returns:
             Updated WebhookDelivery object or None
         """
-        from .models import WebhookDelivery
 
         delivery = self.session.query(WebhookDelivery).filter(WebhookDelivery.id == delivery_id).first()
         if not delivery:
@@ -398,7 +387,6 @@ class WebhookRepository:
         Returns:
             List of WebhookDelivery objects
         """
-        from .models import WebhookDelivery
 
         now = datetime.now(timezone.utc)
         return (
@@ -430,7 +418,6 @@ class WebhookRepository:
         Returns:
             List of WebhookDelivery objects
         """
-        from .models import WebhookDelivery
 
         query = self.session.query(WebhookDelivery)
 
