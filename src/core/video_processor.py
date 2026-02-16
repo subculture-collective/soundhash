@@ -67,6 +67,9 @@ class VideoProcessor:
         }
         self.logger = create_section_logger(__name__)
 
+        # Cache browser cookie detection result (None = not checked, False = not available, str = browser name)
+        self._cached_cookies_browser: str | None | bool = None
+
         # Try to initialize YouTube API service if not provided
         if not self.youtube_service and YOUTUBE_API_AVAILABLE:
             try:
@@ -75,6 +78,104 @@ class VideoProcessor:
             except Exception as e:
                 self.logger.warning(f"Failed to initialize YouTube API service: {e}")
                 self.logger.info("Will fall back to yt-dlp for all operations")
+
+    def _detect_browser_cookies(self) -> str | None:
+        """
+        Detect and cache which browser cookies are available.
+        Returns browser name ('chrome', 'firefox') or None if unavailable.
+        This method is called once and cached to avoid repeated filesystem checks.
+        """
+        if self._cached_cookies_browser is not None:
+            # Return cached result (False becomes None for external callers)
+            return None if self._cached_cookies_browser is False else self._cached_cookies_browser
+
+        home = Path.home()
+        
+        # Test Chrome cookies first (check if browser data directory exists)
+        chrome_paths = [
+            home / ".config/google-chrome",
+            home / ".config/chromium",
+        ]
+        for chrome_path in chrome_paths:
+            if chrome_path.exists():
+                try:
+                    test_cmd = [
+                        "yt-dlp",
+                        "--cookies-from-browser",
+                        "chrome",
+                        "--simulate",
+                        "--quiet",
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    ]
+                    result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                    if result.returncode == 0:
+                        self._cached_cookies_browser = "chrome"
+                        return "chrome"
+                except Exception:
+                    pass
+                break
+
+        # Try Firefox if Chrome not available or failed
+        firefox_paths = [
+            home / ".mozilla/firefox",
+            home / "snap/firefox/common/.mozilla/firefox",
+            home / ".var/app/org.mozilla.firefox/.mozilla/firefox",
+        ]
+        for firefox_path in firefox_paths:
+            if firefox_path.exists():
+                try:
+                    test_cmd = [
+                        "yt-dlp",
+                        "--cookies-from-browser",
+                        "firefox",
+                        "--simulate",
+                        "--quiet",
+                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    ]
+                    result = subprocess.run(test_cmd, capture_output=True, timeout=5)
+                    if result.returncode == 0:
+                        self._cached_cookies_browser = "firefox"
+                        return "firefox"
+                except Exception:
+                    pass
+                break
+
+        # No browser cookies available
+        self.logger.debug("No browser cookies available or accessible")
+        self._cached_cookies_browser = False
+        return None
+
+    def _parse_video_info_output(self, output: str) -> dict[str, Any] | None:
+        """
+        Parse yt-dlp video info output in pipe-delimited format.
+        Expected format: id|title|description|duration|upload_date|view_count|like_count|channel|channel_id|thumbnail|webpage_url
+        """
+        if not output.strip():
+            return None
+        
+        parts = output.strip().split("|")
+        if len(parts) < 11:
+            return None
+        
+        return {
+            "id": parts[0] if parts[0] != "NA" else None,
+            "title": parts[1] if parts[1] != "NA" else None,
+            "description": parts[2] if parts[2] != "NA" else None,
+            "duration": (
+                int(parts[3]) if parts[3] != "NA" and parts[3].isdigit() else None
+            ),
+            "upload_date": parts[4] if parts[4] != "NA" else None,
+            "view_count": (
+                int(parts[5]) if parts[5] != "NA" and parts[5].isdigit() else None
+            ),
+            "like_count": (
+                int(parts[6]) if parts[6] != "NA" and parts[6].isdigit() else None
+            ),
+            "channel": parts[7] if parts[7] != "NA" else None,
+            "channel_id": parts[8] if parts[8] != "NA" else None,
+            "thumbnail": parts[9] if parts[9] != "NA" else None,
+            "webpage_url": parts[10] if parts[10] != "NA" else None,
+        }
 
     def download_video_info(self, url: str) -> dict[str, Any] | None:
         """
@@ -106,80 +207,17 @@ class VideoProcessor:
                 if proxy:
                     cmd.extend(["--proxy", proxy])
 
-            # Try to use cookies from browser if available
-            try:
-                # Test Chrome cookies first (only if file exists)
-                chrome_paths = [
-                    "/home/onnwee/.config/google-chrome",
-                    "/home/onnwee/.config/chromium",
-                ]
-                for chrome_path in chrome_paths:
-                    if os.path.exists(chrome_path):
-                        test_cmd = [
-                            "yt-dlp",
-                            "--cookies-from-browser",
-                            "chrome",
-                            "--simulate",
-                            "--quiet",
-                            url,
-                        ]
-                        test_result = subprocess.run(test_cmd, capture_output=True, timeout=5)
-                        if test_result.returncode == 0:
-                            cmd.extend(["--cookies-from-browser", "chrome"])
-                            break
-                else:
-                    # Try Firefox if Chrome not available or failed
-                    firefox_paths = [
-                        "/home/onnwee/.mozilla/firefox",
-                        "/home/onnwee/snap/firefox/common/.mozilla/firefox",
-                        "/home/onnwee/.var/app/org.mozilla.firefox/.mozilla/firefox",
-                    ]
-                    for firefox_path in firefox_paths:
-                        if os.path.exists(firefox_path):
-                            test_cmd = [
-                                "yt-dlp",
-                                "--cookies-from-browser",
-                                "firefox",
-                                "--simulate",
-                                "--quiet",
-                                url,
-                            ]
-                            test_result = subprocess.run(test_cmd, capture_output=True, timeout=5)
-                            if test_result.returncode == 0:
-                                cmd.extend(["--cookies-from-browser", "firefox"])
-                                break
-            except:
-                # Continue without browser cookies if they're not available
-                self.logger.debug("No browser cookies available or accessible")
+            # Use cached browser cookie detection
+            browser = self._detect_browser_cookies()
+            if browser:
+                cmd.extend(["--cookies-from-browser", browser])
 
             cmd.append(url)
 
             result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
 
-            # Parse the output
-            if result.stdout.strip():
-                parts = result.stdout.strip().split("|")
-                if len(parts) >= 11:
-                    return {
-                        "id": parts[0] if parts[0] != "NA" else None,
-                        "title": parts[1] if parts[1] != "NA" else None,
-                        "description": parts[2] if parts[2] != "NA" else None,
-                        "duration": (
-                            int(parts[3]) if parts[3] != "NA" and parts[3].isdigit() else None
-                        ),
-                        "upload_date": parts[4] if parts[4] != "NA" else None,
-                        "view_count": (
-                            int(parts[5]) if parts[5] != "NA" and parts[5].isdigit() else None
-                        ),
-                        "like_count": (
-                            int(parts[6]) if parts[6] != "NA" and parts[6].isdigit() else None
-                        ),
-                        "channel": parts[7] if parts[7] != "NA" else None,
-                        "channel_id": parts[8] if parts[8] != "NA" else None,
-                        "thumbnail": parts[9] if parts[9] != "NA" else None,
-                        "webpage_url": parts[10] if parts[10] != "NA" else None,
-                    }
-            return None
+            # Parse the output using helper method
+            return self._parse_video_info_output(result.stdout)
         except subprocess.CalledProcessError as e:
             self.logger.error(f"yt-dlp command failed for {url}: {e}")
             if e.stderr:
@@ -774,52 +812,17 @@ class VideoProcessor:
                 "--no-playlist",
             ]
 
-            # Try to use cookies from browser if available
-            try:
-                subprocess.run(
-                    [
-                        "yt-dlp",
-                        "--cookies-from-browser",
-                        "chrome",
-                        "--simulate",
-                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                    ],
-                    check=True,
-                    capture_output=True,
-                    timeout=10,
-                )
-                cmd.extend(["--cookies-from-browser", "chrome"])
-            except:
-                pass
+            # Use cached browser cookie detection
+            browser = self._detect_browser_cookies()
+            if browser:
+                cmd.extend(["--cookies-from-browser", browser])
 
             cmd.append(url)
 
             result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=30)
 
-            # Parse the output
-            if result.stdout.strip():
-                parts = result.stdout.strip().split("|")
-                if len(parts) >= 11:
-                    return {
-                        "id": parts[0] if parts[0] != "NA" else None,
-                        "title": parts[1] if parts[1] != "NA" else None,
-                        "description": parts[2] if parts[2] != "NA" else None,
-                        "duration": (
-                            int(parts[3]) if parts[3] != "NA" and parts[3].isdigit() else None
-                        ),
-                        "upload_date": parts[4] if parts[4] != "NA" else None,
-                        "view_count": (
-                            int(parts[5]) if parts[5] != "NA" and parts[5].isdigit() else None
-                        ),
-                        "like_count": (
-                            int(parts[6]) if parts[6] != "NA" and parts[6].isdigit() else None
-                        ),
-                        "channel": parts[7] if parts[7] != "NA" else None,
-                        "channel_id": parts[8] if parts[8] != "NA" else None,
-                        "thumbnail": parts[9] if parts[9] != "NA" else None,
-                        "webpage_url": parts[10] if parts[10] != "NA" else None,
-                    }
-            return None
+            # Parse the output using helper method
+            return self._parse_video_info_output(result.stdout)
         except subprocess.CalledProcessError as e:
             self.logger.error(f"yt-dlp command failed for {url}: {e}")
             if e.stderr:
@@ -848,23 +851,10 @@ class VideoProcessor:
             if max_results is not None and max_results != float("inf"):
                 cmd.extend(["--playlist-end", str(max_results)])
 
-            # Try to use cookies from browser if available
-            try:
-                subprocess.run(
-                    [
-                        "yt-dlp",
-                        "--cookies-from-browser",
-                        "chrome",
-                        "--simulate",
-                        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                    ],
-                    check=True,
-                    capture_output=True,
-                    timeout=10,
-                )
-                cmd.extend(["--cookies-from-browser", "chrome"])
-            except:
-                pass
+            # Use cached browser cookie detection
+            browser = self._detect_browser_cookies()
+            if browser:
+                cmd.extend(["--cookies-from-browser", browser])
 
             cmd.append(channel_url)
             result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
