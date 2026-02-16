@@ -86,7 +86,7 @@ class VideoProcessor:
     def _detect_browser_cookies(self) -> str | None:
         """
         Detect and cache which browser cookies are available.
-        Returns browser name ('chrome', 'firefox') or None if unavailable.
+        Returns browser name ('chrome', 'chromium', 'firefox') or None if unavailable.
         This method is called once and cached to avoid repeated filesystem checks.
         """
         # Use cached result if already checked (empty string means "checked but unavailable")
@@ -94,34 +94,37 @@ class VideoProcessor:
             return self._cached_cookies_browser if self._cached_cookies_browser else None
 
         home = Path.home()
-        
-        # Test Chrome cookies first (check if browser data directory exists)
-        chrome_paths = [
-            home / ".config/google-chrome",
-            home / ".config/chromium",
+
+        # Note: Browser paths are Linux-specific. Windows/macOS detection not implemented
+        # as this is intended for Linux deployment environments.
+
+        # Test Chrome/Chromium cookies first (check if browser data directory exists)
+        chrome_browsers = [
+            (home / ".config/google-chrome", "chrome"),
+            (home / ".config/chromium", "chromium"),
         ]
-        for chrome_path in chrome_paths:
-            if chrome_path.exists():
+        for browser_path, browser_name in chrome_browsers:
+            if browser_path.exists():
                 try:
                     test_cmd = [
                         "yt-dlp",
                         "--cookies-from-browser",
-                        "chrome",
+                        browser_name,
                         "--simulate",
                         "--quiet",
                         self._COOKIE_TEST_URL,
                     ]
                     result = subprocess.run(test_cmd, capture_output=True, timeout=5)
                     if result.returncode == 0:
-                        self._cached_cookies_browser = "chrome"
-                        return "chrome"
+                        self._cached_cookies_browser = browser_name
+                        return browser_name
                 except subprocess.TimeoutExpired:
-                    self.logger.debug("Chrome cookie test timed out")
+                    self.logger.debug(f"{browser_name} cookie test timed out")
                 except Exception:
                     pass
                 break
 
-        # Try Firefox if Chrome not available or failed
+        # Try Firefox if Chrome/Chromium not available or failed
         firefox_paths = [
             home / ".mozilla/firefox",
             home / "snap/firefox/common/.mozilla/firefox",
