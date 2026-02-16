@@ -58,7 +58,7 @@ dependencies = [
     
     # API Authentication & Security
     "python-jose[cryptography]==3.4.0",
-    "bcrypt==4.2.1",
+    "bcrypt==5.0.0",
     "python-multipart==0.0.20",
     
     # Enterprise SSO
