@@ -79,7 +79,7 @@ opentelemetry-instrumentation-sqlalchemy==0.49b2
 sentry-sdk[fastapi]==2.18.0
 
 # Development
-pytest==8.4.2
+pytest==9.0.2
 black==25.9.0
 flake8==7.3.0
 httpx==0.28.1  # For FastAPI testing
