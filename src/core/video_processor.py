@@ -67,8 +67,9 @@ class VideoProcessor:
         }
         self.logger = create_section_logger(__name__)
 
-        # Cache browser cookie detection result (None = not checked, False = not available, str = browser name)
-        self._cached_cookies_browser: str | None | bool = None
+        # Cache browser cookie detection result
+        # Empty string means "checked but not available", None means "not checked yet"
+        self._cached_cookies_browser: str | None = None
 
         # Try to initialize YouTube API service if not provided
         if not self.youtube_service and YOUTUBE_API_AVAILABLE:
@@ -85,9 +86,9 @@ class VideoProcessor:
         Returns browser name ('chrome', 'firefox') or None if unavailable.
         This method is called once and cached to avoid repeated filesystem checks.
         """
+        # Use cached result if already checked (empty string means "checked but unavailable")
         if self._cached_cookies_browser is not None:
-            # Return cached result (False becomes None for external callers)
-            return None if self._cached_cookies_browser is False else self._cached_cookies_browser
+            return self._cached_cookies_browser if self._cached_cookies_browser else None
 
         home = Path.home()
         
@@ -111,6 +112,8 @@ class VideoProcessor:
                     if result.returncode == 0:
                         self._cached_cookies_browser = "chrome"
                         return "chrome"
+                except subprocess.TimeoutExpired:
+                    self.logger.debug("Chrome cookie test timed out")
                 except Exception:
                     pass
                 break
@@ -136,19 +139,28 @@ class VideoProcessor:
                     if result.returncode == 0:
                         self._cached_cookies_browser = "firefox"
                         return "firefox"
+                except subprocess.TimeoutExpired:
+                    self.logger.debug("Firefox cookie test timed out")
                 except Exception:
                     pass
                 break
 
-        # No browser cookies available
+        # No browser cookies available - cache empty string to indicate "checked but unavailable"
         self.logger.debug("No browser cookies available or accessible")
-        self._cached_cookies_browser = False
+        self._cached_cookies_browser = ""
         return None
 
     def _parse_video_info_output(self, output: str) -> dict[str, Any] | None:
         """
         Parse yt-dlp video info output in pipe-delimited format.
-        Expected format: id|title|description|duration|upload_date|view_count|like_count|channel|channel_id|thumbnail|webpage_url
+        
+        Args:
+            output: Pipe-delimited string from yt-dlp in format:
+                   id|title|description|duration|upload_date|view_count|like_count|channel|channel_id|thumbnail|webpage_url
+        
+        Returns:
+            Dictionary with parsed video information, or None if output is empty/invalid.
+            Fields with value "NA" are converted to None.
         """
         if not output.strip():
             return None
