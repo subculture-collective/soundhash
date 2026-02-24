@@ -37,7 +37,7 @@ dependencies = [
     "tabulate==0.9.0",
     
     # Video processing
-    "yt-dlp==2025.10.14",
+    "yt-dlp==2026.2.21",
     "ffmpeg-python==0.2.0",
     
     # Social media APIs
