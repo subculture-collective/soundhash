@@ -57,7 +57,7 @@ pyotp==2.9.0  # For MFA/TOTP support
 slowapi==0.1.9
 
 # Utilities
-python-dotenv==1.1.1
+python-dotenv==1.2.2
 requests==2.32.5
 python-dateutil==2.9.0.post0
 tqdm==4.67.1
