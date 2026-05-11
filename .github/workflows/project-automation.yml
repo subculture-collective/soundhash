@@ -38,7 +38,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Add issue or PR to project
-        uses: actions/add-to-project@v1.0.2
+        uses: actions/add-to-project@v2.0.0
         with:
           # Update this URL with your actual project number
           # Format: https://github.com/users/USERNAME/projects/PROJECT_NUMBER
